@@ -4,6 +4,28 @@ description: Installs the system libraries Tauri links against on Ubuntu runners
 runs:
   using: composite
   steps:
+    # TEMPORARY: records what the runner image already provides, so a passing
+    # build tells us whether a package is unnecessary or merely preinstalled.
+    - shell: bash
+      run: |
+        echo "=== dpkg state before apt-get install ==="
+        for p in libxdo-dev libssl-dev libwebkit2gtk-4.1-dev \
+                 libappindicator3-dev librsvg2-dev patchelf; do
+          if dpkg -s "$p" >/dev/null 2>&1; then
+            echo "PRESENT  $p"
+          else
+            echo "absent   $p"
+          fi
+        done
+        echo "=== pkg-config before apt-get install ==="
+        for m in libxdo openssl webkit2gtk-4.1; do
+          if pkg-config --exists "$m"; then
+            echo "PRESENT  $m ($(pkg-config --modversion "$m"))"
+          else
+            echo "absent   $m"
+          fi
+        done
+
     # Tauri links against the system WebKitGTK at build time, so even `cargo
     # clippy` and `cargo test` fail without these on a bare Ubuntu runner.
     - shell: bash
@@ -13,6 +35,4 @@ runs:
           libwebkit2gtk-4.1-dev \
           libappindicator3-dev \
           librsvg2-dev \
-          libxdo-dev \
-          libssl-dev \
           patchelf
