@@ -21,7 +21,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run check:ci
+      - run: pnpm run biome ci
 
   typecheck:
     name: TypeScript
@@ -34,7 +34,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run typecheck
+      - run: pnpm run tsc --noEmit
 
   rustfmt:
     name: rustfmt
