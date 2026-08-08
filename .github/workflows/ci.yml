@@ -36,14 +36,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run tsc --noEmit
 
+  # The Rust jobs install no toolchain: rustup ships on the runner and honours
+  # src-tauri/rust-toolchain.toml, installing the pinned version and the
+  # components listed there on the first cargo invocation.
   rustfmt:
     name: rustfmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
       - run: cargo fmt --all --check
         working-directory: src-tauri
 
@@ -53,9 +53,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-tauri-linux
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -68,7 +65,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-tauri-linux
-      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
