@@ -6,8 +6,9 @@ runs:
   steps:
     # Tauri links against the system WebKitGTK at build time, so even `cargo
     # clippy` and `cargo test` fail without these on a bare Ubuntu runner.
-    # This is the package list from the Tauri GitHub Actions guide, minus
-    # xdg-utils, which the opener plugin needs at runtime rather than to build.
+    # Kept identical to the list in the Tauri GitHub Actions guide: trimming it
+    # to whatever today's jobs happen to need would leave a future breakage
+    # looking like a Tauri regression rather than a local deviation.
     - shell: bash
       run: |
         sudo apt-get update
@@ -15,4 +16,5 @@ runs:
           libwebkit2gtk-4.1-dev \
           libappindicator3-dev \
           librsvg2-dev \
-          patchelf
+          patchelf \
+          xdg-utils
