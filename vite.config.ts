@@ -10,7 +10,9 @@ export default defineConfig(async () => ({
 
 	test: {
 		environment: "jsdom",
-		setupFiles: ["./vitest.setup.ts"],
+		// Testing Library unmounts each render only when it finds a global
+		// afterEach; without this it leaks the DOM between test cases.
+		globals: true,
 	},
 
 	// Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
