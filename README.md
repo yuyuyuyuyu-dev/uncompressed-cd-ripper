@@ -1,7 +1,15 @@
-# Tauri + React + Typescript
+# Uncompressed CD Ripper
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+This app rips CDs without compression. It also supports automatic metadata lookup, secure ripping (reading each track multiple times and comparing the results to verify the ripped data), and AccurateRip.
 
-## Recommended IDE Setup
+Currently the only supported format is `FLAC Uncompressed`.
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+TODO: screenshots
+
+## Installation
+
+TODO
+
+## License
+
+TODO

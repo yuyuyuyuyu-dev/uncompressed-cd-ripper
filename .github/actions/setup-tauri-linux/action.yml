@@ -1,0 +1,20 @@
+name: Setup Tauri (Linux)
+description: Installs the system libraries Tauri links against on Ubuntu runners.
+
+runs:
+  using: composite
+  steps:
+    # Tauri links against the system WebKitGTK at build time, so even `cargo
+    # clippy` and `cargo test` fail without these on a bare Ubuntu runner.
+    # Kept identical to the list in the Tauri GitHub Actions guide: trimming it
+    # to whatever today's jobs happen to need would leave a future breakage
+    # looking like a Tauri regression rather than a local deviation.
+    - shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libwebkit2gtk-4.1-dev \
+          libappindicator3-dev \
+          librsvg2-dev \
+          patchelf \
+          xdg-utils
