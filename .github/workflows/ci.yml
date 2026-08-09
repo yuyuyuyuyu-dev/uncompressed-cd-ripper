@@ -83,3 +83,61 @@ jobs:
           workspaces: src-tauri
       - run: cargo test --all-features
         working-directory: src-tauri
+
+  file-side-effects:
+    name: should not create, modify or delete unrelated files or directories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/docker-diff-allowlist
+        with:
+          # Installing the toolchain here rather than in `run` keeps it out of
+          # the diff, which then covers running the tests and nothing else.
+          setup: |
+            apt-get update
+            # Verbatim from the Tauri Linux prerequisites. Unlike the list in
+            # .github/actions/setup-tauri-linux, which only tops up a runner
+            # image, this one targets a bare system.
+            apt-get install --yes \
+              libwebkit2gtk-4.1-dev \
+              build-essential \
+              curl \
+              wget \
+              file \
+              libxdo-dev \
+              libssl-dev \
+              libayatana-appindicator3-dev \
+              librsvg2-dev
+            # A bare Ubuntu image ships no CA bundle, which every download
+            # below needs.
+            apt-get install --yes ca-certificates
+            rm -rf /var/lib/apt/lists/*
+            export VOLTA_HOME=/usr/local/volta
+            export PATH="$VOLTA_HOME/bin:$PATH"
+            curl --proto '=https' --tlsv1.2 --silent --show-error --fail https://get.volta.sh \
+              | bash -s -- --skip-setup
+            # Volta fetches the Node pinned in package.json on the first call,
+            # so the version stays declared in one place.
+            node --version
+            # Volta shims node but not corepack, and corepack is what keeps
+            # pnpm on the version pinned by the packageManager field. Enabling
+            # it into Volta's bin directory is what puts pnpm on PATH for the
+            # test run; corepack itself never gets a shim, hence the full paths.
+            node_bin="$(dirname "$(volta which node)")"
+            "$node_bin/corepack" enable --install-directory "$VOLTA_HOME/bin"
+            "$node_bin/corepack" install
+            pnpm install --frozen-lockfile
+            curl --proto '=https' --tlsv1.2 --silent --show-error --fail https://sh.rustup.rs \
+              | sh -s -- -y --no-modify-path --default-toolchain none
+            export PATH="$HOME/.cargo/bin:$PATH"
+            cd src-tauri
+            cargo fetch --locked
+          run: |
+            export VOLTA_HOME=/usr/local/volta
+            export PATH="$VOLTA_HOME/bin:$HOME/.cargo/bin:$PATH"
+            pnpm run vitest run
+            cd src-tauri
+            cargo test --all-features
+          # Measured against a real run: every path the two suites write sits
+          # below the working directory, so nothing outside it is allowed.
+          allowed-paths: ""
