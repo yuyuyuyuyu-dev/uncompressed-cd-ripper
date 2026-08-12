@@ -28,12 +28,16 @@ function pageLightness() {
 	};
 }
 
+// Rendering App is what puts the app in the running state these test cases
+// describe. The colours below come from the stylesheet App pulls in rather
+// than from anything it renders, which is the point: dropping that import
+// leaves the page unthemed and every case here failing.
 test("should use the light theme when the operating system prefers a light color scheme", async () => {
 	// Arrange
-	await emulateOperatingSystemColorScheme("light");
+	await render(<App />);
 
 	// Act
-	await render(<App />);
+	await emulateOperatingSystemColorScheme("light");
 
 	// Assert
 	const { background, text } = pageLightness();
@@ -42,10 +46,10 @@ test("should use the light theme when the operating system prefers a light color
 
 test("should use the dark theme when the operating system prefers a dark color scheme", async () => {
 	// Arrange
-	await emulateOperatingSystemColorScheme("dark");
+	await render(<App />);
 
 	// Act
-	await render(<App />);
+	await emulateOperatingSystemColorScheme("dark");
 
 	// Assert
 	const { background, text } = pageLightness();
@@ -54,8 +58,8 @@ test("should use the dark theme when the operating system prefers a dark color s
 
 test("should follow the operating system switching to a dark color scheme while running", async () => {
 	// Arrange
-	await emulateOperatingSystemColorScheme("light");
 	await render(<App />);
+	await emulateOperatingSystemColorScheme("light");
 	const before = pageLightness().background;
 
 	// Act
