@@ -1,4 +1,5 @@
 import react from "@vitejs/plugin-react";
+import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 // @ts-expect-error process is a nodejs global
@@ -9,7 +10,12 @@ export default defineConfig(async () => ({
 	plugins: [react()],
 
 	test: {
-		environment: "jsdom",
+		browser: {
+			enabled: true,
+			headless: true,
+			provider: playwright(),
+			instances: [{ browser: "chromium" }],
+		},
 		// Testing Library unmounts each render only when it finds a global
 		// afterEach; without this it leaks the DOM between test cases.
 		globals: true,

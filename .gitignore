@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Screenshots Vitest writes when a browser test case fails
+.vitest-attachments
+__screenshots__
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
