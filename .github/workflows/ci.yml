@@ -47,6 +47,7 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm run vitest run
 
   # The Rust jobs install no toolchain: rustup ships on the runner and honours
@@ -127,6 +128,9 @@ jobs:
             "$node_bin/corepack" enable --install-directory "$VOLTA_HOME/bin"
             "$node_bin/corepack" install
             pnpm install --frozen-lockfile
+            # The browser Vitest drives. Downloading it here rather than in
+            # `run` keeps the download itself out of the diff.
+            pnpm exec playwright install --with-deps chromium
             curl --proto '=https' --tlsv1.2 --silent --show-error --fail https://sh.rustup.rs \
               | sh -s -- -y --no-modify-path --default-toolchain none
             export PATH="$HOME/.cargo/bin:$PATH"
@@ -138,6 +142,9 @@ jobs:
             pnpm run vitest run
             cd src-tauri
             cargo test --all-features
-          # Measured against a real run: every path the two suites write sits
-          # below the working directory, so nothing outside it is allowed.
-          allowed-paths: ""
+          # Measured against a real run: the two suites write below the working
+          # directory apart from these two caches, which the browser and
+          # fontconfig fill in the first time the browser starts.
+          allowed-paths: |
+            /root/.cache/ms-playwright
+            /var/cache/fontconfig
