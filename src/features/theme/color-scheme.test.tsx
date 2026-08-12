@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { cdp } from "vitest/browser";
-
-import "@/index.css";
+import { render } from "vitest-browser-react";
+import App from "@/App";
 
 async function emulateOperatingSystemColorScheme(value: "light" | "dark") {
 	await cdp().send("Emulation.setEmulatedMedia", {
@@ -11,7 +11,7 @@ async function emulateOperatingSystemColorScheme(value: "light" | "dark") {
 
 // The palette is written in oklch, whose first component is the lightness.
 // Comparing lightnesses states "this theme is the dark one" without pinning
-// the test to the exact colours.
+// the test cases to the exact colours.
 function lightnessOf(color: string) {
 	const lightness = /^oklch\(([\d.]+)/.exec(color)?.[1];
 	if (lightness === undefined) {
@@ -32,6 +32,9 @@ test("should use the light theme when the operating system prefers a light color
 	// Arrange
 	await emulateOperatingSystemColorScheme("light");
 
+	// Act
+	await render(<App />);
+
 	// Assert
 	const { background, text } = pageLightness();
 	expect(background).toBeGreaterThan(text);
@@ -41,6 +44,9 @@ test("should use the dark theme when the operating system prefers a dark color s
 	// Arrange
 	await emulateOperatingSystemColorScheme("dark");
 
+	// Act
+	await render(<App />);
+
 	// Assert
 	const { background, text } = pageLightness();
 	expect(background).toBeLessThan(text);
@@ -49,6 +55,7 @@ test("should use the dark theme when the operating system prefers a dark color s
 test("should follow the operating system switching to a dark color scheme while running", async () => {
 	// Arrange
 	await emulateOperatingSystemColorScheme("light");
+	await render(<App />);
 	const before = pageLightness().background;
 
 	// Act

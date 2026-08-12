@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import reactLogo from "./assets/react.svg";
+import "./index.css";
 
 function App() {
 	const [greetMsg, setGreetMsg] = useState("");
