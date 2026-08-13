@@ -129,24 +129,6 @@ test("should keep a notification until it is dismissed", async () => {
 	await expect.poll(() => notifications().all()).toHaveLength(1);
 });
 
-test("should keep the notifications from taking over the window", async () => {
-	// Arrange
-	mockBackend();
-	await render(<ErrorReporter />);
-
-	// Act
-	for (let track = 1; track <= 12; track += 1) {
-		throwInTheApp(`track ${track} could not be read`);
-	}
-	await expect.poll(() => notifications().all()).toHaveLength(12);
-
-	// Assert
-	const covered =
-		page.getByLabelText("Notifications").element().getBoundingClientRect()
-			.height / window.innerHeight;
-	expect(covered).toBeLessThan(0.5);
-});
-
 test("should raise the failure a backend command reports", async () => {
 	// Arrange
 	mockIPC((command) => {

@@ -110,8 +110,13 @@ export function ErrorReporter() {
 		<>
 			{/* Nothing dismisses itself. An error that slid away on a timer is one
 			    the user never got the chance to report, which is the whole point
-			    of putting it on screen. */}
-			<Toaster timeout={0} />
+			    of putting it on screen.
+
+			    The limit is what stops a run of failures filling the window: the
+			    stack expands on hover, and five of them is what fits the 800 by
+			    600 the app asks for. Beyond that they wait behind, and the
+			    staircase of edges still says there are more. */}
+			<Toaster limit={5} timeout={0} />
 
 			<Dialog
 				open={showing !== undefined}
