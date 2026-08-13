@@ -58,11 +58,11 @@ pub struct Device {
 }
 
 // Sentry indexes tags and offers them as filters, which contexts and extra do
-// not get, so the two worth filtering by are repeated here.
+// not get. The operating system needs no entry here: Sentry builds an `os` tag
+// out of the context by itself, and repeating it only widens the report.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct Tags {
-    pub os_version: String,
     pub architecture: String,
 }
 
@@ -187,7 +187,6 @@ mod tests {
                 },
             },
             tags: Tags {
-                os_version: "26.6.1".to_owned(),
                 architecture: "aarch64".to_owned(),
             },
             extra: Extra {

@@ -52,7 +52,6 @@ export type OperatingSystem = {
 };
 
 export type Tags = {
-	os_version: string,
 	architecture: string,
 };
 
