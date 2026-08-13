@@ -112,11 +112,10 @@ export function ErrorReporter() {
 			    the user never got the chance to report, which is the whole point
 			    of putting it on screen.
 
-			    The limit is what stops a run of failures filling the window: the
-			    stack expands on hover, and five of them is what fits the 800 by
-			    600 the app asks for. Beyond that they wait behind, and the
-			    staircase of edges still says there are more. */}
-			<Toaster limit={5} timeout={0} />
+			    How many show at once is left at the default, which turned out to
+			    be the number the animation stays smooth at. The rest wait behind,
+			    and the staircase of their edges still says there are more. */}
+			<Toaster timeout={0} />
 
 			<Dialog
 				open={showing !== undefined}
