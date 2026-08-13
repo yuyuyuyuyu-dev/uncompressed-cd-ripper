@@ -2,7 +2,8 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import type { Environment, ErrorReport } from "@/bindings";
+import { commands, type Environment, type ErrorReport } from "@/bindings";
+import { expectOk } from "./backend";
 import { ErrorReporter } from "./ErrorReporter";
 import { buildErrorReport } from "./error-report";
 // The component is only ever on screen inside the app, which is where the
@@ -89,6 +90,28 @@ test("should send the error report from the detail screen", async () => {
 	// What arrives is the report that was on screen, rather than merely a
 	// report: the whole point of showing it first.
 	await expect.poll(() => sent).toEqual([onScreen]);
+});
+
+test("should raise the failure a backend command reports", async () => {
+	// Arrange
+	mockIPC((command) => {
+		if (command === "environment") {
+			return environment;
+		}
+		throw "the drive is not ready";
+	});
+	const report = buildErrorReport({
+		thrown: new TypeError("anything"),
+		environment,
+		occurredAt: new Date(),
+		comment: "",
+	});
+
+	// Act
+	const raised = expectOk(commands.sendErrorReport(report));
+
+	// Assert
+	await expect(raised).rejects.toThrow("the drive is not ready");
 });
 
 test("should build the error report from nothing but the error message, the error type, the stack trace, the time it occurred, the application version, the operating system name and version, the architecture and what the user wrote", () => {

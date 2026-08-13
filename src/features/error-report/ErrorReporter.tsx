@@ -22,6 +22,7 @@ export function ErrorReporter() {
 	const [environment, setEnvironment] = useState<Environment>();
 	const [comment, setComment] = useState("");
 	const [showingDetail, setShowingDetail] = useState(false);
+	const [failedToSend, setFailedToSend] = useState<string>();
 
 	useEffect(() => {
 		commands.environment().then(setEnvironment);
@@ -32,6 +33,7 @@ export function ErrorReporter() {
 			setCaught({ thrown, occurredAt: new Date() });
 			setComment("");
 			setShowingDetail(false);
+			setFailedToSend(undefined);
 		};
 		const onError = (event: ErrorEvent) =>
 			catchThrown(event.error ?? event.message);
@@ -116,10 +118,22 @@ export function ErrorReporter() {
 						</pre>
 					</section>
 
-					<DialogFooter>
+					<DialogFooter className="items-center gap-3">
+						{failedToSend !== undefined && (
+							<p className="mr-auto text-destructive text-sm">{failedToSend}</p>
+						)}
 						<Button
 							onClick={async () => {
-								await commands.sendErrorReport(report);
+								// The one backend failure that must not travel the usual
+								// path: reporting that the reporter failed would ask to
+								// send a report whose sending is what just failed.
+								const result = await commands.sendErrorReport(report);
+
+								if (result.status === "error") {
+									setFailedToSend(result.error);
+									return;
+								}
+
 								dismiss();
 							}}
 						>
