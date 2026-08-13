@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { commands, type Environment } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,10 +10,10 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { buildErrorReport, newEventId } from "./error-report";
+import { Toaster, toast } from "@/components/ui/toast";
+import { buildErrorReport, describe, newEventId } from "./error-report";
 
 type Caught = {
-	id: number;
 	eventId: string;
 	thrown: unknown;
 	occurredAt: Date;
@@ -22,13 +22,11 @@ type Caught = {
 };
 
 export function ErrorReporter() {
-	// Every error keeps its own notification rather than replacing the one
-	// before it. A disc whose tracks fail one after another should look like
-	// several problems, because that is what it is.
-	const [caught, setCaught] = useState<Caught[]>([]);
+	// Keyed by the identifier the toast manager hands back, which is what ties
+	// a notification on screen to the report behind it.
+	const [caught, setCaught] = useState(new Map<string, Caught>());
 	const [environment, setEnvironment] = useState<Environment>();
-	const [showingDetailOf, setShowingDetailOf] = useState<number>();
-	const nextId = useRef(0);
+	const [showingDetailOf, setShowingDetailOf] = useState<string>();
 
 	useEffect(() => {
 		commands.environment().then(setEnvironment);
@@ -36,22 +34,26 @@ export function ErrorReporter() {
 
 	useEffect(() => {
 		const catchThrown = (thrown: unknown) => {
-			// Read outside the update rather than inside it. React runs these in
-			// a batch, by which time the counter has moved on for every one of
-			// them, and they would all end up sharing the last number.
-			nextId.current += 1;
-			const id = nextId.current;
+			const { type, value } = describe(thrown);
+			const occurredAt = new Date();
+			const id = toast.add({
+				type: "error",
+				title: type,
+				description: value,
+				actionProps: {
+					children: "Details",
+					onClick: () => setShowingDetailOf(id),
+				},
+			});
 
-			setCaught((caught) => [
-				...caught,
-				{
-					id,
+			setCaught((caught) =>
+				new Map(caught).set(id, {
 					eventId: newEventId(),
 					thrown,
-					occurredAt: new Date(),
+					occurredAt,
 					comment: "",
-				},
-			]);
+				}),
+			);
 		};
 		const onError = (event: ErrorEvent) =>
 			catchThrown(event.error ?? event.message);
@@ -67,83 +69,49 @@ export function ErrorReporter() {
 		};
 	}, []);
 
-	if (environment === undefined) {
-		return null;
-	}
+	const update = (id: string, change: Partial<Caught>) =>
+		setCaught((caught) => {
+			const one = caught.get(id);
 
-	const update = (id: number, change: Partial<Caught>) =>
-		setCaught((caught) =>
-			caught.map((one) => (one.id === id ? { ...one, ...change } : one)),
-		);
+			return one === undefined
+				? caught
+				: new Map(caught).set(id, { ...one, ...change });
+		});
 
-	const dismiss = (id: number) => {
-		setCaught((caught) => caught.filter((one) => one.id !== id));
+	const dismiss = (id: string) => {
+		toast.close(id);
+		setCaught((caught) => {
+			const without = new Map(caught);
+			without.delete(id);
+
+			return without;
+		});
 		setShowingDetailOf(undefined);
 	};
 
-	const dismissAll = () => {
-		setCaught([]);
-		setShowingDetailOf(undefined);
-	};
+	const showing =
+		showingDetailOf === undefined ? undefined : caught.get(showingDetailOf);
 
 	// Rebuilt on every keystroke so that the text on screen is derived from the
 	// same value that the send button hands over. Showing one and sending
 	// another is the one way this screen could lie.
-	const reportFor = (one: Caught) =>
-		buildErrorReport({
-			eventId: one.eventId,
-			thrown: one.thrown,
-			environment,
-			occurredAt: one.occurredAt,
-			comment: one.comment,
-		});
-
-	const showing = caught.find((one) => one.id === showingDetailOf);
+	const report =
+		showing === undefined || environment === undefined
+			? undefined
+			: buildErrorReport({
+					eventId: showing.eventId,
+					thrown: showing.thrown,
+					environment,
+					occurredAt: showing.occurredAt,
+					comment: showing.comment,
+				});
 
 	return (
 		<>
-			{/* Kept to a share of the window and scrolled beyond it. Keeping every
-			    error was the point, but a run of them growing until the app is
-			    behind a wall of notices leaves nothing to go back to. */}
-			<section
-				aria-label="Errors"
-				// Hidden while a detail screen is up, where it would otherwise sit
-				// on top of the very dialog it opened.
-				hidden={caught.length === 0 || showingDetailOf !== undefined}
-				className="fixed inset-x-0 bottom-0 z-40 flex max-h-[40vh] flex-col border-t bg-card text-card-foreground"
-			>
-				{caught.length > 1 && (
-					<div className="flex items-center gap-3 border-b px-4 py-2">
-						<p className="flex-1 text-left text-sm">{caught.length} errors</p>
-						<Button variant="ghost" onClick={dismissAll}>
-							Dismiss all
-						</Button>
-					</div>
-				)}
-
-				<div className="overflow-y-auto">
-					{caught.map((one) => (
-						<div
-							key={one.id}
-							role="alert"
-							className="flex items-center gap-3 border-b p-4 text-left last:border-b-0"
-						>
-							<p className="min-w-0 flex-1 truncate text-sm">
-								{reportFor(one).exception.values[0].value}
-							</p>
-							<Button
-								variant="outline"
-								onClick={() => setShowingDetailOf(one.id)}
-							>
-								Details
-							</Button>
-							<Button variant="ghost" onClick={() => dismiss(one.id)}>
-								Dismiss
-							</Button>
-						</div>
-					))}
-				</div>
-			</section>
+			{/* Nothing dismisses itself. An error that slid away on a timer is one
+			    the user never got the chance to report, which is the whole point
+			    of putting it on screen. */}
+			<Toaster timeout={0} />
 
 			<Dialog
 				open={showing !== undefined}
@@ -160,57 +128,59 @@ export function ErrorReporter() {
 						</DialogDescription>
 					</DialogHeader>
 
-					{showing !== undefined && (
-						<>
-							<Textarea
-								aria-label="What were you doing?"
-								placeholder="What were you doing when this happened?"
-								value={showing.comment}
-								onChange={(event) =>
-									update(showing.id, { comment: event.currentTarget.value })
-								}
-							/>
+					{showing !== undefined &&
+						showingDetailOf !== undefined &&
+						report !== undefined && (
+							<>
+								<Textarea
+									aria-label="What were you doing?"
+									placeholder="What were you doing when this happened?"
+									value={showing.comment}
+									onChange={(event) =>
+										update(showingDetailOf, {
+											comment: event.currentTarget.value,
+										})
+									}
+								/>
 
-							<section
-								aria-label="The error report"
-								className="max-h-72 overflow-auto rounded-lg border bg-muted p-3"
-							>
-								{/* Wrapped rather than scrolled sideways: a consent screen
-								    the user has to drag around is one they will not read. */}
-								<pre className="whitespace-pre-wrap break-all text-xs">
-									{JSON.stringify(reportFor(showing), null, 2)}
-								</pre>
-							</section>
-
-							<DialogFooter className="items-center gap-3">
-								{showing.failedToSend !== undefined && (
-									<p className="mr-auto text-destructive text-sm">
-										{showing.failedToSend}
-									</p>
-								)}
-								<Button
-									onClick={async () => {
-										// The one backend failure that must not travel the
-										// usual path: reporting that the reporter failed
-										// would ask to send a report whose sending is what
-										// just failed.
-										const result = await commands.sendErrorReport(
-											reportFor(showing),
-										);
-
-										if (result.status === "error") {
-											update(showing.id, { failedToSend: result.error });
-											return;
-										}
-
-										dismiss(showing.id);
-									}}
+								<section
+									aria-label="The error report"
+									className="max-h-72 overflow-auto rounded-lg border bg-muted p-3"
 								>
-									Send
-								</Button>
-							</DialogFooter>
-						</>
-					)}
+									{/* Wrapped rather than scrolled sideways: a consent screen
+									    the user has to drag around is one they will not read. */}
+									<pre className="whitespace-pre-wrap break-all text-xs">
+										{JSON.stringify(report, null, 2)}
+									</pre>
+								</section>
+
+								<DialogFooter className="items-center gap-3">
+									{showing.failedToSend !== undefined && (
+										<p className="mr-auto text-destructive text-sm">
+											{showing.failedToSend}
+										</p>
+									)}
+									<Button
+										onClick={async () => {
+											// The one backend failure that must not travel the
+											// usual path: reporting that the reporter failed
+											// would ask to send a report whose sending is what
+											// just failed.
+											const result = await commands.sendErrorReport(report);
+
+											if (result.status === "error") {
+												update(showingDetailOf, { failedToSend: result.error });
+												return;
+											}
+
+											dismiss(showingDetailOf);
+										}}
+									>
+										Send
+									</Button>
+								</DialogFooter>
+							</>
+						)}
 				</DialogContent>
 			</Dialog>
 		</>

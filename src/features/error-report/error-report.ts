@@ -10,7 +10,7 @@ export function newEventId() {
 
 // Anything at all can be thrown in JavaScript, and a report is still owed for
 // whatever arrives.
-function describe(thrown: unknown) {
+export function describe(thrown: unknown) {
 	if (thrown instanceof Error) {
 		return {
 			type: thrown.name,

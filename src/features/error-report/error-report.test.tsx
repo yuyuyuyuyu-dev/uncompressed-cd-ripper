@@ -36,6 +36,12 @@ function mockBackend() {
 	return sent;
 }
 
+// Base UI puts the toasts in a region it labels, and gives each one the dialog
+// role, so this is what "a notification" looks like from the outside.
+function notifications() {
+	return page.getByLabelText("Notifications").getByRole("dialog");
+}
+
 function throwInTheApp(message: string) {
 	window.dispatchEvent(
 		new ErrorEvent("error", { error: new TypeError(message) }),
@@ -55,7 +61,7 @@ test("should notify the user when an error occurs", async () => {
 	throwInTheApp("the drive stopped responding");
 
 	// Assert
-	await expect.element(page.getByRole("alert")).toBeVisible();
+	await expect.element(notifications().first()).toBeVisible();
 });
 
 test("should reach the detail screen from the notification", async () => {
@@ -63,7 +69,7 @@ test("should reach the detail screen from the notification", async () => {
 	mockBackend();
 	await render(<ErrorReporter />);
 	throwInTheApp("the drive stopped responding");
-	await expect.element(page.getByRole("alert")).toBeVisible();
+	await expect.element(notifications().first()).toBeVisible();
 
 	// Act
 	await page.getByRole("button", { name: "Details" }).click();
@@ -77,7 +83,7 @@ test("should send the error report from the detail screen", async () => {
 	const sent = mockBackend();
 	await render(<ErrorReporter />);
 	throwInTheApp("the drive stopped responding");
-	await expect.element(page.getByRole("alert")).toBeVisible();
+	await expect.element(notifications().first()).toBeVisible();
 	await page.getByRole("button", { name: "Details" }).click();
 	const shown = page.getByLabelText("The error report");
 	await expect.element(shown).toBeVisible();
@@ -102,7 +108,7 @@ test("should keep a notification for every error rather than only the newest", a
 	throwInTheApp("track 7 could not be read");
 
 	// Assert
-	await expect.poll(() => page.getByRole("alert").all()).toHaveLength(2);
+	await expect.poll(() => notifications().all()).toHaveLength(2);
 });
 
 test("should keep a notification until it is dismissed", async () => {
@@ -111,16 +117,16 @@ test("should keep a notification until it is dismissed", async () => {
 	await render(<ErrorReporter />);
 	throwInTheApp("track 3 could not be read");
 	throwInTheApp("track 7 could not be read");
-	await expect.poll(() => page.getByRole("alert").all()).toHaveLength(2);
+	await expect.poll(() => notifications().all()).toHaveLength(2);
 
 	// Act
-	await page
-		.getByRole("button", { name: "Dismiss", exact: true })
-		.first()
-		.click();
+	// The stack collapses until it is hovered, and a toast behind the front one
+	// takes no clicks while it is folded away.
+	await notifications().first().hover();
+	await page.getByRole("button", { name: "Close toast" }).first().click();
 
 	// Assert
-	await expect.poll(() => page.getByRole("alert").all()).toHaveLength(1);
+	await expect.poll(() => notifications().all()).toHaveLength(1);
 });
 
 test("should keep the notifications from taking over the window", async () => {
@@ -132,12 +138,12 @@ test("should keep the notifications from taking over the window", async () => {
 	for (let track = 1; track <= 12; track += 1) {
 		throwInTheApp(`track ${track} could not be read`);
 	}
-	await expect.poll(() => page.getByRole("alert").all()).toHaveLength(12);
+	await expect.poll(() => notifications().all()).toHaveLength(12);
 
 	// Assert
-	const notifications = page.getByLabelText("Errors").element();
 	const covered =
-		notifications.getBoundingClientRect().height / window.innerHeight;
+		page.getByLabelText("Notifications").element().getBoundingClientRect()
+			.height / window.innerHeight;
 	expect(covered).toBeLessThan(0.5);
 });
 
