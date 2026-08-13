@@ -114,10 +114,31 @@ test("should keep a notification until it is dismissed", async () => {
 	await expect.poll(() => page.getByRole("alert").all()).toHaveLength(2);
 
 	// Act
-	await page.getByRole("button", { name: "Dismiss" }).first().click();
+	await page
+		.getByRole("button", { name: "Dismiss", exact: true })
+		.first()
+		.click();
 
 	// Assert
 	await expect.poll(() => page.getByRole("alert").all()).toHaveLength(1);
+});
+
+test("should keep the notifications from taking over the window", async () => {
+	// Arrange
+	mockBackend();
+	await render(<ErrorReporter />);
+
+	// Act
+	for (let track = 1; track <= 12; track += 1) {
+		throwInTheApp(`track ${track} could not be read`);
+	}
+	await expect.poll(() => page.getByRole("alert").all()).toHaveLength(12);
+
+	// Assert
+	const notifications = page.getByLabelText("Errors").element();
+	const covered =
+		notifications.getBoundingClientRect().height / window.innerHeight;
+	expect(covered).toBeLessThan(0.5);
 });
 
 test("should raise the failure a backend command reports", async () => {

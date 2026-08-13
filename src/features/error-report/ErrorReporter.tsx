@@ -81,6 +81,11 @@ export function ErrorReporter() {
 		setShowingDetailOf(undefined);
 	};
 
+	const dismissAll = () => {
+		setCaught([]);
+		setShowingDetailOf(undefined);
+	};
+
 	// Rebuilt on every keystroke so that the text on screen is derived from the
 	// same value that the send button hands over. Showing one and sending
 	// another is the one way this screen could lie.
@@ -97,31 +102,48 @@ export function ErrorReporter() {
 
 	return (
 		<>
-			<div className="fixed inset-x-0 bottom-0 z-40 flex flex-col">
-				{caught.map((one) => (
-					<div
-						key={one.id}
-						role="alert"
-						// Hidden while its own detail screen is up, where it would
-						// otherwise sit on top of the very dialog it opened.
-						hidden={showingDetailOf !== undefined}
-						className="flex items-center gap-3 border-t bg-card p-4 text-left text-card-foreground"
-					>
-						<p className="min-w-0 flex-1 truncate text-sm">
-							{reportFor(one).exception.values[0].value}
-						</p>
-						<Button
-							variant="outline"
-							onClick={() => setShowingDetailOf(one.id)}
-						>
-							Details
-						</Button>
-						<Button variant="ghost" onClick={() => dismiss(one.id)}>
-							Dismiss
+			{/* Kept to a share of the window and scrolled beyond it. Keeping every
+			    error was the point, but a run of them growing until the app is
+			    behind a wall of notices leaves nothing to go back to. */}
+			<section
+				aria-label="Errors"
+				// Hidden while a detail screen is up, where it would otherwise sit
+				// on top of the very dialog it opened.
+				hidden={caught.length === 0 || showingDetailOf !== undefined}
+				className="fixed inset-x-0 bottom-0 z-40 flex max-h-[40vh] flex-col border-t bg-card text-card-foreground"
+			>
+				{caught.length > 1 && (
+					<div className="flex items-center gap-3 border-b px-4 py-2">
+						<p className="flex-1 text-left text-sm">{caught.length} errors</p>
+						<Button variant="ghost" onClick={dismissAll}>
+							Dismiss all
 						</Button>
 					</div>
-				))}
-			</div>
+				)}
+
+				<div className="overflow-y-auto">
+					{caught.map((one) => (
+						<div
+							key={one.id}
+							role="alert"
+							className="flex items-center gap-3 border-b p-4 text-left last:border-b-0"
+						>
+							<p className="min-w-0 flex-1 truncate text-sm">
+								{reportFor(one).exception.values[0].value}
+							</p>
+							<Button
+								variant="outline"
+								onClick={() => setShowingDetailOf(one.id)}
+							>
+								Details
+							</Button>
+							<Button variant="ghost" onClick={() => dismiss(one.id)}>
+								Dismiss
+							</Button>
+						</div>
+					))}
+				</div>
+			</section>
 
 			<Dialog
 				open={showing !== undefined}
