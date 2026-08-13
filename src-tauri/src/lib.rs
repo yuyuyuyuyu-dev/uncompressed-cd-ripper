@@ -9,8 +9,17 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+// Taking the whole report as an argument is what stops anything being added
+// to it here: there is no field to add without changing the type the frontend
+// was generated from.
+#[tauri::command]
+#[specta::specta]
+fn send_error_report(report: error_report::ErrorReport) -> Result<(), String> {
+    error_report::send(&report, &error_report::Sentry::configured()?)
+}
+
 fn builder() -> Builder<tauri::Wry> {
-    Builder::new().commands(collect_commands![greet])
+    Builder::new().commands(collect_commands![greet, send_error_report])
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

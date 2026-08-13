@@ -23,13 +23,11 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = "0.4"
-sentry = "0.49.1"
 # Tauri Specta is in beta and asks for exact versions, because a future release
 # is free to break the generated bindings.
 tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
 specta = "=2.0.0-rc.25"
 specta-typescript = "=0.0.12"
-
-[dev-dependencies]
-sentry = { version = "0.49.1", features = ["test"] }
+ureq = { version = "3.4.0", default-features = false, features = ["rustls"] }
+sentry-types = "0.49.1"
 

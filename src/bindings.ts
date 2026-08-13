@@ -5,5 +5,61 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 /** Commands */
 export const commands = {
 	greet: (name: string) => __TAURI_INVOKE<string>("greet", { name }),
+	sendErrorReport: (report: ErrorReport) => typedError<null, string>(__TAURI_INVOKE("send_error_report", { report })),
 };
+
+/* Types */
+export type Contexts = {
+	os: OperatingSystem,
+	device: Device,
+};
+
+export type Device = {
+	arch: string,
+};
+
+export type ErrorReport = {
+	event_id: string,
+	timestamp: string,
+	platform: string,
+	release: string,
+	exception: Exceptions,
+	contexts: Contexts,
+	tags: Tags,
+	extra: Extra,
+};
+
+export type Exceptions = {
+	values: ThrownError[],
+};
+
+export type Extra = {
+	stacktrace: string,
+	comment: string,
+};
+
+export type OperatingSystem = {
+	name: string,
+	version: string,
+};
+
+export type Tags = {
+	os_version: string,
+	architecture: string,
+};
+
+export type ThrownError = {
+	type: string,
+	value: string,
+};
+
+/* Tauri Specta runtime */
+async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
+    try {
+        return { status: "ok", data: await result };
+    } catch (e) {
+        if (e instanceof Error) throw e;
+        return { status: "error", error: e as any };
+    }
+}
 
