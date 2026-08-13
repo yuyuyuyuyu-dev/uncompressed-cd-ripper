@@ -25,12 +25,16 @@ export function describe(thrown: unknown) {
 export function buildErrorReport({
 	eventId,
 	thrown,
+	componentStack,
 	environment,
 	occurredAt,
 	comment,
 }: {
 	eventId: string;
 	thrown: unknown;
+	// Only a failure while rendering has one, so everything else leaves it
+	// empty rather than the field coming and going.
+	componentStack: string;
 	environment: Environment;
 	occurredAt: Date;
 	comment: string;
@@ -48,6 +52,6 @@ export function buildErrorReport({
 			device: { arch: environment.architecture },
 		},
 		tags: { architecture: environment.architecture },
-		extra: { stacktrace, comment },
+		extra: { stacktrace, component_stack: componentStack, comment },
 	};
 }

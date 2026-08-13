@@ -1,7 +1,7 @@
-import { Component, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 
 type Props = {
-	onError: (thrown: unknown) => void;
+	onError: (thrown: unknown, componentStack: string) => void;
 	children: ReactNode;
 };
 
@@ -14,11 +14,11 @@ export class RenderErrorBoundary extends Component<Props, { failed: boolean }> {
 		return { failed: true };
 	}
 
-	componentDidCatch(thrown: unknown) {
+	componentDidCatch(thrown: unknown, info: ErrorInfo) {
 		// Deferred out of the commit. A failure on the very first render happens
 		// before whatever shows the notification has finished mounting, and
 		// reporting straight away hands it to something not yet listening.
-		queueMicrotask(() => this.props.onError(thrown));
+		queueMicrotask(() => this.props.onError(thrown, info.componentStack ?? ""));
 	}
 
 	render() {

@@ -170,6 +170,7 @@ test("should raise the failure a backend command reports", async () => {
 	const report = buildErrorReport({
 		eventId: "fc6d8c0c43fc4630ad850ee518f1b9d0",
 		thrown: new TypeError("anything"),
+		componentStack: "",
 		environment,
 		occurredAt: new Date(),
 		comment: "",
@@ -182,7 +183,7 @@ test("should raise the failure a backend command reports", async () => {
 	await expect(raised).rejects.toThrow("the drive is not ready");
 });
 
-test("should build the error report from nothing but the error message, the error type, the stack trace, the time it occurred, the application version, the operating system name and version, the architecture and what the user wrote", () => {
+test("should build the error report from nothing but the error message, the error type, the stack trace, the time it occurred, the application version, the operating system name and version, the architecture, the component stack and what the user wrote", () => {
 	// Arrange
 	const thrown = new TypeError("cannot read properties of undefined");
 	thrown.stack = "TypeError: cannot read properties of undefined\n    at rip";
@@ -191,6 +192,7 @@ test("should build the error report from nothing but the error message, the erro
 	const report = buildErrorReport({
 		eventId: "fc6d8c0c43fc4630ad850ee518f1b9d0",
 		thrown,
+		componentStack: "\n    at TrackListing\n    at App",
 		environment,
 		occurredAt: new Date("2026-08-13T09:00:00.000Z"),
 		comment: "it stopped on the third track",
@@ -219,6 +221,7 @@ test("should build the error report from nothing but the error message, the erro
 		tags: { architecture: "aarch64" },
 		extra: {
 			stacktrace: "TypeError: cannot read properties of undefined\n    at rip",
+			component_stack: "\n    at TrackListing\n    at App",
 			comment: "it stopped on the third track",
 		},
 	});

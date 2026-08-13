@@ -69,10 +69,15 @@ pub struct Tags {
 // Sentry's stacktrace field takes parsed frames rather than the string a
 // JavaScript error carries, so the raw text goes here instead. Frames can
 // replace it later without the rest of the payload moving.
+//
+// The component stack is React's own account of which tree was being drawn,
+// which for a failure while rendering says more than the stack trace does.
+// Only failures while rendering have one.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct Extra {
     pub stacktrace: String,
+    pub component_stack: String,
     pub comment: String,
 }
 
@@ -191,6 +196,7 @@ mod tests {
             },
             extra: Extra {
                 stacktrace: "at rip (index.js:1:1)".to_owned(),
+                component_stack: "at TrackListing".to_owned(),
                 comment: "it stopped on the third track".to_owned(),
             },
         }

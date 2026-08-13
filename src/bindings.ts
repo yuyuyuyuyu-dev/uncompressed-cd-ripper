@@ -43,6 +43,7 @@ export type Exceptions = {
 
 export type Extra = {
 	stacktrace: string,
+	component_stack: string,
 	comment: string,
 };
 

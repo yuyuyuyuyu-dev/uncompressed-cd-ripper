@@ -17,6 +17,7 @@ import { RenderErrorBoundary } from "./RenderErrorBoundary";
 type Caught = {
 	eventId: string;
 	thrown: unknown;
+	componentStack: string;
 	occurredAt: Date;
 	comment: string;
 	failedToSend?: string;
@@ -35,7 +36,7 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 
 	// Wrapped so that the listeners below and the boundary around the children
 	// are handing errors to one and the same place.
-	const catchThrown = useCallback((thrown: unknown) => {
+	const catchThrown = useCallback((thrown: unknown, componentStack = "") => {
 		const { type, value } = describe(thrown);
 		const occurredAt = new Date();
 		const id = toast.add({
@@ -52,6 +53,7 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 			new Map(caught).set(id, {
 				eventId: newEventId(),
 				thrown,
+				componentStack,
 				occurredAt,
 				comment: "",
 			}),
@@ -105,6 +107,7 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 			: buildErrorReport({
 					eventId: showing.eventId,
 					thrown: showing.thrown,
+					componentStack: showing.componentStack,
 					environment,
 					occurredAt: showing.occurredAt,
 					comment: showing.comment,
