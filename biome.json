@@ -9,5 +9,13 @@
 		"parser": {
 			"tailwindDirectives": true
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["src/bindings.ts"],
+			"formatter": {
+				"enabled": false
+			}
+		}
+	]
 }

@@ -85,6 +85,27 @@ jobs:
       - run: cargo test --all-features
         working-directory: src-tauri
 
+  generated-bindings:
+    name: should keep the generated TypeScript bindings in step with the Rust commands
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-tauri-linux
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      # A test case writes the bindings, so running the suite is what
+      # regenerates them; anything left over means the committed file was
+      # generated from Rust sources that have since changed.
+      - run: cargo test --all-features
+        working-directory: src-tauri
+      - run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+            git diff
+            exit 1
+          fi
+
   file-side-effects:
     name: should not create, modify or delete unrelated files or directories
     runs-on: ubuntu-latest

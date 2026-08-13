@@ -1,8 +1,8 @@
-import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import reactLogo from "./assets/react.svg";
+import { commands } from "./bindings";
 import "./index.css";
 
 function App() {
@@ -10,8 +10,7 @@ function App() {
 	const [name, setName] = useState("");
 
 	async function greet() {
-		// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-		setGreetMsg(await invoke("greet", { name }));
+		setGreetMsg(await commands.greet(name));
 	}
 
 	return (
