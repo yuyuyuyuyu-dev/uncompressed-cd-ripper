@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import reactLogo from "./assets/react.svg";
 import { commands } from "./bindings";
+import { ErrorReporter } from "./features/error-report/ErrorReporter";
 import "./index.css";
 
 function App() {
@@ -57,6 +58,8 @@ function App() {
 				<Button type="submit">Greet</Button>
 			</form>
 			<p>{greetMsg}</p>
+
+			<ErrorReporter />
 		</main>
 	);
 }
