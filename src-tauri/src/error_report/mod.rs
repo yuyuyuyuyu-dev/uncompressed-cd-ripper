@@ -76,6 +76,33 @@ pub struct Extra {
     pub comment: String,
 }
 
+// What the frontend cannot find out for itself. A WebView reports the OS
+// through its user agent, which on macOS has been frozen at 10_15_7 for years
+// and calls Apple Silicon machines Intel, so the answers have to come from
+// this side. Answering a question is not the same as adding to the report:
+// the frontend decides what of this ends up in one.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct Environment {
+    pub release: String,
+    pub os_name: String,
+    pub os_version: String,
+    pub architecture: String,
+}
+
+impl Environment {
+    pub fn current() -> Self {
+        let os = os_info::get();
+
+        Self {
+            release: format!("{}@{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")),
+            os_name: os.os_type().to_string(),
+            os_version: os.version().to_string(),
+            architecture: std::env::consts::ARCH.to_owned(),
+        }
+    }
+}
+
 pub trait ReportApi {
     fn post(&self, body: &str) -> Result<(), String>;
 }

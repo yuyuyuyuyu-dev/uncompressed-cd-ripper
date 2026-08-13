@@ -5,6 +5,7 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 /** Commands */
 export const commands = {
 	greet: (name: string) => __TAURI_INVOKE<string>("greet", { name }),
+	environment: () => __TAURI_INVOKE<Environment>("environment"),
 	sendErrorReport: (report: ErrorReport) => typedError<null, string>(__TAURI_INVOKE("send_error_report", { report })),
 };
 
@@ -16,6 +17,13 @@ export type Contexts = {
 
 export type Device = {
 	arch: string,
+};
+
+export type Environment = {
+	release: string,
+	osName: string,
+	osVersion: string,
+	architecture: string,
 };
 
 export type ErrorReport = {
