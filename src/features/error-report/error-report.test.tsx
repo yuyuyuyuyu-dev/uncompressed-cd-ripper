@@ -92,6 +92,34 @@ test("should send the error report from the detail screen", async () => {
 	await expect.poll(() => sent).toEqual([onScreen]);
 });
 
+test("should keep a notification for every error rather than only the newest", async () => {
+	// Arrange
+	mockBackend();
+	await render(<ErrorReporter />);
+
+	// Act
+	throwInTheApp("track 3 could not be read");
+	throwInTheApp("track 7 could not be read");
+
+	// Assert
+	await expect.poll(() => page.getByRole("alert").all()).toHaveLength(2);
+});
+
+test("should keep a notification until it is dismissed", async () => {
+	// Arrange
+	mockBackend();
+	await render(<ErrorReporter />);
+	throwInTheApp("track 3 could not be read");
+	throwInTheApp("track 7 could not be read");
+	await expect.poll(() => page.getByRole("alert").all()).toHaveLength(2);
+
+	// Act
+	await page.getByRole("button", { name: "Dismiss" }).first().click();
+
+	// Assert
+	await expect.poll(() => page.getByRole("alert").all()).toHaveLength(1);
+});
+
 test("should raise the failure a backend command reports", async () => {
 	// Arrange
 	mockIPC((command) => {
@@ -101,6 +129,7 @@ test("should raise the failure a backend command reports", async () => {
 		throw "the drive is not ready";
 	});
 	const report = buildErrorReport({
+		eventId: "fc6d8c0c43fc4630ad850ee518f1b9d0",
 		thrown: new TypeError("anything"),
 		environment,
 		occurredAt: new Date(),
@@ -121,6 +150,7 @@ test("should build the error report from nothing but the error message, the erro
 
 	// Act
 	const report = buildErrorReport({
+		eventId: "fc6d8c0c43fc4630ad850ee518f1b9d0",
 		thrown,
 		environment,
 		occurredAt: new Date("2026-08-13T09:00:00.000Z"),
@@ -131,7 +161,7 @@ test("should build the error report from nothing but the error message, the erro
 	// Spelling the whole report out is what states the "nothing but": a field
 	// nobody agreed to would have to appear here to pass.
 	expect(report).toEqual({
-		event_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+		event_id: "fc6d8c0c43fc4630ad850ee518f1b9d0",
 		timestamp: "2026-08-13T09:00:00.000Z",
 		platform: "javascript",
 		release: "uncompressed-cd-ripper@0.1.0",

@@ -4,7 +4,7 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 
 /** Commands */
 export const commands = {
-	greet: (name: string) => __TAURI_INVOKE<string>("greet", { name }),
+	failDeliberately: () => typedError<null, string>(__TAURI_INVOKE("fail_deliberately")),
 	environment: () => __TAURI_INVOKE<Environment>("environment"),
 	sendErrorReport: (report: ErrorReport) => typedError<null, string>(__TAURI_INVOKE("send_error_report", { report })),
 };

@@ -1,7 +1,10 @@
 import type { Environment, ErrorReport } from "@/bindings";
 
-// Sentry wants 32 hexadecimal characters with the dashes taken out.
-function eventId() {
+// Sentry wants 32 hexadecimal characters with the dashes taken out. Minted
+// once when the error is caught rather than each time the report is built,
+// which would otherwise leave the report on screen and the report sent
+// carrying different identifiers.
+export function newEventId() {
 	return crypto.randomUUID().replace(/-/g, "");
 }
 
@@ -20,11 +23,13 @@ function describe(thrown: unknown) {
 }
 
 export function buildErrorReport({
+	eventId,
 	thrown,
 	environment,
 	occurredAt,
 	comment,
 }: {
+	eventId: string;
 	thrown: unknown;
 	environment: Environment;
 	occurredAt: Date;
@@ -33,7 +38,7 @@ export function buildErrorReport({
 	const { type, value, stacktrace } = describe(thrown);
 
 	return {
-		event_id: eventId(),
+		event_id: eventId,
 		timestamp: occurredAt.toISOString(),
 		platform: "javascript",
 		release: environment.release,

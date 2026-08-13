@@ -2,11 +2,13 @@ mod error_report;
 
 use tauri_specta::{collect_commands, Builder};
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+// Standing in for the ripping that does not exist yet. Until something here
+// can fail, the way a failure on this side reaches a notification on the other
+// cannot be walked through by hand.
 #[tauri::command]
 #[specta::specta]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn fail_deliberately() -> Result<(), String> {
+    Err("the drive reported an unrecoverable read error on track 3".to_owned())
 }
 
 #[tauri::command]
@@ -25,7 +27,11 @@ fn send_error_report(report: error_report::ErrorReport) -> Result<(), String> {
 }
 
 fn builder() -> Builder<tauri::Wry> {
-    Builder::new().commands(collect_commands![greet, environment, send_error_report])
+    Builder::new().commands(collect_commands![
+        fail_deliberately,
+        environment,
+        send_error_report
+    ])
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -1,4 +1,6 @@
+import { commands } from "@/bindings";
 import { Button } from "@/components/ui/button";
+import { expectOk } from "./features/error-report/backend";
 import { ErrorReporter } from "./features/error-report/ErrorReporter";
 import "./index.css";
 
@@ -19,6 +21,15 @@ function App() {
 					}}
 				>
 					Throw an error
+				</Button>
+
+				<Button
+					variant="destructive"
+					onClick={async () => {
+						await expectOk(commands.failDeliberately());
+					}}
+				>
+					Fail in the backend
 				</Button>
 			</main>
 
