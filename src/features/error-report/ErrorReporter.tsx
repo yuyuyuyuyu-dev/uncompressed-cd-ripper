@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { commands, type Environment } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster, toast } from "@/components/ui/toast";
 import { buildErrorReport, describe, newEventId } from "./error-report";
+import { RenderErrorBoundary } from "./RenderErrorBoundary";
 
 type Caught = {
 	eventId: string;
@@ -21,7 +22,7 @@ type Caught = {
 	failedToSend?: string;
 };
 
-export function ErrorReporter() {
+export function ErrorReporter({ children }: { children?: ReactNode }) {
 	// Keyed by the identifier the toast manager hands back, which is what ties
 	// a notification on screen to the report behind it.
 	const [caught, setCaught] = useState(new Map<string, Caught>());
@@ -32,29 +33,32 @@ export function ErrorReporter() {
 		commands.environment().then(setEnvironment);
 	}, []);
 
-	useEffect(() => {
-		const catchThrown = (thrown: unknown) => {
-			const { type, value } = describe(thrown);
-			const occurredAt = new Date();
-			const id = toast.add({
-				type: "error",
-				title: type,
-				description: value,
-				actionProps: {
-					children: "Details",
-					onClick: () => setShowingDetailOf(id),
-				},
-			});
+	// Wrapped so that the listeners below and the boundary around the children
+	// are handing errors to one and the same place.
+	const catchThrown = useCallback((thrown: unknown) => {
+		const { type, value } = describe(thrown);
+		const occurredAt = new Date();
+		const id = toast.add({
+			type: "error",
+			title: type,
+			description: value,
+			actionProps: {
+				children: "Details",
+				onClick: () => setShowingDetailOf(id),
+			},
+		});
 
-			setCaught((caught) =>
-				new Map(caught).set(id, {
-					eventId: newEventId(),
-					thrown,
-					occurredAt,
-					comment: "",
-				}),
-			);
-		};
+		setCaught((caught) =>
+			new Map(caught).set(id, {
+				eventId: newEventId(),
+				thrown,
+				occurredAt,
+				comment: "",
+			}),
+		);
+	}, []);
+
+	useEffect(() => {
 		const onError = (event: ErrorEvent) =>
 			catchThrown(event.error ?? event.message);
 		const onRejection = (event: PromiseRejectionEvent) =>
@@ -67,7 +71,7 @@ export function ErrorReporter() {
 			window.removeEventListener("error", onError);
 			window.removeEventListener("unhandledrejection", onRejection);
 		};
-	}, []);
+	}, [catchThrown]);
 
 	const update = (id: string, change: Partial<Caught>) =>
 		setCaught((caught) => {
@@ -116,6 +120,10 @@ export function ErrorReporter() {
 			    be the number the animation stays smooth at. The rest wait behind,
 			    and the staircase of their edges still says there are more. */}
 			<Toaster timeout={0} />
+
+			<RenderErrorBoundary onError={catchThrown}>
+				{children}
+			</RenderErrorBoundary>
 
 			<Dialog
 				open={showing !== undefined}

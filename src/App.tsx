@@ -1,10 +1,16 @@
+import { useState } from "react";
 import { commands } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { expectOk } from "./features/error-report/backend";
-import { ErrorReporter } from "./features/error-report/ErrorReporter";
 import "./index.css";
 
 function App() {
+	const [broken, setBroken] = useState(false);
+
+	if (broken) {
+		throw new TypeError("the track listing could not be drawn");
+	}
+
 	return (
 		<>
 			<main className="flex flex-col items-center gap-4 pt-[10vh] text-center">
@@ -31,11 +37,11 @@ function App() {
 				>
 					Fail in the backend
 				</Button>
-			</main>
 
-			{/* Outside the centred column: it covers the window rather than
-			    belonging to the page, and would inherit the alignment. */}
-			<ErrorReporter />
+				<Button variant="destructive" onClick={() => setBroken(true)}>
+					Break the interface
+				</Button>
+			</main>
 		</>
 	);
 }

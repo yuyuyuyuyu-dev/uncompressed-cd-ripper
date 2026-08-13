@@ -1,4 +1,5 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { type ReactNode, useState } from "react";
 import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -127,6 +128,35 @@ test("should keep a notification until it is dismissed", async () => {
 
 	// Assert
 	await expect.poll(() => notifications().all()).toHaveLength(1);
+});
+
+test("should notify the user when the interface fails to render", async () => {
+	// Arrange
+	mockBackend();
+	function BreakableScreen(): ReactNode {
+		const [broken, setBroken] = useState(false);
+
+		if (broken) {
+			throw new TypeError("the track listing could not be drawn");
+		}
+
+		return (
+			<button type="button" onClick={() => setBroken(true)}>
+				Break it
+			</button>
+		);
+	}
+	await render(
+		<ErrorReporter>
+			<BreakableScreen />
+		</ErrorReporter>,
+	);
+
+	// Act
+	await page.getByRole("button", { name: "Break it" }).click();
+
+	// Assert
+	await expect.element(notifications().first()).toBeVisible();
 });
 
 test("should raise the failure a backend command reports", async () => {
