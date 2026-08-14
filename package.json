@@ -5,7 +5,7 @@
 	"type": "module",
 	"packageManager": "pnpm@11.18.0",
 	"scripts": {
-		"generate-bindings": "cargo run --quiet --manifest-path src-tauri/Cargo.toml --example generate_bindings",
+		"generate-bindings": "cd src-tauri && cargo run --quiet --example generate_bindings",
 		"predev": "pnpm run generate-bindings",
 		"dev": "vite",
 		"prebuild": "pnpm run generate-bindings",

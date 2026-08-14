@@ -7,9 +7,9 @@ use std::path::Path;
 // produce a file, and examples are Cargo's facility for running a small
 // program out of a crate.
 fn main() {
-    // Resolved against the crate rather than the working directory, so that it
-    // lands in the same place whether cargo was invoked from here or from the
-    // repository root.
+    // Resolved against the crate rather than the working directory. Cargo is
+    // invoked from src-tauri, because that is where the toolchain file rustup
+    // reads lives, and the file belongs beside the frontend sources.
     let bindings = Path::new(env!("CARGO_MANIFEST_DIR")).join("../src/bindings.ts");
 
     uncompressed_cd_ripper_lib::builder()
