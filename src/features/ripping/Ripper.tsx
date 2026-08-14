@@ -65,6 +65,10 @@ export function Ripper() {
 
 	// Only drives with an audio CD in them are listed, so an empty list is the
 	// ordinary state of a machine with nothing loaded rather than a failure.
+	// Nothing notices a disc being put in, which is why this is a button.
+	//
+	// Which drive ends up selected when several hold a disc is not a decision
+	// anybody has made. It is whichever the library listed first.
 	const look = useCallback(async () => {
 		const found = await commands.drives();
 
@@ -139,8 +143,12 @@ export function Ripper() {
 		<section className="flex w-full max-w-xl flex-col gap-4 text-left">
 			<div className="flex items-center gap-2">
 				<h2 className="font-semibold">Disc</h2>
+				{/* Named after what it does rather than after refreshing a list,
+				    because what it does is go and look at the drives again.
+				    Until something notices a disc arriving on its own, this is
+				    how a disc put in after the window opened gets found. */}
 				<Button variant="outline" size="sm" onClick={look} disabled={busy}>
-					Look again
+					Scan for discs
 				</Button>
 			</div>
 

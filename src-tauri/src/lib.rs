@@ -1,5 +1,7 @@
 mod error_report;
-mod ripping;
+// Public so that the example beside it can drive a rip from a command line,
+// which is the only way anything without a window can reach one.
+pub mod ripping;
 
 use std::path::Path;
 

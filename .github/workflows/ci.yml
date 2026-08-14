@@ -97,6 +97,54 @@ jobs:
       - run: cargo test --all-features
         working-directory: src-tauri
 
+  rip:
+    name: should rip as FLAC Uncompressed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      # The reference FLAC tools and a decoder written by somebody else, so
+      # that what comes out is judged by neither of the libraries that made it.
+      - run: sudo apt-get install -y flac ffmpeg
+
+      # libcdio reads a disc image through the same driver interface it reads a
+      # drive through, so a runner with no optical drive can still be handed a
+      # disc. The audio is random because the assertions below compare against
+      # it: a pattern could be reproduced by an encoder that lost the original.
+      - name: Put a disc in the drive
+        run: |
+          head -c $((2352 * 750)) /dev/urandom > disc.bin
+          printf 'FILE "disc.bin" BINARY\n  TRACK 01 AUDIO\n    INDEX 01 00:00:00\n' > disc.cue
+
+      - run: cargo run --example rip -- "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped"
+        working-directory: src-tauri
+
+      # Uncompressed, which for audio that cannot be compressed anyway is said
+      # by the file being no smaller than the audio that went into it.
+      - name: The file is no smaller than the audio
+        run: |
+          test "$(stat -c%s ripped/01.flac)" -ge "$(stat -c%s disc.bin)"
+
+      # Playable, in the three ways a Linux runner can ask. The last one is not
+      # about decoding at all: a FLAC file states the smallest of its blocks
+      # excluding the last, so a fixed block size stream says the same number
+      # twice. Get that wrong and the file still decodes here while Apple's
+      # decoder refuses it, which is exactly what shipped once.
+      - name: The reference implementation accepts it
+        run: flac --test ripped/01.flac
+      - name: Its blocks are the fixed size it says they are
+        run: |
+          test "$(metaflac --show-min-blocksize ripped/01.flac)" \
+             = "$(metaflac --show-max-blocksize ripped/01.flac)"
+      - name: A second decoder reads it back as the audio on the disc
+        run: |
+          ffmpeg -v error -i ripped/01.flac -f s16le -y decoded.raw
+          cmp decoded.raw disc.bin
+
   file-side-effects:
     name: should not create, modify or delete unrelated files or directories
     runs-on: ubuntu-latest
