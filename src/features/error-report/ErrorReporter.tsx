@@ -189,6 +189,18 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 											}
 
 											dismiss(showingDetailOf);
+
+											// The dialog closing on its own says nothing about
+											// whether anything left the machine. Unlike an
+											// error, this is a notice rather than something to
+											// act on, so it is the one toast that sees itself
+											// out.
+											toast.add({
+												type: "success",
+												title: "Report sent",
+												description: "Thank you.",
+												timeout: 5000,
+											});
 										}}
 									>
 										Send
