@@ -118,6 +118,18 @@ pub fn send(report: &ErrorReport, api: &impl ReportApi) -> Result<(), String> {
     api.post(&body)
 }
 
+// A release build with no destination cannot report anything, and nothing
+// about it would say so. The failure would arrive as a message in a dialog on
+// somebody else's machine, long after the build that caused it. Refusing to
+// compile is the last moment at which it is still cheap, and it does not rely
+// on whoever writes the release pipeline knowing that Sentry is involved.
+#[cfg(not(debug_assertions))]
+const _: () = {
+    if option_env!("SENTRY_DSN").is_none() {
+        panic!("a release build needs SENTRY_DSN in its environment");
+    }
+};
+
 pub struct Sentry {
     dsn: Dsn,
 }
