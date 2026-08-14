@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Written from src-tauri by the generate-bindings script
+src/bindings.ts
+
 # Screenshots Vitest writes when a browser test case fails
 .vitest-attachments
 __screenshots__

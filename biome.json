@@ -9,5 +9,8 @@
 		"parser": {
 			"tailwindDirectives": true
 		}
+	},
+	"files": {
+		"includes": ["**", "!src/bindings.ts"]
 	}
 }
