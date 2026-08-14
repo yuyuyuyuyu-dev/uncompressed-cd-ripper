@@ -143,12 +143,30 @@ impl ReportApi for Sentry {
         // The store endpoint takes the event as the whole request body, which
         // is what lets the bytes the user agreed to travel without a wrapper
         // built around them here.
-        ureq::post(self.dsn.store_api_url().as_str())
+        // A refusal is read rather than turned into a bare status. Sentry says
+        // why in the body, and a status on its own leaves the person looking at
+        // it no better off than before they pressed send.
+        let mut response = ureq::post(self.dsn.store_api_url().as_str())
             .header("X-Sentry-Auth", self.dsn.to_auth(None).to_string())
             .header("Content-Type", "application/json")
+            .config()
+            .http_status_as_error(false)
+            .build()
             .send(body)
-            .map(|_| ())
-            .map_err(|error| error.to_string())
+            .map_err(|error| error.to_string())?;
+
+        if response.status().is_success() {
+            return Ok(());
+        }
+
+        let status = response.status();
+        let explanation = response.body_mut().read_to_string().unwrap_or_default();
+
+        Err(if explanation.is_empty() {
+            status.to_string()
+        } else {
+            format!("{status}: {explanation}")
+        })
     }
 }
 
