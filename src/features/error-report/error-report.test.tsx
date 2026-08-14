@@ -97,6 +97,22 @@ test("should send the error report from the detail screen", async () => {
 	await expect.poll(() => sent).toEqual([onScreen]);
 });
 
+test("should show a success message once the error report has been sent", async () => {
+	// Arrange
+	mockBackend();
+	await render(<ErrorReporter />);
+	throwInTheApp("the drive stopped responding");
+	await expect.element(notifications().first()).toBeVisible();
+	await page.getByRole("button", { name: "Details" }).click();
+	await expect.element(page.getByLabelText("The error report")).toBeVisible();
+
+	// Act
+	await page.getByRole("button", { name: "Send" }).click();
+
+	// Assert
+	await expect.element(page.getByText("Report sent")).toBeVisible();
+});
+
 test("should keep a notification until it is dismissed", async () => {
 	// Arrange
 	mockBackend();
