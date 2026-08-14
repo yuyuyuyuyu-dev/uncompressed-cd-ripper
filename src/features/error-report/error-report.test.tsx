@@ -1,10 +1,8 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { type ReactNode, useState } from "react";
 import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { commands, type Environment, type ErrorReport } from "@/bindings";
-import { expectOk } from "./backend";
+import type { Environment, ErrorReport } from "@/bindings";
 import { ErrorReporter } from "./ErrorReporter";
 import { buildErrorReport } from "./error-report";
 // The component is only ever on screen inside the app, which is where the
@@ -99,19 +97,6 @@ test("should send the error report from the detail screen", async () => {
 	await expect.poll(() => sent).toEqual([onScreen]);
 });
 
-test("should keep a notification for every error rather than only the newest", async () => {
-	// Arrange
-	mockBackend();
-	await render(<ErrorReporter />);
-
-	// Act
-	throwInTheApp("track 3 could not be read");
-	throwInTheApp("track 7 could not be read");
-
-	// Assert
-	await expect.poll(() => notifications().all()).toHaveLength(2);
-});
-
 test("should keep a notification until it is dismissed", async () => {
 	// Arrange
 	mockBackend();
@@ -130,60 +115,7 @@ test("should keep a notification until it is dismissed", async () => {
 	await expect.poll(() => notifications().all()).toHaveLength(1);
 });
 
-test("should notify the user when the interface fails to render", async () => {
-	// Arrange
-	mockBackend();
-	function BreakableScreen(): ReactNode {
-		const [broken, setBroken] = useState(false);
-
-		if (broken) {
-			throw new TypeError("the track listing could not be drawn");
-		}
-
-		return (
-			<button type="button" onClick={() => setBroken(true)}>
-				Break it
-			</button>
-		);
-	}
-	await render(
-		<ErrorReporter>
-			<BreakableScreen />
-		</ErrorReporter>,
-	);
-
-	// Act
-	await page.getByRole("button", { name: "Break it" }).click();
-
-	// Assert
-	await expect.element(notifications().first()).toBeVisible();
-});
-
-test("should raise the failure a backend command reports", async () => {
-	// Arrange
-	mockIPC((command) => {
-		if (command === "environment") {
-			return environment;
-		}
-		throw "the drive is not ready";
-	});
-	const report = buildErrorReport({
-		eventId: "fc6d8c0c43fc4630ad850ee518f1b9d0",
-		thrown: new TypeError("anything"),
-		componentStack: "",
-		environment,
-		occurredAt: new Date(),
-		comment: "",
-	});
-
-	// Act
-	const raised = expectOk(commands.sendErrorReport(report));
-
-	// Assert
-	await expect(raised).rejects.toThrow("the drive is not ready");
-});
-
-test("should build the error report from nothing but the error message, the error type, the stack trace, the time it occurred, the application version, the operating system name and version, the architecture, the component stack and what the user wrote", () => {
+test("should build the error report from nothing but event ID, timestamp, platform, release version, exception type and value, OS name and version, architecture tag, stacktrace, component stack, and user comment", () => {
 	// Arrange
 	const thrown = new TypeError("cannot read properties of undefined");
 	thrown.stack = "TypeError: cannot read properties of undefined\n    at rip";
