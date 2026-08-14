@@ -5,12 +5,17 @@
 	"type": "module",
 	"packageManager": "pnpm@11.18.0",
 	"scripts": {
+		"generate-bindings": "cargo run --quiet --manifest-path src-tauri/Cargo.toml --example generate_bindings",
+		"predev": "pnpm run generate-bindings",
 		"dev": "vite",
+		"prebuild": "pnpm run generate-bindings",
 		"build": "tsc && vite build",
 		"preview": "vite preview",
 		"tauri": "tauri",
 		"biome": "biome",
+		"pretsc": "pnpm run generate-bindings",
 		"tsc": "tsc",
+		"previtest": "pnpm run generate-bindings",
 		"vitest": "vitest"
 	},
 	"dependencies": {

@@ -26,7 +26,7 @@ fn send_error_report(report: error_report::ErrorReport) -> Result<(), String> {
     error_report::send(&report, &error_report::Sentry::configured()?)
 }
 
-fn builder() -> Builder<tauri::Wry> {
+pub fn builder() -> Builder<tauri::Wry> {
     Builder::new().commands(collect_commands![
         fail_deliberately,
         environment,
@@ -42,6 +42,3 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-
-#[cfg(test)]
-mod tests;
