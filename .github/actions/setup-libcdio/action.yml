@@ -1,0 +1,20 @@
+name: Setup libcdio
+description: Installs the CD reading libraries the ripping links against on Ubuntu runners.
+
+runs:
+  using: composite
+  steps:
+    # libcdio-sys links against the system libcdio and generates its bindings
+    # from the headers, so both the libraries and clang have to be there before
+    # anything that compiles the crate, `cargo clippy` included.
+    #
+    # The cdda package is listed alongside paranoia because paranoia is built
+    # on top of it and pkg-config is asked for both.
+    - shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libcdio-dev \
+          libcdio-cdda-dev \
+          libcdio-paranoia-dev \
+          libclang-dev

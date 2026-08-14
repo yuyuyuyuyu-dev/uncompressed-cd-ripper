@@ -34,6 +34,7 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -51,6 +52,7 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -75,6 +77,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -87,6 +90,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -117,6 +121,15 @@ jobs:
               libssl-dev \
               libayatana-appindicator3-dev \
               librsvg2-dev
+            # What the ripping links against, and the clang that turns its
+            # headers into bindings. Separate from the list above so that the
+            # Tauri prerequisites stay quotable against their own page.
+            apt-get install --yes \
+              libcdio-dev \
+              libcdio-cdda-dev \
+              libcdio-paranoia-dev \
+              libclang-dev \
+              pkg-config
             # A bare Ubuntu image ships no CA bundle, which every download
             # below needs.
             apt-get install --yes ca-certificates
