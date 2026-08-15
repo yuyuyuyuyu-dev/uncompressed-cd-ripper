@@ -157,89 +157,28 @@ jobs:
       - name: Apple's decoder plays it
         run: afconvert -f WAVE -d LEI16 ripped/01.flac played.wav
 
+  # Pinned to a release rather than latest: what happens here depends on the
+  # runner being able to run a machine inside itself, and that is not something
+  # to have move underfoot.
   disc-writes:
     name: should not write to a disc
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-tauri-linux
-      - uses: ./.github/actions/setup-libcdio
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
 
-      # A virtual SCSI host adapter. What it offers is an optical drive as far
-      # as the kernel is concerned, so the app reaches it through the driver it
-      # would use on somebody's desk rather than through a file it could tell
-      # was a file. The daemon behind it answers the commands.
-      #
-      # The module is built here because nobody packages it for Ubuntu: the
-      # CDEmu PPA carries the daemon and its client and stops there. The
-      # tarball is pinned by hash, since a build that downloads a kernel module
-      # ought to be able to say which one it got.
-      - name: Fit a drive
-        env:
-          VHBA: vhba-module-20240917
-          VHBA_SHA256: ce34cbae2c36cef8d7d09c5f6bd42d6871b9b530bb70b4ca100f964823fe0e98
-        run: |
-          set -eux
-          sudo add-apt-repository -y ppa:cdemu/ppa
-          sudo apt-get install -y cdemu-daemon cdemu-client "linux-headers-$(uname -r)"
+      # Said out loud rather than skipped around. A job that quietly does
+      # nothing when it cannot run is worse than one that goes red, because it
+      # keeps claiming the thing it stopped checking.
+      - name: The runner can run a machine inside itself
+        run: test -e /dev/kvm
 
-          curl -fsSL -o vhba.tar.xz \
-            "https://sourceforge.net/projects/cdemu/files/vhba-module/$VHBA.tar.xz/download"
-          echo "$VHBA_SHA256  vhba.tar.xz" | sha256sum -c -
-          tar xf vhba.tar.xz
-          make -C "$VHBA" "KDIR=/lib/modules/$(uname -r)/build"
-          sudo insmod "$VHBA/vhba.ko"
+      - run: |
+          sudo apt-get update
+          sudo apt-get install --yes qemu-system-x86 qemu-utils cloud-image-utils
+          sudo chmod 666 /dev/kvm
 
-      - name: Cut a disc
-        run: |
-          head -c $((2352 * 750)) /dev/urandom > disc.bin
-          printf 'FILE "disc.bin" BINARY\n  TRACK 01 AUDIO\n    INDEX 01 00:00:00\n' > disc.cue
-          chmod 444 disc.bin disc.cue
-
-      # Everything that needs the drive happens in one step, because the daemon
-      # answering for it lives exactly as long as this shell.
-      #
-      # Every test the Rust side has, and not only the ripping, because the
-      # point is to notice a write that nobody meant to add. A rule that only
-      # covers the code somebody remembered to point this at is not much of a
-      # rule.
-      #
-      # The device is left writable on purpose. Nothing was written to a drive
-      # that could not be written to would be worth nothing to say: the app has
-      # to be free to write and not do it.
       - name: Use the drive while the kernel writes down what it is asked
-        run: |
-          set -eux
-          sudo sh -c 'echo 1 > /sys/kernel/debug/tracing/events/scsi/scsi_dispatch_cmd_start/enable'
-          sudo sh -c ': > /sys/kernel/debug/tracing/trace'
-
-          dbus-run-session -- bash -c '
-            set -eux
-            cdemu-daemon --bus session &
-            sleep 5
-            cdemu load 0 "$GITHUB_WORKSPACE/disc.cue"
-            sleep 5
-            sudo chmod a+rw /dev/sr0
-
-            cd "$GITHUB_WORKSPACE/src-tauri"
-            cargo test --all-features
-            cargo run --example rip -- /dev/sr0 "$GITHUB_WORKSPACE/ripped"
-          '
-
-          sudo cat /sys/kernel/debug/tracing/trace > trace.txt
-          sudo sh -c 'echo 0 > /sys/kernel/debug/tracing/events/scsi/scsi_dispatch_cmd_start/enable'
-
-      # Other drives on the machine are somebody else's business. This is the
-      # one the app was given.
-      - name: Keep what was sent to that drive
-        run: |
-          set -eux
-          host=$(readlink -f /sys/block/sr0/device | grep -oE 'host[0-9]+' | head -1 | tr -dc '0-9')
-          grep "host_no=$host " trace.txt > drive.txt
-          cat drive.txt
+        run: .github/scripts/use-a-drive-in-a-virtual-machine.sh
 
       # Without this, the assertion after it would pass just as happily on a
       # recording that never started. "No writes were recorded" and "nothing
@@ -252,12 +191,16 @@ jobs:
           ! grep -qE 'cmnd=\((WRITE|ERASE|BLANK|FORMAT_UNIT|CLOSE_TRACK|RESERVE_TRACK)' drive.txt
 
       # The evidence itself, kept where somebody who wants to check can read it
-      # rather than only the word that it passed.
+      # rather than only the word that it passed. The console comes too: when
+      # something in there fails, this is the only account of it.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: commands-the-drive-was-sent
-          path: drive.txt
+          path: |
+            drive.txt
+            trace.txt
+            vm-console.log
 
   file-side-effects:
     name: should not create, modify or delete unrelated files or directories
