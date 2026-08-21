@@ -92,8 +92,12 @@ apt-get install --yes --no-install-recommends \
     pkg-config \
     cdemu-client \
     cdemu-daemon \
+    libsamplerate0 \
     vhba-dkms
 modprobe vhba
+# The daemon runs as the account this is driven from, and the module's own rule
+# hands the control device to a group that account is not in.
+chmod 666 /dev/vhba_ctl
 PROVISION
 
 # No toolchain named: rust-toolchain.toml is, and rustup reads it.
