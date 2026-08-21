@@ -203,10 +203,11 @@ jobs:
       - name: Use the drive while the kernel writes down what it is asked
         run: .github/scripts/use-a-drive-in-a-virtual-machine.sh
 
-      # "No writes were recorded" and "nothing was recorded" read alike until
-      # something says the recording started.
-      - name: The drive was asked to read
-        run: grep -qE 'cmnd=\(READ' drive.txt
+      # The audio, by its opcode, rather than any command with READ in its
+      # name. The table of contents is read by the kernel on its own, so
+      # asking only for that passed on a run where the app never read a note.
+      - name: The drive was asked for the audio
+        run: grep -qE 'raw=(be|28) ' drive.txt
 
       - name: The drive was never asked to write
         run: |

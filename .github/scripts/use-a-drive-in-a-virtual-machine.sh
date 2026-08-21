@@ -128,9 +128,15 @@ dbus-run-session -- bash -euxo pipefail -c '
     sleep 5
     sudo chmod a+rw /dev/sr0
 
+    cdemu status
+
     cd "$HOME/app/src-tauri"
     cargo test --all-features
     cargo run --example rip -- /dev/sr0 "$HOME/ripped"
+
+    # A rip that found no tracks writes nothing and says it went fine, and
+    # everything after it then reports on a drive that was never read.
+    test -s "$HOME/ripped/01.flac"
 '
 
 sudo cat /sys/kernel/debug/tracing/trace > /tmp/trace.txt
