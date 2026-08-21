@@ -120,28 +120,31 @@ jobs:
           printf 'FILE "disc.bin" BINARY\n  TRACK 01 AUDIO\n    INDEX 01 00:00:00\n' > disc.cue
           chmod 444 disc.bin disc.cue
 
-      # More than once because one run would otherwise be one bit of evidence,
-      # and this has already come out differently twice on the same disc.
-      - name: Rip the same disc three times
+      # Ten, because one run would otherwise be one bit of evidence about
+      # something that has come out differently once in four runs, and reading
+      # ten seconds of audio costs a second.
+      - name: Rip the same disc ten times
         run: |
-          for attempt in 1 2 3; do
+          for attempt in $(seq 1 10); do
             cargo run --example rip -- \
               "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped-$attempt"
           done
         working-directory: src-tauri
 
       # Two rips of one disc that disagree mean one of them is wrong and the
-      # app cannot say which.
+      # app cannot say which. Which of these two fails says where to look: files
+      # that differ from each other put it in the reading, files that agree with
+      # each other and not with the disc put it somewhere steadier than that.
       - name: Every attempt read the same disc the same way
         run: |
           shasum -a 256 ripped-*/01.flac
-          cmp ripped-1/01.flac ripped-2/01.flac
-          cmp ripped-1/01.flac ripped-3/01.flac
+          for attempt in $(seq 2 10); do
+            cmp ripped-1/01.flac "ripped-$attempt/01.flac"
+          done
 
-      # Which is the audio on the disc rather than merely the same each time.
       - name: Every attempt reads back as the audio that was on the disc
         run: |
-          for attempt in 1 2 3; do
+          for attempt in $(seq 1 10); do
             flac --decode --force-raw-format --endian=little --sign=signed \
               --output-name="decoded-$attempt.raw" "ripped-$attempt/01.flac"
             cmp "decoded-$attempt.raw" disc.bin
