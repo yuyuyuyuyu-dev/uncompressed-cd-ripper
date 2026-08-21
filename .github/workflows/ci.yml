@@ -120,8 +120,32 @@ jobs:
           printf 'FILE "disc.bin" BINARY\n  TRACK 01 AUDIO\n    INDEX 01 00:00:00\n' > disc.cue
           chmod 444 disc.bin disc.cue
 
-      - run: cargo run --example rip -- "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped"
+      # More than once because one run would otherwise be one bit of evidence,
+      # and this has already come out differently twice on the same disc.
+      - name: Rip the same disc three times
+        run: |
+          for attempt in 1 2 3; do
+            cargo run --example rip -- \
+              "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped-$attempt"
+          done
         working-directory: src-tauri
+
+      # Two rips of one disc that disagree mean one of them is wrong and the
+      # app cannot say which.
+      - name: Every attempt read the same disc the same way
+        run: |
+          shasum -a 256 ripped-*/01.flac
+          cmp ripped-1/01.flac ripped-2/01.flac
+          cmp ripped-1/01.flac ripped-3/01.flac
+
+      # Which is the audio on the disc rather than merely the same each time.
+      - name: Every attempt reads back as the audio that was on the disc
+        run: |
+          for attempt in 1 2 3; do
+            flac --decode --force-raw-format --endian=little --sign=signed \
+              --output-name="decoded-$attempt.raw" "ripped-$attempt/01.flac"
+            cmp "decoded-$attempt.raw" disc.bin
+          done
 
       # Asked of the file rather than inferred from its size, which says
       # nothing here: audio this incompressible comes out the same size either
@@ -130,31 +154,34 @@ jobs:
       # arrangement that stores a channel rather than a difference.
       - name: Every sample in it is stored as it arrived
         run: |
-          flac --analyze ripped/01.flac
-          test "$(grep -o 'type=[A-Z]*' ripped/01.ana | sort -u)" = "type=VERBATIM"
-          test "$(grep -o 'channel_assignment=[A-Z_]*' ripped/01.ana | sort -u)" \
+          flac --analyze ripped-1/01.flac
+          test "$(grep -o 'type=[A-Z]*' ripped-1/01.ana | sort -u)" = "type=VERBATIM"
+          test "$(grep -o 'channel_assignment=[A-Z_]*' ripped-1/01.ana | sort -u)" \
              = "channel_assignment=INDEPENDENT"
 
       - name: The reference implementation accepts it
-        run: flac --test ripped/01.flac
-
-      - name: It reads back as the audio that was on the disc
-        run: |
-          flac --decode --force-raw-format --endian=little --sign=signed \
-            --output-name=decoded.raw ripped/01.flac
-          cmp decoded.raw disc.bin
+        run: flac --test ripped-1/01.flac
 
       # A file states the smallest of its blocks excluding the last, so a fixed
       # block size is stated twice. Wrong, it decodes everywhere but on Apple.
       - name: Its blocks are the fixed size it says they are
         run: |
-          test "$(metaflac --show-min-blocksize ripped/01.flac)" \
-             = "$(metaflac --show-max-blocksize ripped/01.flac)"
+          test "$(metaflac --show-min-blocksize ripped-1/01.flac)" \
+             = "$(metaflac --show-max-blocksize ripped-1/01.flac)"
 
       # afconvert rather than afplay: the same Core Audio decoder, but a runner
       # has no speaker and the null device it gets instead often fails to appear.
       - name: Apple's decoder plays it
-        run: afconvert -f WAVE -d LEI16 ripped/01.flac played.wav
+        run: afconvert -f WAVE -d LEI16 ripped-1/01.flac played.wav
+
+      # A disagreement is worth having in hand rather than only in a log line.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: the-disc-and-what-came-off-it
+          path: |
+            disc.bin
+            ripped-*/01.flac
 
   # Pinned to a release: this depends on the runner being able to run a machine
   # inside itself, which should not move underfoot.
