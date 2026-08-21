@@ -123,10 +123,17 @@ jobs:
       - run: cargo run --example rip -- "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped"
         working-directory: src-tauri
 
-      # Audio this incompressible says it by the file not being smaller.
-      - name: The file is no smaller than the audio
+      # Asked of the file rather than inferred from its size, which says
+      # nothing here: audio this incompressible comes out the same size either
+      # way, byte for byte. A verbatim subframe is the one kind that holds
+      # samples as they arrived, and independent channels are the one
+      # arrangement that stores a channel rather than a difference.
+      - name: Every sample in it is stored as it arrived
         run: |
-          test "$(stat -f%z ripped/01.flac)" -ge "$(stat -f%z disc.bin)"
+          flac --analyze ripped/01.flac
+          test "$(grep -o 'type=[A-Z]*' ripped/01.ana | sort -u)" = "type=VERBATIM"
+          test "$(grep -o 'channel_assignment=[A-Z_]*' ripped/01.ana | sort -u)" \
+             = "channel_assignment=INDEPENDENT"
 
       - name: The reference implementation accepts it
         run: flac --test ripped/01.flac
