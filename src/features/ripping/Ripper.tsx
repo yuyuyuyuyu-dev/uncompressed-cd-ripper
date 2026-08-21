@@ -37,10 +37,8 @@ type Reading = {
 	sectors: number;
 };
 
-// A disc takes long enough that the user is unlikely to still be watching, so
-// the end of it is said through the system rather than only on screen. Asking
-// for permission at this point rather than at startup means the request
-// arrives when it is obvious what it is for.
+// A disc takes long enough that nobody is still watching. Permission is asked
+// for here rather than at startup, when it is obvious what it is for.
 async function announceTheEnd(tracks: number) {
 	const granted =
 		(await isPermissionGranted()) || (await requestPermission()) === "granted";
@@ -63,12 +61,9 @@ export function Ripper() {
 	const [reading, setReading] = useState<Reading>();
 	const [overwriting, setOverwriting] = useState<string[]>();
 
-	// Only drives with an audio CD in them are listed, so an empty list is the
-	// ordinary state of a machine with nothing loaded rather than a failure.
-	// Nothing notices a disc being put in, which is why this is a button.
-	//
-	// Which drive ends up selected when several hold a disc is not a decision
-	// anybody has made. It is whichever the library listed first.
+	// Only drives holding a disc are listed, so an empty list is a machine with
+	// nothing loaded rather than a failure. Which one is selected when several
+	// hold a disc is undecided: it is whichever the library listed first.
 	const look = useCallback(async () => {
 		const found = await commands.drives();
 
@@ -95,9 +90,8 @@ export function Ripper() {
 		}
 
 		try {
-			// One track at a time, and counted as they land: the drive reads no
-			// faster for being asked for several at once, and a disc that fails
-			// halfway leaves the tracks before it already written.
+			// One at a time: the drive is no faster for being asked for several,
+			// and a disc that fails halfway keeps the tracks before it.
 			for (const track of tracks) {
 				setReading({ track, sectors: 0 });
 
@@ -109,16 +103,14 @@ export function Ripper() {
 				);
 			}
 
-			// Only once every track is written, so that a disc that gave up
-			// halfway is not announced as finished.
+			// After every track, so a disc that gave up is not called finished.
 			await announceTheEnd(tracks.length);
 		} finally {
 			setReading(undefined);
 		}
 	};
 
-	// Asking first, because a track already sitting there took as long to read
-	// as the one about to replace it.
+	// A track already sitting there took as long to read as its replacement.
 	const start = async () => {
 		if (destination === undefined) {
 			return;
@@ -143,10 +135,8 @@ export function Ripper() {
 		<section className="flex w-full max-w-xl flex-col gap-4 text-left">
 			<div className="flex items-center gap-2">
 				<h2 className="font-semibold">Disc</h2>
-				{/* Named after what it does rather than after refreshing a list,
-				    because what it does is go and look at the drives again.
-				    Until something notices a disc arriving on its own, this is
-				    how a disc put in after the window opened gets found. */}
+				{/* Until something notices a disc arriving, this is how one put in
+				    after the window opened gets found. */}
 				<Button variant="outline" size="sm" onClick={look} disabled={busy}>
 					Scan for discs
 				</Button>
@@ -194,8 +184,7 @@ export function Ripper() {
 					onClick={async () => {
 						const chosen = await open({ directory: true });
 
-						// Null is the user closing the picker without choosing,
-						// which leaves whatever was chosen before in place.
+						// Null is closing the picker, which keeps the last choice.
 						if (chosen !== null) {
 							setDestination(chosen);
 						}
@@ -226,8 +215,7 @@ export function Ripper() {
 
 			{reading !== undefined && (
 				<Progress
-					// Out of the sectors the disc says the track has, which is
-					// what the drive is working through.
+					// Out of what the disc says the track holds.
 					value={Math.min(100, (reading.sectors / reading.track.sectors) * 100)}
 				>
 					<ProgressLabel>
@@ -251,10 +239,8 @@ export function Ripper() {
 						</DialogDescription>
 					</DialogHeader>
 
-					{/* Every one of them, however many there are: a list that stops
-					    short leaves the user agreeing to replace files they were
-					    never shown. A disc holds up to 99 tracks, so the list
-					    scrolls rather than pushing the buttons off screen. */}
+					{/* All of them: agreeing to replace files you were never shown is
+					    not agreeing. Up to 99, hence the scrolling. */}
 					<ul className="min-h-0 overflow-y-auto rounded-lg border">
 						{overwriting?.map((name) => (
 							<li

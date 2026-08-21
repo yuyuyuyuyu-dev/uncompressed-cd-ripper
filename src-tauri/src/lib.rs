@@ -1,6 +1,5 @@
 mod error_report;
-// Public so that the example beside it can drive a rip from a command line,
-// which is the only way anything without a window can reach one.
+// Public so that the example beside it can reach a rip without a window.
 pub mod ripping;
 
 use std::path::Path;
@@ -25,9 +24,7 @@ fn already_there(destination: String, tracks: Vec<u8>) -> Vec<String> {
     ripping::already_there(Path::new(&destination), &tracks)
 }
 
-// Reading a track takes minutes and blocks the whole time, so it is handed to
-// a worker thread rather than run where the window is drawn. The channel is
-// how the bar on screen hears about it in the meantime.
+// Reading a track blocks for minutes, so it is handed to a worker thread.
 #[tauri::command(async)]
 #[specta::specta]
 fn rip_track(
@@ -37,9 +34,7 @@ fn rip_track(
     progress: tauri::ipc::Channel<u32>,
 ) -> Result<String, String> {
     let file = ripping::rip(&drive, track, Path::new(&destination), |sectors| {
-        // A progress report that cannot be delivered says nothing about the
-        // read, which carries on. The window has gone away, and that is the
-        // only way this fails.
+        // Only fails once the window has gone, which the read does not care about.
         let _ = progress.send(sectors);
     })?;
 

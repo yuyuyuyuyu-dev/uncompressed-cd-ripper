@@ -4,9 +4,8 @@ import { cdp } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import App from "@/App";
 
-// Drawing the app asks the backend which drives hold a disc. These test cases
-// are about the stylesheet rather than about any disc, so the answer is that
-// there are none.
+// Drawing the app asks which drives hold a disc. These cases are about the
+// stylesheet, so the answer is none.
 function mockBackend() {
 	mockIPC((command) => {
 		if (command === "drives") {

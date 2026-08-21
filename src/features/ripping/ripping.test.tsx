@@ -3,15 +3,13 @@ import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { Ripper } from "./Ripper";
-// The dialog below is only ever on screen inside the app, which is where the
-// stylesheet comes from; without it there is no layout to click through.
+// The dialog has no layout to click through without the app's stylesheet.
 import "@/index.css";
 
 const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
 
-// The drive, the disc and the filesystem are all on the other side of the IPC,
-// which is the sort of thing the conventions allow standing in for.
+// The drive, the disc and the filesystem are all across the IPC.
 function mockBackend({ alreadyThere }: { alreadyThere: string[] }) {
 	const ripped: number[] = [];
 

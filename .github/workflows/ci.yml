@@ -97,9 +97,8 @@ jobs:
       - run: cargo test --all-features
         working-directory: src-tauri
 
-  # On macOS because of the last assertion. Apple's decoder is the one that
-  # refused a file every other decoder accepted, so it is the one worth asking,
-  # and it only exists here.
+  # On macOS for the last assertion: Apple's decoder refused a file every other
+  # decoder accepted, and it exists nowhere else.
   rip:
     name: should rip as FLAC Uncompressed
     runs-on: macos-latest
@@ -108,14 +107,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      # libcdio to read the disc with, and the reference FLAC tools to judge
-      # what comes out by something other than the library that wrote it.
+      # The reference FLAC tools judge the file by something other than the
+      # library that wrote it.
       - run: brew install libcdio libcdio-paranoia flac
 
-      # libcdio reads a disc image through the same driver interface it reads a
-      # drive through, so a runner with no optical drive can still be handed a
-      # disc. The audio is random because the assertions below compare against
-      # it: a pattern could be reproduced by an encoder that lost the original.
+      # libcdio reads an image through the interface it reads a drive through,
+      # so a runner with no drive can be handed a disc. The audio is random
+      # because a pattern could be reproduced by an encoder that lost it.
       - name: Put a disc in the drive
         run: |
           head -c $((2352 * 750)) /dev/urandom > disc.bin
@@ -125,8 +123,7 @@ jobs:
       - run: cargo run --example rip -- "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped"
         working-directory: src-tauri
 
-      # Uncompressed, which for audio that cannot be compressed anyway is said
-      # by the file being no smaller than the audio that went into it.
+      # Audio this incompressible says it by the file not being smaller.
       - name: The file is no smaller than the audio
         run: |
           test "$(stat -f%z ripped/01.flac)" -ge "$(stat -f%z disc.bin)"
@@ -140,35 +137,27 @@ jobs:
             --output-name=decoded.raw ripped/01.flac
           cmp decoded.raw disc.bin
 
-      # Not about decoding at all: a FLAC file states the smallest of its
-      # blocks excluding the last, so a stream with a fixed block size states
-      # the same number twice. Get it wrong and the file still decodes
-      # everywhere else while Apple refuses it, which is what shipped once.
+      # A file states the smallest of its blocks excluding the last, so a fixed
+      # block size is stated twice. Wrong, it decodes everywhere but on Apple.
       - name: Its blocks are the fixed size it says they are
         run: |
           test "$(metaflac --show-min-blocksize ripped/01.flac)" \
              = "$(metaflac --show-max-blocksize ripped/01.flac)"
 
-      # What it comes down to: the decoder that would not play the broken file
-      # plays this one. afconvert rather than afplay because a runner has no
-      # audio hardware, and the Null Audio Device it is given instead fails to
-      # appear about a third of the time. Both put the file through the same
-      # Core Audio decoder; only one of them needs a speaker.
+      # afconvert rather than afplay: the same Core Audio decoder, but a runner
+      # has no speaker and the null device it gets instead often fails to appear.
       - name: Apple's decoder plays it
         run: afconvert -f WAVE -d LEI16 ripped/01.flac played.wav
 
-  # Pinned to a release rather than latest: what happens here depends on the
-  # runner being able to run a machine inside itself, and that is not something
-  # to have move underfoot.
+  # Pinned to a release: this depends on the runner being able to run a machine
+  # inside itself, which should not move underfoot.
   disc-writes:
     name: should not write to a disc
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
-      # Said out loud rather than skipped around. A job that quietly does
-      # nothing when it cannot run is worse than one that goes red, because it
-      # keeps claiming the thing it stopped checking.
+      # A job that quietly does nothing keeps claiming what it stopped checking.
       - name: The runner can run a machine inside itself
         run: test -e /dev/kvm
 
@@ -180,9 +169,8 @@ jobs:
       - name: Use the drive while the kernel writes down what it is asked
         run: .github/scripts/use-a-drive-in-a-virtual-machine.sh
 
-      # Without this, the assertion after it would pass just as happily on a
-      # recording that never started. "No writes were recorded" and "nothing
-      # was recorded" are the same sentence until something says otherwise.
+      # "No writes were recorded" and "nothing was recorded" read alike until
+      # something says the recording started.
       - name: The drive was asked to read
         run: grep -qE 'cmnd=\(READ' drive.txt
 
@@ -190,9 +178,8 @@ jobs:
         run: |
           ! grep -qE 'cmnd=\((WRITE|ERASE|BLANK|FORMAT_UNIT|CLOSE_TRACK|RESERVE_TRACK)' drive.txt
 
-      # The evidence itself, kept where somebody who wants to check can read it
-      # rather than only the word that it passed. The console comes too: when
-      # something in there fails, this is the only account of it.
+      # The evidence, so the claim can be checked rather than believed. The
+      # console comes too: when the machine fails, it is the only account.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -226,9 +213,8 @@ jobs:
               libssl-dev \
               libayatana-appindicator3-dev \
               librsvg2-dev
-            # What the ripping links against, and the clang that turns its
-            # headers into bindings. Separate from the list above so that the
-            # Tauri prerequisites stay quotable against their own page.
+            # Separate from the list above so the Tauri prerequisites stay
+            # quotable against their own page.
             apt-get install --yes \
               libcdio-dev \
               libcdio-cdda-dev \
