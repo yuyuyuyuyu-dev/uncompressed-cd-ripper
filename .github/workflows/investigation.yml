@@ -1,0 +1,99 @@
+name: Investigation
+
+# Not part of CI. A place to look at the machine the disc-writing job runs in,
+# without building the app, so that a question about it costs three minutes
+# rather than seven and nothing else is dragged along. Delete when the question
+# it was opened for is answered.
+on: workflow_dispatch
+
+jobs:
+  drive-in-a-machine:
+    name: What the machine makes of the disc
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: |
+          sudo apt-get update
+          sudo apt-get install --yes qemu-system-x86 qemu-utils cloud-image-utils
+          sudo chmod 666 /dev/kvm
+
+      - name: Look at the drive
+        run: |
+          set -eux
+          image=debian-13-generic-amd64.qcow2
+          curl -fsSLo "$image" "https://cloud.debian.org/images/cloud/trixie/latest/$image"
+          qemu-img resize "$image" +4G
+          ssh-keygen -t ed25519 -N '' -f vm-key -C ci
+
+          cat > user-data <<EOF
+          #cloud-config
+          users:
+            - name: ci
+              sudo: 'ALL=(ALL) NOPASSWD:ALL'
+              shell: /bin/bash
+              ssh_authorized_keys:
+                - $(cat vm-key.pub)
+          EOF
+          printf 'instance-id: disc\nlocal-hostname: disc\n' > meta-data
+          cloud-localds seed.iso user-data meta-data
+
+          qemu-system-x86_64 -enable-kvm -cpu host -m 4096 -smp "$(nproc)" \
+            -drive "file=$image,if=virtio" \
+            -drive "file=seed.iso,if=virtio,format=raw" \
+            -netdev user,id=net0,hostfwd=tcp::2222-:22 \
+            -device virtio-net-pci,netdev=net0 \
+            -display none -daemonize -serial file:vm-console.log
+
+          ssh_options=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+                       -o LogLevel=ERROR -o ConnectTimeout=5 -i vm-key -p 2222)
+          for _ in $(seq 1 90); do
+            ssh "${ssh_options[@]}" ci@127.0.0.1 true 2>/dev/null && break
+            sleep 10
+          done
+          ssh "${ssh_options[@]}" ci@127.0.0.1 cloud-init status --wait
+
+          git archive HEAD | ssh "${ssh_options[@]}" ci@127.0.0.1 'mkdir -p app && tar x -C app'
+
+          # No Rust and none of what Tauri links: this asks what the machine
+          # thinks is in the drive, which the app is not needed for.
+          ssh "${ssh_options[@]}" ci@127.0.0.1 'sudo bash -euxo pipefail -s' <<'PROVISION'
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install --yes --no-install-recommends "linux-headers-$(uname -r)"
+          apt-get install --yes --no-install-recommends \
+            cdemu-client cdemu-daemon libsamplerate0 vhba-dkms libcdio-utils cd-paranoia
+          modprobe vhba
+          chmod 666 /dev/vhba_ctl
+          PROVISION
+
+          ssh "${ssh_options[@]}" ci@127.0.0.1 'bash -euxo pipefail -s' <<'LOOK' || true
+          "$HOME/app/.github/scripts/cut-a-disc.py" /tmp
+
+          dbus-run-session -- bash -euxo pipefail -c '
+            cdemu-daemon --bus session &
+            sleep 5
+            cdemu load 0 /tmp/disc.cue
+            sleep 5
+
+            echo "===== what cdemu says it loaded ====="
+            cdemu status || true
+
+            echo "===== what the kernel sees ====="
+            ls -l /dev/sr* || true
+            lsscsi || true
+            dmesg | tail -30 || true
+
+            echo "===== what the reference tools see ====="
+            sudo chmod a+rw /dev/sr0 || true
+            cd-paranoia -d /dev/sr0 -Q || true
+            cd-info --no-device-info --no-cddb /dev/sr0 || true
+            cd-drive /dev/sr0 || true
+          '
+          LOOK
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: what-the-machine-said
+          path: vm-console.log
