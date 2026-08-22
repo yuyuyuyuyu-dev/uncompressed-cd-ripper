@@ -112,12 +112,10 @@ jobs:
       - run: brew install libcdio libcdio-paranoia flac
 
       # libcdio reads an image through the interface it reads a drive through,
-      # so a runner with no drive can be handed a disc. The audio is random
-      # because a pattern could be reproduced by an encoder that lost it.
+      # so a runner with no drive can be handed a disc.
       - name: Put a disc in the drive
         run: |
-          head -c $((2352 * 750)) /dev/urandom > disc.bin
-          printf 'FILE "disc.bin" BINARY\n  TRACK 01 AUDIO\n    INDEX 01 00:00:00\n' > disc.cue
+          .github/scripts/cut-a-disc.py "$GITHUB_WORKSPACE"
           chmod 444 disc.bin disc.cue
 
       # Ten, because one run would otherwise be one bit of evidence about

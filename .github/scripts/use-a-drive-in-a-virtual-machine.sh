@@ -111,8 +111,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 # Read-only is a second line, not the assertion: a command is written down when
 # it is dispatched, before anything decides whether to honour it.
-head -c $((2352 * 750)) /dev/urandom > /tmp/disc.bin
-printf 'FILE "disc.bin" BINARY\n  TRACK 01 AUDIO\n    INDEX 01 00:00:00\n' > /tmp/disc.cue
+"$HOME/app/.github/scripts/cut-a-disc.py" /tmp
 chmod 444 /tmp/disc.bin /tmp/disc.cue
 
 sudo sh -c 'echo 1 > /sys/kernel/debug/tracing/events/scsi/scsi_dispatch_cmd_start/enable'
