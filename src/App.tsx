@@ -8,7 +8,7 @@ function App() {
 	const [screen, setScreen] = useState<"ripping" | "licenses">("ripping");
 
 	return (
-		<main className="flex flex-col items-center gap-4 pt-[10vh] text-center">
+		<main className="flex flex-col items-center gap-4 py-[10vh] text-center">
 			<h1 className="text-2xl font-semibold">Uncompressed CD Ripper</h1>
 
 			{screen === "ripping" ? (
