@@ -24,6 +24,10 @@ ssh_options=(
 )
 ssh_target=(-p "$ssh_port" "ci@127.0.0.1")
 
+# Whatever Debian is shipping rather than a version pinned here. A pin nothing
+# updates goes stale unnoticed, which is how the kernel module arrived eighteen
+# months out of date; if this breaks one day, that is the day to pin it and
+# write something that keeps the pin fresh.
 curl -fsSLo "$image" "https://cloud.debian.org/images/cloud/trixie/latest/$image"
 # A Rust build with Tauri in it needs more room than the image arrives with.
 qemu-img resize "$image" +20G
@@ -94,7 +98,6 @@ apt-get install --yes --no-install-recommends \
     pkg-config \
     cdemu-client \
     cdemu-daemon \
-    libsamplerate0 \
     vhba-dkms
 modprobe vhba
 # The daemon runs as the account this is driven from, and the module's own rule
@@ -124,9 +127,10 @@ sudo sh -c ': > /sys/kernel/debug/tracing/trace'
 # that could not be written to would be worth nothing to say.
 dbus-run-session -- bash -euxo pipefail -c '
     cdemu-daemon --bus session &
-    sleep 5
+    for _ in $(seq 1 60); do cdemu status > /dev/null 2>&1 && break; sleep 1; done
+
     cdemu load 0 /tmp/disc.cue
-    sleep 5
+    for _ in $(seq 1 60); do cdemu status | grep -q /tmp/disc.cue && break; sleep 1; done
 
     # Asked for rather than assumed: QEMU gives the machine an empty CD-ROM at
     # /dev/sr0, and reading that one is what let this job pass while the app
