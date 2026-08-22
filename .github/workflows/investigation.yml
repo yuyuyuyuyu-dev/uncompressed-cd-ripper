@@ -4,7 +4,13 @@ name: Investigation
 # without building the app, so that a question about it costs three minutes
 # rather than seven and nothing else is dragged along. Delete when the question
 # it was opened for is answered.
-on: workflow_dispatch
+#
+# Asking for it by hand needs it on the default branch, which it is not and
+# should not be, so it runs on the branch it was opened for instead.
+on:
+  push:
+    branches: [feature/ripping]
+  workflow_dispatch:
 
 jobs:
   drive-in-a-machine:
