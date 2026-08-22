@@ -128,13 +128,17 @@ dbus-run-session -- bash -euxo pipefail -c '
     cdemu load 0 /tmp/disc.cue
     sleep 5
 
-    # Asked for rather than assumed: the machine already has an empty CD-ROM of
-    # QEMU\047s at /dev/sr0, and reading that one is what made this job pass
-    # while the app never touched a disc.
+    # Asked for rather than assumed: QEMU gives the machine an empty CD-ROM at
+    # /dev/sr0, and reading that one is what let this job pass while the app
+    # never touched a disc.
     drive=$(cdemu device-mapping | sed -n "s|^0[[:space:]][[:space:]]*\([^[:space:]][^[:space:]]*\).*|\1|p")
     sudo chmod a+rw "$drive"
-    echo "$drive" > /tmp/drive-path
     cdemu status
+
+    # Noted while the drive still exists. Stopping the daemon takes it away,
+    # and the recording is filtered down to it after that has happened.
+    readlink -f "/sys/block/$(basename "$drive")/device" \
+        | grep -oE "host[0-9]+" | head -1 | tr -dc "0-9" > /tmp/drive-host
 
     cd "$HOME/app/src-tauri"
     cargo test --all-features
@@ -149,9 +153,7 @@ sudo cat /sys/kernel/debug/tracing/trace > /tmp/trace.txt
 
 # Other drives are somebody else's business. Finding nothing is allowed here
 # because the job asserts on that, and a short recording is worth looking at.
-drive=$(basename "$(cat /tmp/drive-path)")
-host=$(readlink -f "/sys/block/$drive/device" | grep -oE 'host[0-9]+' | head -1 | tr -dc '0-9')
-grep "host_no=$host " /tmp/trace.txt > /tmp/drive.txt || true
+grep "host_no=$(cat /tmp/drive-host) " /tmp/trace.txt > /tmp/drive.txt || true
 USE_THE_DRIVE
 
 scp "${ssh_options[@]}" -P "$ssh_port" \
