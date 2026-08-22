@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-# Leaves the commands the drive was sent in drive.txt for the job to assert on.
+# Runs everything the app does with a drive, against a drive in a machine of
+# its own, and leaves every command that drive was sent in drive.txt for the job
+# to assert nothing among them writes.
 #
 # A machine rather than a container, because the drive is a kernel module and a
 # container shares the kernel of its host. Debian rather than Ubuntu, because
@@ -111,7 +113,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 # Read-only is a second line, not the assertion: a command is written down when
 # it is dispatched, before anything decides whether to honour it.
-"$HOME/app/.github/scripts/cut-a-disc.py" /tmp
+"$HOME/app/.github/scripts/make-a-test-disc.py" /tmp
 chmod 444 /tmp/disc.bin /tmp/disc.cue
 
 sudo sh -c 'echo 1 > /sys/kernel/debug/tracing/events/scsi/scsi_dispatch_cmd_start/enable'
@@ -125,13 +127,18 @@ dbus-run-session -- bash -euxo pipefail -c '
     sleep 5
     cdemu load 0 /tmp/disc.cue
     sleep 5
-    sudo chmod a+rw /dev/sr0
 
+    # Asked for rather than assumed: the machine already has an empty CD-ROM of
+    # QEMU\047s at /dev/sr0, and reading that one is what made this job pass
+    # while the app never touched a disc.
+    drive=$(cdemu device-mapping | sed -n "s|^0[[:space:]][[:space:]]*\([^[:space:]][^[:space:]]*\).*|\1|p")
+    sudo chmod a+rw "$drive"
+    echo "$drive" > /tmp/drive-path
     cdemu status
 
     cd "$HOME/app/src-tauri"
     cargo test --all-features
-    cargo run --example rip -- /dev/sr0 "$HOME/ripped"
+    cargo run --example rip -- "$drive" "$HOME/ripped"
 
     # A rip that found no tracks writes nothing and says it went fine, and
     # everything after it then reports on a drive that was never read.
@@ -142,7 +149,8 @@ sudo cat /sys/kernel/debug/tracing/trace > /tmp/trace.txt
 
 # Other drives are somebody else's business. Finding nothing is allowed here
 # because the job asserts on that, and a short recording is worth looking at.
-host=$(readlink -f /sys/block/sr0/device | grep -oE 'host[0-9]+' | head -1 | tr -dc '0-9')
+drive=$(basename "$(cat /tmp/drive-path)")
+host=$(readlink -f "/sys/block/$drive/device" | grep -oE 'host[0-9]+' | head -1 | tr -dc '0-9')
 grep "host_no=$host " /tmp/trace.txt > /tmp/drive.txt || true
 USE_THE_DRIVE
 

@@ -115,7 +115,7 @@ jobs:
       # so a runner with no drive can be handed a disc.
       - name: Put a disc in the drive
         run: |
-          .github/scripts/cut-a-disc.py "$GITHUB_WORKSPACE"
+          .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
           chmod 444 disc.bin disc.cue
 
       # Ten, because one run would otherwise be one bit of evidence about
@@ -202,7 +202,7 @@ jobs:
           sudo chmod 666 /dev/kvm
 
       - name: Use the drive while the kernel writes down what it is asked
-        run: .github/scripts/use-a-drive-in-a-virtual-machine.sh
+        run: .github/scripts/check-nothing-is-written-to-the-disc.sh
 
       # The audio, by its opcode, rather than any command with READ in its
       # name. The table of contents is read by the kernel on its own, so

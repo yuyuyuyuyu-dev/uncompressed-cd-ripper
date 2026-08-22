@@ -79,7 +79,7 @@ jobs:
           PROVISION
 
           ssh "${ssh_options[@]}" ci@127.0.0.1 'bash -euxo pipefail -s' <<'LOOK' || true
-          "$HOME/app/.github/scripts/cut-a-disc.py" /tmp
+          "$HOME/app/.github/scripts/make-a-test-disc.py" /tmp
 
           dbus-run-session -- bash -euxo pipefail -c '
             cdemu-daemon --bus session &
@@ -96,10 +96,10 @@ jobs:
             dmesg | tail -30 || true
 
             echo "===== what the reference tools see ====="
-            sudo chmod a+rw /dev/sr0 || true
-            cd-paranoia -d /dev/sr0 -Q || true
-            cd-info --no-device-info --no-cddb /dev/sr0 || true
-            cd-drive /dev/sr0 || true
+            drive=$(cdemu device-mapping | sed -n "s|^0[[:space:]][[:space:]]*\([^[:space:]][^[:space:]]*\).*|\1|p")
+            sudo chmod a+rw "$drive" || true
+            cd-paranoia -d "$drive" -Q || true
+            cd-info --no-device-info --no-cddb "$drive" || true
           '
           LOOK
 
