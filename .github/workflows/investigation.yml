@@ -16,6 +16,9 @@ jobs:
   drive-in-a-machine:
     name: What the machine makes of the disc
     runs-on: ubuntu-24.04
+    # A machine that never comes up would otherwise sit here for six hours, and
+    # a job that fails on time still hands over the console it was watching.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -53,11 +56,13 @@ jobs:
 
           ssh_options=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
                        -o LogLevel=ERROR -o ConnectTimeout=5 -i vm-key -p 2222)
-          for _ in $(seq 1 90); do
+          for _ in $(seq 1 30); do
             ssh "${ssh_options[@]}" ci@127.0.0.1 true 2>/dev/null && break
             sleep 10
           done
-          ssh "${ssh_options[@]}" ci@127.0.0.1 cloud-init status --wait
+          echo "===== the console, as far as it got ====="
+          tail -40 vm-console.log || true
+          timeout 300 ssh "${ssh_options[@]}" ci@127.0.0.1 cloud-init status --wait
 
           git archive HEAD | ssh "${ssh_options[@]}" ci@127.0.0.1 'mkdir -p app && tar x -C app'
 
