@@ -107,20 +107,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      # The reference FLAC tools judge the file by something other than the
-      # library that wrote it.
+      # So the file is judged by something other than what wrote it.
       - run: brew install libcdio libcdio-paranoia flac
 
-      # libcdio reads an image through the interface it reads a drive through,
-      # so a runner with no drive can be handed a disc.
+      # libcdio reads an image through the interface it reads a drive through.
       - name: Put a disc in the drive
         run: |
           .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
           chmod 444 disc.bin disc.cue
 
-      # Ten, because one run would otherwise be one bit of evidence about
-      # something that has come out differently once in four runs, and reading
-      # ten seconds of audio costs a second.
+      # Ten, so that a rip which is not repeatable shows up here.
       - name: Rip the same disc ten times
         run: |
           for attempt in $(seq 1 10); do
@@ -129,10 +125,8 @@ jobs:
           done
         working-directory: src-tauri
 
-      # Two rips of one disc that disagree mean one of them is wrong and the
-      # app cannot say which. Which of these two fails says where to look: files
-      # that differ from each other put it in the reading, files that agree with
-      # each other and not with the disc put it somewhere steadier than that.
+      # Two rips of one disc that disagree mean one is wrong and the app
+      # cannot say which.
       - name: Every attempt read the same disc the same way
         run: |
           shasum -a 256 ripped-*/01.flac
@@ -148,11 +142,8 @@ jobs:
             cmp "decoded-$attempt.raw" disc.bin
           done
 
-      # Asked of the file rather than inferred from its size, which says
-      # nothing here: audio this incompressible comes out the same size either
-      # way, byte for byte. A verbatim subframe is the one kind that holds
-      # samples as they arrived, and independent channels are the one
-      # arrangement that stores a channel rather than a difference.
+      # A verbatim subframe holds samples as they arrived, and independent
+      # channels store a channel rather than a difference against the other.
       - name: Every sample in it is stored as it arrived
         run: |
           flac --analyze ripped-1/01.flac
@@ -163,19 +154,19 @@ jobs:
       - name: The reference implementation accepts it
         run: flac --test ripped-1/01.flac
 
-      # A file states the smallest of its blocks excluding the last, so a fixed
-      # block size is stated twice. Wrong, it decodes everywhere but on Apple.
+      # Stated twice for a fixed block size, since the smallest excludes the
+      # last. Wrong, it decodes everywhere but on Apple.
       - name: Its blocks are the fixed size it says they are
         run: |
           test "$(metaflac --show-min-blocksize ripped-1/01.flac)" \
              = "$(metaflac --show-max-blocksize ripped-1/01.flac)"
 
-      # afconvert rather than afplay: the same Core Audio decoder, but a runner
-      # has no speaker and the null device it gets instead often fails to appear.
+      # The same decoder as afplay, without needing a speaker the runner has
+      # not got.
       - name: Apple's decoder plays it
         run: afconvert -f WAVE -d LEI16 ripped-1/01.flac played.wav
 
-      # A disagreement is worth having in hand rather than only in a log line.
+      # A disagreement is worth having in hand, not just in a log.
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
