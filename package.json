@@ -6,16 +6,18 @@
 	"packageManager": "pnpm@11.18.0",
 	"scripts": {
 		"generate-bindings": "cd src-tauri && cargo run --quiet --example generate_bindings",
-		"predev": "pnpm run generate-bindings",
+		"generate-licenses": "node src/features/licenses/generate-licenses.ts",
+		"generate": "pnpm run generate-bindings && pnpm run generate-licenses",
+		"predev": "pnpm run generate",
 		"dev": "vite",
-		"prebuild": "pnpm run generate-bindings",
+		"prebuild": "pnpm run generate",
 		"build": "tsc && vite build",
 		"preview": "vite preview",
 		"tauri": "tauri",
 		"biome": "biome",
-		"pretsc": "pnpm run generate-bindings",
+		"pretsc": "pnpm run generate",
 		"tsc": "tsc",
-		"previtest": "pnpm run generate-bindings",
+		"previtest": "pnpm run generate",
 		"vitest": "vitest"
 	},
 	"dependencies": {

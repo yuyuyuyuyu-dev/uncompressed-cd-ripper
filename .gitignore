@@ -15,6 +15,9 @@ dist-ssr
 # Written from src-tauri by the generate-bindings script
 src/bindings.ts
 
+# Read out of the dependency graphs by the generate-licenses script
+src/features/licenses/dependency-licenses.json
+
 # Screenshots Vitest writes when a browser test case fails
 .vitest-attachments
 __screenshots__
