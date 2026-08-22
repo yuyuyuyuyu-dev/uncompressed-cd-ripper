@@ -38,6 +38,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      # The generate-licenses script the pre scripts run reads the crate
+      # licenses through this.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
       - run: pnpm install --frozen-lockfile
       - run: pnpm run tsc --noEmit
 
@@ -56,6 +61,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      # The generate-licenses script the pre scripts run reads the crate
+      # licenses through this.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm run vitest run
@@ -259,10 +269,16 @@ jobs:
             curl --proto '=https' --tlsv1.2 --silent --show-error --fail https://sh.rustup.rs \
               | sh -s -- -y --no-modify-path --default-toolchain none
             export PATH="$HOME/.cargo/bin:$PATH"
-            # The bindings the frontend imports, built here rather than left to
-            # the pre script in `run`, which would pull a whole Rust build into
-            # what the diff is meant to be measuring.
+            # What reads the crate licenses. Compiled rather than fetched as a
+            # release binary, and that binary only comes with the cli feature.
+            # From src-tauri, because the toolchain file rustup reads lives
+            # there and the install above pinned no toolchain.
+            (cd src-tauri && cargo install --locked --features cli cargo-about)
+            # The bindings the frontend imports and the list of licenses, built
+            # here rather than left to the pre scripts in `run`, which would pull
+            # a whole Rust build into what the diff is meant to be measuring.
             pnpm run generate-bindings
+            pnpm run generate-licenses
             cd src-tauri
             cargo fetch --locked
           run: |
@@ -272,8 +288,11 @@ jobs:
             cd src-tauri
             cargo test --all-features
           # Measured against a real run: the two suites write below the working
-          # directory apart from these two caches, which the browser and
-          # fontconfig fill in the first time the browser starts.
+          # directory apart from these three. The browser and fontconfig fill
+          # the first two in the first time the browser starts. The third is
+          # where Cargo notes down what of the registry it has used, which it
+          # does while the licenses are being read.
           allowed-paths: |
             /root/.cache/ms-playwright
             /var/cache/fontconfig
+            /root/.cargo/.global-cache
