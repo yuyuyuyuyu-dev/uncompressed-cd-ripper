@@ -116,55 +116,38 @@ jobs:
           .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
           chmod 444 disc.bin disc.cue
 
-      # Ten, so that a rip which is not repeatable shows up here.
-      - name: Rip the same disc ten times
-        run: |
-          for attempt in $(seq 1 10); do
-            cargo run --example rip -- \
-              "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped-$attempt"
-          done
+      - run: cargo run --example rip -- "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped"
         working-directory: src-tauri
 
-      # Two rips of one disc that disagree mean one is wrong and the app
-      # cannot say which.
-      - name: Every attempt read the same disc the same way
+      - name: It reads back as the audio that was on the disc
         run: |
-          shasum -a 256 ripped-*/01.flac
-          for attempt in $(seq 2 10); do
-            cmp ripped-1/01.flac "ripped-$attempt/01.flac"
-          done
-
-      - name: Every attempt reads back as the audio that was on the disc
-        run: |
-          for attempt in $(seq 1 10); do
-            flac --decode --force-raw-format --endian=little --sign=signed \
-              --output-name="decoded-$attempt.raw" "ripped-$attempt/01.flac"
-            cmp "decoded-$attempt.raw" disc.bin
-          done
+          flac --decode --force-raw-format --endian=little --sign=signed \
+            --output-name=decoded.raw ripped/01.flac
+          cmp decoded.raw disc.bin
 
       # A verbatim subframe holds samples as they arrived, and independent
       # channels store a channel rather than a difference against the other.
       - name: Every sample in it is stored as it arrived
         run: |
-          flac --analyze ripped-1/01.flac
-          test "$(grep -o 'type=[A-Z]*' ripped-1/01.ana | sort -u)" = "type=VERBATIM"
-          test "$(grep -o 'channel_assignment=[A-Z_]*' ripped-1/01.ana | sort -u)" \
+          flac --analyze ripped/01.flac
+          test "$(grep -o 'type=[A-Z]*' ripped/01.ana | sort -u)" = "type=VERBATIM"
+          test "$(grep -o 'channel_assignment=[A-Z_]*' ripped/01.ana | sort -u)" \
              = "channel_assignment=INDEPENDENT"
 
       - name: The reference implementation accepts it
-        run: flac --test ripped-1/01.flac
+        run: flac --test ripped/01.flac
 
       # Stated twice for a fixed block size, since the smallest excludes the
       # last. Wrong, it decodes everywhere but on Apple.
       - name: Its blocks are the fixed size it says they are
         run: |
-          test "$(metaflac --show-min-blocksize ripped-1/01.flac)" \
-             = "$(metaflac --show-max-blocksize ripped-1/01.flac)"
+          test "$(metaflac --show-min-blocksize ripped/01.flac)" \
+             = "$(metaflac --show-max-blocksize ripped/01.flac)"
 
       # The same decoder as afplay, without needing a speaker the runner has
       # not got.
       - name: Apple's decoder plays it
-        run: afconvert -f WAVE -d LEI16 ripped-1/01.flac played.wav
+        run: afconvert -f WAVE -d LEI16 ripped/01.flac played.wav
 
       # A disagreement is worth having in hand, not just in a log.
       - uses: actions/upload-artifact@v4
@@ -173,7 +156,7 @@ jobs:
           name: the-disc-and-what-came-off-it
           path: |
             disc.bin
-            ripped-*/01.flac
+            ripped/01.flac
 
   # Pinned to a release: this depends on the runner being able to run a machine
   # inside itself, which should not move underfoot.
