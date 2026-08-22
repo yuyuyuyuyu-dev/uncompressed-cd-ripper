@@ -202,7 +202,7 @@ jobs:
           sudo chmod 666 /dev/kvm
 
       - name: Use the drive while the kernel writes down what it is asked
-        run: .github/scripts/check-nothing-is-written-to-the-disc.sh
+        run: .github/scripts/collect-the-commands-the-drive-is-sent.sh
 
       # The audio, by its opcode, rather than any command with READ in its
       # name. The table of contents is read by the kernel on its own, so

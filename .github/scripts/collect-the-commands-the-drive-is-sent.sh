@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Runs everything the app does with a drive, against a drive in a machine of
-# its own, and leaves every command that drive was sent in drive.txt for the job
-# to assert nothing among them writes.
+# Runs everything the app does with a drive, against a drive in a machine of its
+# own, and brings back every command that drive was sent. The job that calls
+# this is where they are judged; this only fetches them.
 #
 # A machine rather than a container, because the drive is a kernel module and a
 # container shares the kernel of its host. Debian rather than Ubuntu, because
