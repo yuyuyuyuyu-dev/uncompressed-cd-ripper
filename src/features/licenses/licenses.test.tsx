@@ -3,7 +3,6 @@ import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import App from "@/App";
-import { Licenses } from "./Licenses";
 
 function entryFor(library: RegExp) {
 	return page
@@ -11,8 +10,8 @@ function entryFor(library: RegExp) {
 		.filter({ has: page.getByRole("heading", { name: library }) });
 }
 
-// Drawing the whole app asks which drives hold a disc. The case below is about
-// moving between screens, so the answer is none.
+// Drawing the whole app asks which drives hold a disc. This case is about the
+// licenses, so the answer is none.
 function mockBackend() {
 	mockIPC((command) => {
 		if (command === "drives") {
@@ -26,24 +25,21 @@ afterEach(() => {
 	clearMocks();
 });
 
-// One library from each side of the app: React draws the window, libcdio
-// reads the disc.
-test("should show dependency licenses", async () => {
-	// Arrange & Act
-	await render(<Licenses />);
+test("should show dependency licenses and go back", async () => {
+	// Arrange
+	mockBackend();
+	await render(<App />);
+
+	// Act
+	await page.getByRole("button", { name: "Licenses" }).click();
 
 	// Assert
+	// One library from each side of the app: React draws the window, libcdio
+	// reads the disc.
 	await expect.element(entryFor(/^react \d/)).toHaveTextContent("MIT License");
 	await expect
 		.element(entryFor(/^libcdio-sys \d/))
 		.toHaveTextContent("GNU GENERAL PUBLIC LICENSE");
-});
-
-test("should go back from the licenses screen", async () => {
-	// Arrange
-	mockBackend();
-	await render(<App />);
-	await page.getByRole("button", { name: "Licenses" }).click();
 
 	// Act
 	await page.getByRole("button", { name: "Back" }).click();
