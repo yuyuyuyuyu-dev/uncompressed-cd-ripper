@@ -30,8 +30,9 @@ fn rip(disc: &str, destination: &Path) -> Result<(), String> {
     std::fs::create_dir_all(destination).map_err(|error| error.to_string())?;
 
     for track in ripping::tracks(disc)? {
-        // Nothing here is watching the progress a window would draw a bar from.
-        let file = ripping::rip(disc, track.number, destination, |_| {})?;
+        // Nothing here is watching the progress a window would draw a bar from,
+        // and nothing has been looked up for the disc to be tagged with.
+        let file = ripping::rip(disc, track.number, destination, None, |_| {})?;
 
         println!("{}", file.display());
     }

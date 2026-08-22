@@ -1,4 +1,5 @@
 mod error_report;
+mod metadata;
 // Public so that the example beside it can reach a rip without a window.
 pub mod ripping;
 
@@ -24,6 +25,14 @@ fn already_there(destination: String, tracks: Vec<u8>) -> Vec<String> {
     ripping::already_there(Path::new(&destination), &tracks)
 }
 
+// Reaching a server takes long enough to hold the window still, so this is
+// handed to a worker thread as well.
+#[tauri::command(async)]
+#[specta::specta]
+fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
+    metadata::look_up(&ripping::table_of_contents(&drive)?, &metadata::MusicBrainz)
+}
+
 // Reading a track blocks for minutes, so it is handed to a worker thread.
 #[tauri::command(async)]
 #[specta::specta]
@@ -31,12 +40,21 @@ fn rip_track(
     drive: String,
     track: u8,
     destination: String,
+    // Nothing where the disc was never looked up, or the lookup found nothing,
+    // or the answer was refused. The file is then written as it always was.
+    tags: Option<ripping::TrackTags>,
     progress: tauri::ipc::Channel<u32>,
 ) -> Result<String, String> {
-    let file = ripping::rip(&drive, track, Path::new(&destination), |sectors| {
-        // Only fails once the window has gone, which the read does not care about.
-        let _ = progress.send(sectors);
-    })?;
+    let file = ripping::rip(
+        &drive,
+        track,
+        Path::new(&destination),
+        tags.as_ref(),
+        |sectors| {
+            // Only fails once the window has gone, which the read does not care about.
+            let _ = progress.send(sectors);
+        },
+    )?;
 
     Ok(file.to_string_lossy().into_owned())
 }
@@ -63,6 +81,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         drives,
         tracks,
         already_there,
+        look_up_disc,
         rip_track
     ])
 }

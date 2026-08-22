@@ -13,9 +13,15 @@ use libcdio_sys::{
     CDIO_CD_FRAMESIZE_RAW,
 };
 
-use super::Track;
+use super::{TableOfContents, Track};
 
 pub const SAMPLES_PER_SECTOR: usize = CDIO_CD_FRAMESIZE_RAW as usize / size_of::<i16>();
+
+// A disc is addressed from two seconds before its first track, which is where
+// the lead-in ends. libcdio counts from the first track instead, so every
+// offset an identifier is worked out from sits this much further along than
+// the sector libcdio names.
+const LEAD_IN: u32 = 150;
 
 pub fn holding_an_audio_disc() -> Vec<String> {
     let mut devices = Vec::new();
@@ -108,6 +114,44 @@ impl Drive {
                 })
             })
             .collect()
+    }
+
+    pub fn table_of_contents(&self) -> Result<TableOfContents, String> {
+        let count = unsafe { cdio_cddap_tracks(self.handle) };
+
+        if u32::from(count) == cdio_track_enums_CDIO_INVALID_TRACK {
+            return Err("the drive will not say what is on the disc".to_owned());
+        }
+
+        let mut audio = Vec::new();
+        let mut data = None;
+        let mut leadout = 0;
+
+        for number in 1..=count {
+            let first = unsafe { cdio_cddap_track_firstsector(self.handle, number) };
+            let last = unsafe { cdio_cddap_track_lastsector(self.handle, number) };
+
+            // Unlike the listing, a track that cannot be placed is refused
+            // rather than left out: an identifier stands for the whole disc,
+            // and one worked out from part of it names a different disc.
+            if first < 0 || last < first {
+                return Err(format!("the drive will not say where track {number} is"));
+            }
+
+            if unsafe { cdio_cddap_track_audiop(self.handle, number) } == 1 {
+                audio.push(first.unsigned_abs() + LEAD_IN);
+            } else {
+                data = Some(first.unsigned_abs() + LEAD_IN);
+            }
+
+            leadout = leadout.max(last.unsigned_abs() + 1 + LEAD_IN);
+        }
+
+        Ok(TableOfContents {
+            audio,
+            data,
+            leadout,
+        })
     }
 
     pub fn read_track(&self, number: u8, mut receive: impl FnMut(&[i16])) -> Result<(), String> {

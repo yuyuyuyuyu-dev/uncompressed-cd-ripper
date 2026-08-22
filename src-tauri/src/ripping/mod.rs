@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use specta::Type;
 
 mod drive;
@@ -14,12 +14,36 @@ pub struct Track {
     pub sectors: u32,
 }
 
+// Where every track on the disc begins. This is the disc's fingerprint: an
+// identifier worked out from it is what a database is asked about, and no two
+// pressings that differ share one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TableOfContents {
+    pub audio: Vec<u32>,
+    pub data: Option<u32>,
+    pub leadout: u32,
+}
+
+// What a player shows for a track: the part of the metadata that ends up in
+// the file rather than staying on the screen.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackTags {
+    pub album: String,
+    pub artist: String,
+    pub title: String,
+}
+
 pub fn drives() -> Vec<String> {
     drive::holding_an_audio_disc()
 }
 
 pub fn tracks(device: &str) -> Result<Vec<Track>, String> {
     Ok(drive::Drive::open(device)?.audio_tracks())
+}
+
+pub fn table_of_contents(device: &str) -> Result<TableOfContents, String> {
+    drive::Drive::open(device)?.table_of_contents()
 }
 
 // A leading zero so that a listing sorts the way the disc plays.
@@ -43,6 +67,7 @@ pub fn rip(
     device: &str,
     number: u8,
     destination: &Path,
+    tags: Option<&TrackTags>,
     mut progress: impl FnMut(u32),
 ) -> Result<PathBuf, String> {
     let drive = drive::Drive::open(device)?;
@@ -73,8 +98,21 @@ pub fn rip(
     // the bar stops short of the end of every track.
     progress(read);
 
+    store(&samples, number, destination, tags)
+}
+
+fn store(
+    samples: &[i32],
+    number: u8,
+    destination: &Path,
+    tags: Option<&TrackTags>,
+) -> Result<PathBuf, String> {
     let file = destination.join(file_name(number));
-    flac::write_uncompressed(&samples, &file)?;
+
+    flac::write_uncompressed(samples, &file, number, tags)?;
 
     Ok(file)
 }
+
+#[cfg(test)]
+mod tests;

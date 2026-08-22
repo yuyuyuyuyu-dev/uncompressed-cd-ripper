@@ -14,6 +14,10 @@ accepted = [
     "CC0-1.0",
     "CDLA-Permissive-2.0",
     "Unlicense",
+    # cdtoc and the crate it counts with. As permissive as a license gets, but
+    # it carries no disclaimer of warranty and the OSI turned it down, so it is
+    # worth knowing that accepting it puts its title on the licenses screen.
+    "WTFPL",
     "MPL-2.0",
     "LGPL-2.1-or-later",
     "GPL-3.0-or-later",
