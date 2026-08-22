@@ -134,8 +134,13 @@ dbus-run-session -- bash -euxo pipefail -c '
 
     # Asked for rather than assumed: QEMU gives the machine an empty CD-ROM at
     # /dev/sr0, and reading that one is what let this job pass while the app
-    # never touched a disc.
-    drive=$(cdemu device-mapping | sed -n "s|^0[[:space:]][[:space:]]*\([^[:space:]][^[:space:]]*\).*|\1|p")
+    # never touched a disc. The name arrives a moment after the disc does.
+    for _ in $(seq 1 60); do
+        drive=$(cdemu device-mapping | sed -n "s|^0[[:space:]][[:space:]]*\([^[:space:]][^[:space:]]*\).*|\1|p") || true
+        [ -n "$drive" ] && break
+        sleep 1
+    done
+    [ -n "$drive" ]
     sudo chmod a+rw "$drive"
     cdemu status
 
