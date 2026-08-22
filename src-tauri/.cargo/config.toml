@@ -1,0 +1,6 @@
+# libcdio-sys links by pkg-config but generates bindings with a bare clang,
+# which does not look inside Homebrew. Both prefixes are named because clang
+# ignores one that does not exist and the right one depends on the Mac. Cargo
+# leaves the variable alone if the environment already carries one.
+[env]
+BINDGEN_EXTRA_CLANG_ARGS = "-I/opt/homebrew/include -I/usr/local/include"

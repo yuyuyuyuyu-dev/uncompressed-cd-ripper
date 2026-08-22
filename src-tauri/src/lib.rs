@@ -1,14 +1,44 @@
 mod error_report;
+// Public so that the example beside it can reach a rip without a window.
+pub mod ripping;
+
+use std::path::Path;
 
 use tauri_specta::{collect_commands, Builder};
 
-// Standing in for the ripping that does not exist yet. Until something here
-// can fail, the way a failure on this side reaches a notification on the other
-// cannot be walked through by hand.
 #[tauri::command]
 #[specta::specta]
-fn fail_deliberately() -> Result<(), String> {
-    Err("the drive reported an unrecoverable read error on track 3".to_owned())
+fn drives() -> Vec<String> {
+    ripping::drives()
+}
+
+#[tauri::command]
+#[specta::specta]
+fn tracks(drive: String) -> Result<Vec<ripping::Track>, String> {
+    ripping::tracks(&drive)
+}
+
+#[tauri::command]
+#[specta::specta]
+fn already_there(destination: String, tracks: Vec<u8>) -> Vec<String> {
+    ripping::already_there(Path::new(&destination), &tracks)
+}
+
+// Reading a track blocks for minutes, so it is handed to a worker thread.
+#[tauri::command(async)]
+#[specta::specta]
+fn rip_track(
+    drive: String,
+    track: u8,
+    destination: String,
+    progress: tauri::ipc::Channel<u32>,
+) -> Result<String, String> {
+    let file = ripping::rip(&drive, track, Path::new(&destination), |sectors| {
+        // Only fails once the window has gone, which the read does not care about.
+        let _ = progress.send(sectors);
+    })?;
+
+    Ok(file.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
@@ -28,9 +58,12 @@ fn send_error_report(report: error_report::ErrorReport) -> Result<(), String> {
 
 pub fn builder() -> Builder<tauri::Wry> {
     Builder::new().commands(collect_commands![
-        fail_deliberately,
         environment,
-        send_error_report
+        send_error_report,
+        drives,
+        tracks,
+        already_there,
+        rip_track
     ])
 }
 
@@ -38,6 +71,8 @@ pub fn builder() -> Builder<tauri::Wry> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(builder().invoke_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -18,7 +18,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# The specta feature lets a command take a channel the frontend reads progress
+# from, declared once on this side.
+tauri = { version = "2", features = ["specta"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -31,6 +33,17 @@ specta-typescript = "=0.0.12"
 ureq = { version = "3.4.0", default-features = false, features = ["rustls"] }
 sentry-types = "0.49.1"
 os_info = "3.15.0"
+tauri-plugin-dialog = "2"
+# No pure Rust library reads audio off a CD as accurately: libcdio-paranoia is
+# what cdparanoia grew into, and re-reads until the samples agree. It is GPL,
+# which the whole app therefore is. Filesystem features off: this reads audio.
+libcdio-sys = { version = "2.0.0", default-features = false, features = [
+    "paranoia",
+] }
+# For SEEK_SET, which belongs to libc so the libcdio bindings do not carry it.
+libc = "0.2"
+flacenc = "0.5.1"
+tauri-plugin-notification = "2.3.3"
 
 [profile.release]
 # Line tables leave file and line in a backtrace without carrying types or

@@ -34,6 +34,7 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -51,6 +52,7 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -75,6 +77,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -87,11 +90,117 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
       - run: cargo test --all-features
         working-directory: src-tauri
+
+  # On macOS for the last assertion: Apple's decoder refused a file every other
+  # decoder accepted, and it exists nowhere else.
+  rip:
+    name: should rip as FLAC Uncompressed
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      # So the file is judged by something other than what wrote it.
+      - run: brew install libcdio libcdio-paranoia flac
+
+      # libcdio reads an image through the interface it reads a drive through.
+      - name: Put a disc in the drive
+        run: |
+          .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
+          chmod 444 disc.bin disc.cue
+
+      - run: cargo run --example rip -- "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped"
+        working-directory: src-tauri
+
+      - name: It reads back as the audio that was on the disc
+        run: |
+          flac --decode --force-raw-format --endian=little --sign=signed \
+            --output-name=decoded.raw ripped/01.flac
+          cmp decoded.raw disc.bin
+
+      # A verbatim subframe holds samples as they arrived, and independent
+      # channels store a channel rather than a difference against the other.
+      - name: Every sample in it is stored as it arrived
+        run: |
+          flac --analyze ripped/01.flac
+          test "$(grep -o 'type=[A-Z]*' ripped/01.ana | sort -u)" = "type=VERBATIM"
+          test "$(grep -o 'channel_assignment=[A-Z_]*' ripped/01.ana | sort -u)" \
+             = "channel_assignment=INDEPENDENT"
+
+      - name: The reference implementation accepts it
+        run: flac --test ripped/01.flac
+
+      # Stated twice for a fixed block size, since the smallest excludes the
+      # last. Wrong, it decodes everywhere but on Apple.
+      - name: Its blocks are the fixed size it says they are
+        run: |
+          test "$(metaflac --show-min-blocksize ripped/01.flac)" \
+             = "$(metaflac --show-max-blocksize ripped/01.flac)"
+
+      # The same decoder as afplay, without needing a speaker the runner has
+      # not got.
+      - name: Apple's decoder plays it
+        run: afconvert -f WAVE -d LEI16 ripped/01.flac played.wav
+
+      # A disagreement is worth having in hand, not just in a log.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: the-disc-and-what-came-off-it
+          path: |
+            disc.bin
+            ripped/01.flac
+
+  # Pinned to a release: this depends on the runner being able to run a machine
+  # inside itself, which should not move underfoot.
+  disc-writes:
+    name: should not write to a disc
+    runs-on: ubuntu-24.04
+    # It waits on a machine coming up, and one that never does would otherwise
+    # sit here for six hours. A run takes six minutes.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      # A job that quietly does nothing keeps claiming what it stopped checking.
+      - name: The runner can run a machine inside itself
+        run: test -e /dev/kvm
+
+      - run: |
+          sudo apt-get update
+          sudo apt-get install --yes qemu-system-x86 qemu-utils cloud-image-utils
+          sudo chmod 666 /dev/kvm
+
+      - name: Use the drive while the kernel writes down what it is asked
+        run: .github/scripts/collect-the-commands-the-drive-is-sent.sh
+
+      # The audio, by its opcode, rather than any command with READ in its
+      # name. The table of contents is read by the kernel on its own, so
+      # asking only for that passed on a run where the app never read a note.
+      - name: The drive was asked for the audio
+        run: grep -qE 'raw=(be|28) ' drive.txt
+
+      - name: The drive was never asked to write
+        run: |
+          ! grep -qE 'cmnd=\((WRITE|ERASE|BLANK|FORMAT_UNIT|CLOSE_TRACK|RESERVE_TRACK)' drive.txt
+
+      # The evidence, so the claim can be checked rather than believed. The
+      # console comes too: when the machine fails, it is the only account.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: commands-the-drive-was-sent
+          path: |
+            drive.txt
+            trace.txt
+            vm-console.log
 
   file-side-effects:
     name: should not create, modify or delete unrelated files or directories
@@ -117,6 +226,14 @@ jobs:
               libssl-dev \
               libayatana-appindicator3-dev \
               librsvg2-dev
+            # Separate from the list above so the Tauri prerequisites stay
+            # quotable against their own page.
+            apt-get install --yes \
+              libcdio-dev \
+              libcdio-cdda-dev \
+              libcdio-paranoia-dev \
+              libclang-dev \
+              pkg-config
             # A bare Ubuntu image ships no CA bundle, which every download
             # below needs.
             apt-get install --yes ca-certificates

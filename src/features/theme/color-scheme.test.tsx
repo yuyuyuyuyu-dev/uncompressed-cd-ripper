@@ -1,7 +1,23 @@
-import { expect, test } from "vitest";
+import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { afterEach, expect, test } from "vitest";
 import { cdp } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import App from "@/App";
+
+// Drawing the app asks which drives hold a disc. These cases are about the
+// stylesheet, so the answer is none.
+function mockBackend() {
+	mockIPC((command) => {
+		if (command === "drives") {
+			return [];
+		}
+		throw new Error(`the test did not expect ${command}`);
+	});
+}
+
+afterEach(() => {
+	clearMocks();
+});
 
 async function emulateOperatingSystemColorScheme(value: "light" | "dark") {
 	await cdp().send("Emulation.setEmulatedMedia", {
@@ -34,6 +50,7 @@ function pageLightness() {
 // leaves the page unthemed and every case here failing.
 test("should use the light theme when the operating system prefers a light color scheme", async () => {
 	// Arrange
+	mockBackend();
 	await render(<App />);
 
 	// Act
@@ -46,6 +63,7 @@ test("should use the light theme when the operating system prefers a light color
 
 test("should use the dark theme when the operating system prefers a dark color scheme", async () => {
 	// Arrange
+	mockBackend();
 	await render(<App />);
 
 	// Act
@@ -58,6 +76,7 @@ test("should use the dark theme when the operating system prefers a dark color s
 
 test("should follow the operating system switching to a dark color scheme while running", async () => {
 	// Arrange
+	mockBackend();
 	await render(<App />);
 	await emulateOperatingSystemColorScheme("light");
 	const before = pageLightness().background;
