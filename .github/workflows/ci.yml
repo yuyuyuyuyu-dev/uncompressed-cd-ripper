@@ -277,7 +277,8 @@ jobs:
             # The bindings the frontend imports and the list of licenses, built
             # here rather than left to the pre scripts in `run`, which would pull
             # a whole Rust build into what the diff is meant to be measuring.
-            pnpm run generate
+            pnpm run generate-bindings
+            pnpm run generate-licenses
             cd src-tauri
             cargo fetch --locked
           run: |
@@ -287,8 +288,11 @@ jobs:
             cd src-tauri
             cargo test --all-features
           # Measured against a real run: the two suites write below the working
-          # directory apart from these two caches, which the browser and
-          # fontconfig fill in the first time the browser starts.
+          # directory apart from these three. The browser and fontconfig fill
+          # the first two in the first time the browser starts. The third is
+          # where Cargo notes down what of the registry it has used, which it
+          # does while the licenses are being read.
           allowed-paths: |
             /root/.cache/ms-playwright
             /var/cache/fontconfig
+            /root/.cargo/.global-cache
