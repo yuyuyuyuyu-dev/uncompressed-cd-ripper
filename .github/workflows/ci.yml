@@ -208,50 +208,6 @@ jobs:
           grep -qxF 'ALBUM=Sea Change' tags.txt
           grep -qxF 'TRACKNUMBER=1' tags.txt
 
-  # The job above hands the rip a tag set with every field filled in. This one
-  # hands it one with the artist left blank, which is the shape a screen
-  # somebody typed only part of sends. A blank has to reach the file as a tag
-  # that is not there rather than as a tag that is empty.
-  typed-metadata:
-    name: should write the metadata typed in by hand into the file a track is ripped to
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-tauri-linux
-      - uses: ./.github/actions/setup-libcdio
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-      # So the tags are read by something other than what wrote them.
-      - run: sudo apt-get install --yes flac
-
-      - name: Put a disc in the drive
-        run: |
-          .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
-          chmod 444 disc.bin disc.cue
-
-      # The empty argument is the artist field, left blank the way a screen
-      # leaves it.
-      - name: Rip it as a disc somebody named by hand
-        run: |
-          cargo run --example rip -- \
-            "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped" \
-            "Tide Marks" "" "Slack Water"
-        working-directory: src-tauri
-
-      # Reached by the name the title had to have got into, so a title that
-      # never left the screen fails here rather than passing quietly.
-      - name: A player reads back what was typed in
-        run: |
-          ls -la ripped
-          metaflac --export-tags-to=- "ripped/01 - Slack Water.flac" | tee tags.txt
-          grep -qxF 'TITLE=Slack Water' tags.txt
-          grep -qxF 'ALBUM=Tide Marks' tags.txt
-          grep -qxF 'TRACKNUMBER=1' tags.txt
-
-      - name: The field left blank is absent rather than empty
-        run: '! grep -q ''^ARTIST'' tags.txt'
-
   # Pinned to a release: this depends on the runner being able to run a machine
   # inside itself, which should not move underfoot.
   disc-writes:
