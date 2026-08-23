@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { type Album, commands } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,17 +25,12 @@ type Props = {
 };
 
 export function DiscMetadata({ drive, chosen, onChosen, disabled }: Props) {
+	// A different disc is a different question. None of this survives one being
+	// put in, which is arranged by the drive being this component's key rather
+	// than by anything here.
 	const [asking, setAsking] = useState(false);
 	const [matches, setMatches] = useState<Album[]>();
 	const [looking, setLooking] = useState(false);
-
-	// A different disc is a different question, so the last answer goes and the
-	// permission for it goes with it.
-	useEffect(() => {
-		setMatches(undefined);
-		onChosen(undefined);
-		setAsking(drive !== undefined);
-	}, [drive, onChosen]);
 
 	const look = async () => {
 		if (drive === undefined) {

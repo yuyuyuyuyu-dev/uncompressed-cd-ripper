@@ -58,6 +58,12 @@ function mockBackend({ matches }: { matches: Album[] }) {
 	return askedAbout;
 }
 
+// Nothing is sent until this is pressed, and pressing it only brings up the
+// question. Both clicks are the act of looking a disc up.
+async function askToLookUp() {
+	await page.getByRole("button", { name: "Look this disc up" }).click();
+}
+
 afterEach(() => {
 	clearMocks();
 });
@@ -68,6 +74,7 @@ test("should show the metadata fetched for the disc", async () => {
 	await render(<App />);
 
 	// Act
+	await askToLookUp();
 	await page.getByRole("button", { name: "Look it up" }).click();
 
 	// Assert
@@ -83,6 +90,7 @@ test("should show every set of metadata found for the disc and let one of them b
 	await render(<App />);
 
 	// Act
+	await askToLookUp();
 	await page.getByRole("button", { name: "Look it up" }).click();
 
 	// Assert
@@ -105,9 +113,10 @@ test("should show every set of metadata found for the disc and let one of them b
 test("should ask before sending anything about the disc to a server", async () => {
 	// Arrange
 	const askedAbout = mockBackend({ matches: [BRITISH] });
+	await render(<App />);
 
 	// Act
-	await render(<App />);
+	await askToLookUp();
 
 	// Assert
 	await expect
@@ -120,6 +129,7 @@ test("should send nothing about the disc when the lookup is cancelled", async ()
 	// Arrange
 	const askedAbout = mockBackend({ matches: [BRITISH] });
 	await render(<App />);
+	await askToLookUp();
 
 	// Act
 	await page.getByRole("button", { name: "Cancel" }).click();

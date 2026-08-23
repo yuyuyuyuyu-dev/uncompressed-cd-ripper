@@ -24,6 +24,15 @@ pub struct TableOfContents {
     pub leadout: u32,
 }
 
+// What a track will be filed as. The title is what the disc was looked up as,
+// and nothing where it was not looked up or the answer had no title for it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackFile {
+    pub number: u8,
+    pub title: Option<String>,
+}
+
 // What a player shows for a track: the part of the metadata that ends up in
 // the file rather than staying on the screen.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -46,15 +55,52 @@ pub fn table_of_contents(device: &str) -> Result<TableOfContents, String> {
     drive::Drive::open(device)?.table_of_contents()
 }
 
-// A leading zero so that a listing sorts the way the disc plays.
-pub fn file_name(number: u8) -> String {
-    format!("{number:02}.flac")
+// What a name cannot hold. The list is Windows', which is the widest of the
+// three: a name that is allowed there is allowed on the two this runs on now.
+const FORBIDDEN: [char; 9] = ['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
+
+// A name is capped at 255 bytes on the filesystems this writes to, and a title
+// written in three-byte characters reaches that sooner than its length looks.
+const ROOM_FOR_A_TITLE: usize = 255 - "00_".len() - ".flac".len();
+
+fn usable(title: &str) -> String {
+    // One character for one rather than dropped, so that a title made of
+    // nothing else still leaves a name, and so that "AC/DC" does not come out
+    // as one word.
+    let mut name: String = title
+        .chars()
+        .map(|character| {
+            if FORBIDDEN.contains(&character) || character.is_control() {
+                '_'
+            } else {
+                character
+            }
+        })
+        .collect();
+
+    while name.len() > ROOM_FOR_A_TITLE {
+        name.pop();
+    }
+
+    // Windows drops a trailing dot or space without saying so, which would
+    // leave the file under a name nothing here goes looking for.
+    name.trim().trim_end_matches(['.', ' ']).to_owned()
 }
 
-pub fn already_there(destination: &Path, tracks: &[u8]) -> Vec<String> {
+// A leading zero so that a listing sorts the way the disc plays. Nothing has
+// to be done about the device names Windows keeps for itself, since every one
+// of these begins with a digit and none of those do.
+pub fn file_name(number: u8, title: Option<&str>) -> String {
+    match title.map(usable).filter(|title| !title.is_empty()) {
+        Some(title) => format!("{number:02}_{title}.flac"),
+        None => format!("{number:02}.flac"),
+    }
+}
+
+pub fn already_there(destination: &Path, tracks: &[TrackFile]) -> Vec<String> {
     tracks
         .iter()
-        .map(|number| file_name(*number))
+        .map(|track| file_name(track.number, track.title.as_deref()))
         .filter(|name| destination.join(name).exists())
         .collect()
 }
@@ -107,7 +153,7 @@ fn store(
     destination: &Path,
     tags: Option<&TrackTags>,
 ) -> Result<PathBuf, String> {
-    let file = destination.join(file_name(number));
+    let file = destination.join(file_name(number, tags.map(|tags| tags.title.as_str())));
 
     flac::write_uncompressed(samples, &file, number, tags)?;
 

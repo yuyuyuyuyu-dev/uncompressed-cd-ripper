@@ -39,11 +39,17 @@ type Reading = {
 };
 
 // Nothing where the disc was never looked up, and nothing for a track the
-// answer had no title for: a file is better untagged than tagged wrongly.
-function tagsFor(album: Album | undefined, number: number): TrackTags | null {
-	const title = album?.tracks.find((track) => track.number === number)?.title;
+// answer had no title for. Both the tags and the file name come from here, so
+// a file cannot end up named after a title it was not tagged with.
+function titleOf(album: Album | undefined, number: number) {
+	return album?.tracks.find((track) => track.number === number)?.title ?? null;
+}
 
-	if (album === undefined || title === undefined) {
+// A file is better untagged than tagged wrongly.
+function tagsFor(album: Album | undefined, number: number): TrackTags | null {
+	const title = titleOf(album, number);
+
+	if (album === undefined || title === null) {
 		return null;
 	}
 
@@ -90,6 +96,9 @@ export function Ripper() {
 	}, [look]);
 
 	useEffect(() => {
+		// What the last disc was looked up as says nothing about this one.
+		setAlbum(undefined);
+
 		if (drive === undefined) {
 			setTracks([]);
 			return;
@@ -138,7 +147,10 @@ export function Ripper() {
 
 		const existing = await commands.alreadyThere(
 			destination,
-			tracks.map((track) => track.number),
+			tracks.map((track) => ({
+				number: track.number,
+				title: titleOf(album, track.number),
+			})),
 		);
 
 		if (existing.length > 0) {
@@ -183,6 +195,7 @@ export function Ripper() {
 			)}
 
 			<DiscMetadata
+				key={drive}
 				drive={drive}
 				chosen={album}
 				onChosen={setAlbum}
@@ -200,8 +213,7 @@ export function Ripper() {
 								{String(track.number).padStart(2, "0")}
 							</span>
 							<span className="flex-1 truncate text-left">
-								{album?.tracks.find((titled) => titled.number === track.number)
-									?.title ?? ""}
+								{titleOf(album, track.number) ?? ""}
 							</span>
 							<span className="text-muted-foreground tabular-nums">
 								{length(track.sectors)}

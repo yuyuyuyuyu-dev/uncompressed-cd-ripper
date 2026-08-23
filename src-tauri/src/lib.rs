@@ -21,7 +21,7 @@ fn tracks(drive: String) -> Result<Vec<ripping::Track>, String> {
 
 #[tauri::command]
 #[specta::specta]
-fn already_there(destination: String, tracks: Vec<u8>) -> Vec<String> {
+fn already_there(destination: String, tracks: Vec<ripping::TrackFile>) -> Vec<String> {
     ripping::already_there(Path::new(&destination), &tracks)
 }
 

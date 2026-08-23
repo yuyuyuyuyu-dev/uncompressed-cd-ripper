@@ -39,13 +39,6 @@ function mockBackend({ alreadyThere }: { alreadyThere: string[] }) {
 	return ripped;
 }
 
-// A disc in the drive is now asked about before anything is sent away, and the
-// question stands in front of the screen until it is answered. These cases are
-// about ripping, which the answer does not change.
-async function dismissTheLookup() {
-	await page.getByRole("button", { name: "Cancel" }).click();
-}
-
 async function chooseAFolder() {
 	await page.getByRole("button", { name: "Choose a folder" }).click();
 	await expect.element(page.getByText(FOLDER)).toBeVisible();
@@ -59,7 +52,6 @@ test("should ask whether to overwrite when the destination already holds a file 
 	// Arrange
 	mockBackend({ alreadyThere: ["01.flac"] });
 	await render(<Ripper />);
-	await dismissTheLookup();
 	await chooseAFolder();
 
 	// Act
@@ -77,7 +69,6 @@ test("should not start ripping when the overwrite dialog is cancelled", async ()
 	// Arrange
 	const ripped = mockBackend({ alreadyThere: ["01.flac"] });
 	await render(<Ripper />);
-	await dismissTheLookup();
 	await chooseAFolder();
 	await page.getByRole("button", { name: "Rip" }).click();
 
