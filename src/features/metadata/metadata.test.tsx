@@ -135,7 +135,7 @@ test("should show every set of metadata found for the disc and let one of them b
 		.toHaveValue("Low Tide (Alternate Take)");
 });
 
-test("should rip the tracks with the metadata typed in by hand", async () => {
+test("should let the metadata be typed in by hand", async () => {
 	// Arrange
 	const { ripped } = mockBackend({ matches: [] });
 	await render(<App />);
