@@ -202,7 +202,7 @@ jobs:
       - name: A player reads back what the lookup answered
         run: |
           ls -la ripped
-          metaflac --export-tags-to=- "ripped/01_Harbour Lights.flac" | tee tags.txt
+          metaflac --export-tags-to=- "ripped/01 - Harbour Lights.flac" | tee tags.txt
           grep -qxF 'TITLE=Harbour Lights' tags.txt
           grep -qxF 'ARTIST=Marina Blue' tags.txt
           grep -qxF 'ALBUM=Sea Change' tags.txt

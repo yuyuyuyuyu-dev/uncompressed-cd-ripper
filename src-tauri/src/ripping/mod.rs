@@ -117,7 +117,7 @@ const FORBIDDEN: [char; 9] = ['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
 
 // A name is capped at 255 bytes on the filesystems this writes to, and a title
 // written in three-byte characters reaches that sooner than its length looks.
-const ROOM_FOR_A_TITLE: usize = 255 - "00_".len() - ".flac".len();
+const ROOM_FOR_A_TITLE: usize = 255 - "00 - ".len() - ".flac".len();
 
 fn usable(title: &str) -> String {
     // One character for one rather than dropped, so that a title made of
@@ -143,12 +143,15 @@ fn usable(title: &str) -> String {
     name.trim().trim_end_matches(['.', ' ']).to_owned()
 }
 
-// A leading zero so that a listing sorts the way the disc plays. Nothing has
-// to be done about the device names Windows keeps for itself, since every one
-// of these begins with a digit and none of those do.
+// A leading zero so that a listing sorts the way the disc plays. The separator
+// is neither the underscore, which is what a character a name cannot hold
+// turns into, nor the dot, which ends the name: as either one, it would read
+// as part of the title. Nothing has to be done about the device names Windows
+// keeps for itself, since every one of these begins with a digit and none of
+// those do.
 pub fn file_name(number: u8, title: Option<&str>) -> String {
     match title.map(usable).filter(|title| !title.is_empty()) {
-        Some(title) => format!("{number:02}_{title}.flac"),
+        Some(title) => format!("{number:02} - {title}.flac"),
         None => format!("{number:02}.flac"),
     }
 }
