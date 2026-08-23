@@ -208,10 +208,10 @@ jobs:
           grep -qxF 'ALBUM=Sea Change' tags.txt
           grep -qxF 'TRACKNUMBER=1' tags.txt
 
-  # The job above hands the rip what a lookup answered. This one hands it what
-  # somebody typed instead, with a field left blank: nothing a lookup returns
-  # is ever half filled in, and a blank has to reach the file as a tag that is
-  # not there rather than as a tag that is empty.
+  # The job above hands the rip a tag set with every field filled in. This one
+  # hands it one with the artist left blank, which is the shape a screen
+  # somebody typed only part of sends. A blank has to reach the file as a tag
+  # that is not there rather than as a tag that is empty.
   typed-metadata:
     name: should write the metadata typed in by hand into the file a track is ripped to
     runs-on: ubuntu-latest
