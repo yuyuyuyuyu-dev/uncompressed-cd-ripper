@@ -42,6 +42,12 @@ fn look_up_artwork(release: String) -> Result<Option<artwork::Cover>, String> {
     artwork::look_up(&release, &artwork::Ureq)
 }
 
+#[tauri::command]
+#[specta::specta]
+fn read_artwork(path: String) -> Result<artwork::Cover, String> {
+    artwork::chosen(Path::new(&path))
+}
+
 // Reading a track blocks for minutes, so it is handed to a worker thread.
 #[tauri::command(async)]
 #[specta::specta]
@@ -92,6 +98,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         already_there,
         look_up_disc,
         look_up_artwork,
+        read_artwork,
         rip_track
     ])
 }

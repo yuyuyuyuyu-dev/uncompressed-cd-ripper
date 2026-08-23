@@ -6,7 +6,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { type Album, commands, type Track } from "@/bindings";
+import { type Album, type Cover, commands, type Track } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -17,6 +17,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ChooseCover } from "../artwork/ChooseCover";
 import { CoverArt } from "../artwork/CoverArt";
 import { expectOk } from "../error-report/backend";
 import { length } from "../ripping/track";
@@ -110,6 +111,14 @@ export function DiscMetadata({
 		}
 	};
 
+	// A picture chosen by hand settles the sleeve: the request it stops waiting
+	// for is one whose answer would otherwise land on top of it.
+	const takeChosen = (cover: Cover) => {
+		asked.current += 1;
+		setFetchingCover(false);
+		onChange((current) => withCover(current, cover));
+	};
+
 	// Not waited for: the album and the track titles are there to be read and
 	// corrected while the sleeve is still coming.
 	const take = (album: Album) => {
@@ -200,7 +209,10 @@ export function DiscMetadata({
 			)}
 
 			<div className="flex items-start gap-3">
-				<CoverArt cover={metadata.cover} looking={looking || fetchingCover} />
+				<div className="flex shrink-0 flex-col items-center gap-2">
+					<CoverArt cover={metadata.cover} looking={looking || fetchingCover} />
+					<ChooseCover onChoose={takeChosen} disabled={frozen} />
+				</div>
 
 				<div className="grid flex-1 grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
 					<label className="text-sm" htmlFor={albumField}>

@@ -1,3 +1,5 @@
+use super::PNG;
+
 // What a picture block states about the image beside carrying the image
 // itself. A player draws the sleeve from the image; these are what a tag
 // editor can show without opening it.
@@ -19,8 +21,6 @@ pub fn measured(media_type: &str, image: &[u8]) -> Dimensions {
         _ => Dimensions::default(),
     }
 }
-
-const PNG: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a];
 
 // A PNG says it is one, and its first chunk is the header: the size, how many
 // bits a channel holds, and which channels there are.
