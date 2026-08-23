@@ -18,13 +18,29 @@ const VORBIS_COMMENT: u8 = 4;
 // What is written into the block, and the order a player is used to seeing.
 // The names are the ones the Vorbis comment specification settled on, which is
 // what makes the tags show up rather than sit there unread.
+//
+// A field nobody filled in is left out rather than written empty, because a
+// player that finds an empty title shows a blank line where one that finds no
+// title falls back to the name of the file.
 fn vorbis_comment(tags: &TrackTags, number: u8) -> Vec<u8> {
-    let fields = [
-        format!("TITLE={}", tags.title),
-        format!("ARTIST={}", tags.artist),
-        format!("ALBUM={}", tags.album),
-        format!("TRACKNUMBER={number}"),
-    ];
+    let fields: Vec<String> = [
+        tags.title.as_ref().map(|title| format!("TITLE={title}")),
+        tags.artist
+            .as_ref()
+            .map(|artist| format!("ARTIST={artist}")),
+        tags.album.as_ref().map(|album| format!("ALBUM={album}")),
+        // One word, which is what Picard writes and what most of what reads a
+        // library goes looking for. The spelling with a space also exists, and
+        // writing both would leave a tag editor showing the album's artist
+        // twice.
+        tags.album_artist
+            .as_ref()
+            .map(|artist| format!("ALBUMARTIST={artist}")),
+        Some(format!("TRACKNUMBER={number}")),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
 
     // Every length in this one block is written the other way round from the
     // rest of the file, which is big-endian throughout. The block is a Vorbis

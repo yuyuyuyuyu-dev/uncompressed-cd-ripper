@@ -33,6 +33,9 @@ pub struct Album {
 pub struct TitledTrack {
     pub number: u8,
     pub title: String,
+    // Its own, because a track on a compilation is credited to somebody the
+    // rest of the disc is not.
+    pub artist: String,
 }
 
 pub trait MetadataApi {
@@ -78,14 +81,23 @@ struct Release {
     media: Vec<Medium>,
 }
 
-// An album can be credited to several artists at once, each carrying the words
-// that join it to the next, so that "and" or a comma reads the way the sleeve
-// has it.
+// An album or a track can be credited to several artists at once, each
+// carrying the words that join it to the next, so that "and" or a comma reads
+// the way the sleeve has it.
 #[derive(Deserialize)]
 struct Credit {
     name: String,
     #[serde(default)]
     joinphrase: String,
+}
+
+fn credited(artists: &[Credit]) -> String {
+    artists
+        .iter()
+        .map(|credit| format!("{}{}", credit.name, credit.joinphrase))
+        .collect::<String>()
+        .trim_end()
+        .to_owned()
 }
 
 #[derive(Deserialize)]
@@ -107,6 +119,8 @@ struct MediumTrack {
     // rather than a count, and on a record it reads "A1".
     position: u8,
     title: String,
+    #[serde(rename = "artist-credit", default)]
+    artists: Vec<Credit>,
 }
 
 fn albums(answer: &str, disc_id: &str) -> Result<Vec<Album>, String> {
@@ -147,17 +161,13 @@ impl Release {
             title,
             released: date,
             country,
-            artist: artists
-                .iter()
-                .map(|credit| format!("{}{}", credit.name, credit.joinphrase))
-                .collect::<String>()
-                .trim_end()
-                .to_owned(),
+            artist: credited(&artists),
             tracks: tracks
                 .into_iter()
                 .map(|track| TitledTrack {
                     number: track.position,
                     title: track.title,
+                    artist: credited(&track.artists),
                 })
                 .collect(),
         }

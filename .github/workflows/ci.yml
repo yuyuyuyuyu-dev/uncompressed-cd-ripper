@@ -206,6 +206,7 @@ jobs:
           grep -qxF 'TITLE=Harbour Lights' tags.txt
           grep -qxF 'ARTIST=Marina Blue' tags.txt
           grep -qxF 'ALBUM=Sea Change' tags.txt
+          grep -qxF 'ALBUMARTIST=Marina Blue' tags.txt
           grep -qxF 'TRACKNUMBER=1' tags.txt
 
   # Pinned to a release: this depends on the runner being able to run a machine

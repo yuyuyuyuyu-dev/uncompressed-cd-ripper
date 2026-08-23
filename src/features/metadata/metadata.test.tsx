@@ -3,9 +3,10 @@ import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import App from "@/App";
-import type { Album } from "@/bindings";
+import type { Album, TrackTags } from "@/bindings";
 
 const DRIVE = "/dev/disk4";
+const FOLDER = "/Users/someone/Music";
 
 // Two pressings of one record, which is what a disc matching more than once
 // usually means. They agree on everything a sleeve shows, so the year and the
@@ -17,8 +18,8 @@ const BRITISH: Album = {
 	released: "1998-03-02",
 	country: "GB",
 	tracks: [
-		{ number: 1, title: "Harbour Lights" },
-		{ number: 2, title: "Low Tide" },
+		{ number: 1, title: "Harbour Lights", artist: "Marina Blue" },
+		{ number: 2, title: "Low Tide", artist: "Marina Blue & The Tide" },
 	],
 };
 
@@ -28,15 +29,17 @@ const JAPANESE: Album = {
 	released: "1998-04-22",
 	country: "JP",
 	tracks: [
-		{ number: 1, title: "Harbour Lights" },
-		{ number: 2, title: "Low Tide (Alternate Take)" },
+		{ number: 1, title: "Harbour Lights", artist: "Marina Blue" },
+		{ number: 2, title: "Low Tide (Alternate Take)", artist: "The Tide" },
 	],
 };
 
-// The drive, the disc and the server are all across the IPC. What comes back
-// is collected so that a test can say nothing was asked.
+// The drive, the disc, the folder and the server are all across the IPC. What
+// crosses it is collected, so that a test can say what was sent and what was
+// not.
 function mockBackend({ matches }: { matches: Album[] }) {
 	const askedAbout: string[] = [];
+	const ripped: (TrackTags | null)[] = [];
 
 	mockIPC((command, payload) => {
 		if (command === "drives") {
@@ -52,10 +55,26 @@ function mockBackend({ matches }: { matches: Album[] }) {
 			askedAbout.push((payload as { drive: string }).drive);
 			return matches;
 		}
+		if (command === "plugin:dialog|open") {
+			return FOLDER;
+		}
+		if (command === "already_there") {
+			return [];
+		}
+		if (command === "rip_track") {
+			ripped.push((payload as { tags: TrackTags | null }).tags);
+			return null;
+		}
+		if (command === "plugin:notification|is_permission_granted") {
+			return true;
+		}
+		if (command === "plugin:notification|notify") {
+			return null;
+		}
 		throw new Error(`the test did not expect ${command}`);
 	});
 
-	return askedAbout;
+	return { askedAbout, ripped };
 }
 
 // Nothing is sent until this is pressed, and pressing it only brings up the
@@ -78,10 +97,24 @@ test("should show the metadata fetched for the disc", async () => {
 	await page.getByRole("button", { name: "Look it up" }).click();
 
 	// Assert
-	await expect.element(page.getByText("Sea Change")).toBeVisible();
-	await expect.element(page.getByText("Marina Blue")).toBeVisible();
-	await expect.element(page.getByText("Harbour Lights")).toBeVisible();
-	await expect.element(page.getByText("Low Tide")).toBeVisible();
+	await expect
+		.element(page.getByLabelText("Album", { exact: true }))
+		.toHaveValue("Sea Change");
+	await expect
+		.element(page.getByLabelText("Album artist"))
+		.toHaveValue("Marina Blue");
+	await expect
+		.element(page.getByLabelText("Title of track 1"))
+		.toHaveValue("Harbour Lights");
+	await expect
+		.element(page.getByLabelText("Artist of track 1"))
+		.toHaveValue("Marina Blue");
+	await expect
+		.element(page.getByLabelText("Title of track 2"))
+		.toHaveValue("Low Tide");
+	await expect
+		.element(page.getByLabelText("Artist of track 2"))
+		.toHaveValue("Marina Blue & The Tide");
 });
 
 test("should show every set of metadata found for the disc and let one of them be chosen", async () => {
@@ -106,13 +139,51 @@ test("should show every set of metadata found for the disc and let one of them b
 
 	// Assert
 	await expect
-		.element(page.getByText("Low Tide (Alternate Take)"))
-		.toBeVisible();
+		.element(page.getByLabelText("Title of track 2"))
+		.toHaveValue("Low Tide (Alternate Take)");
+	await expect
+		.element(page.getByLabelText("Artist of track 2"))
+		.toHaveValue("The Tide");
+});
+
+test("should let the metadata be typed in by hand", async () => {
+	// Arrange
+	const { ripped } = mockBackend({ matches: [] });
+	await render(<App />);
+
+	// Act
+	await page.getByLabelText("Album", { exact: true }).fill("Sea Change");
+	await page.getByLabelText("Album artist").fill("Marina Blue");
+	await page.getByLabelText("Title of track 1").fill("Harbour Lights");
+	await page.getByLabelText("Artist of track 1").fill("Marina Blue");
+	await page.getByLabelText("Title of track 2").fill("Low Tide");
+	await page.getByLabelText("Artist of track 2").fill("The Tide");
+	await page.getByRole("button", { name: "Choose a folder" }).click();
+	await expect.element(page.getByText(FOLDER)).toBeVisible();
+	await page.getByRole("button", { name: "Rip" }).click();
+
+	// Assert
+	await expect
+		.poll(() => ripped)
+		.toEqual([
+			{
+				album: "Sea Change",
+				albumArtist: "Marina Blue",
+				artist: "Marina Blue",
+				title: "Harbour Lights",
+			},
+			{
+				album: "Sea Change",
+				albumArtist: "Marina Blue",
+				artist: "The Tide",
+				title: "Low Tide",
+			},
+		]);
 });
 
 test("should ask before sending anything about the disc to a server", async () => {
 	// Arrange
-	const askedAbout = mockBackend({ matches: [BRITISH] });
+	const { askedAbout } = mockBackend({ matches: [BRITISH] });
 	await render(<App />);
 
 	// Act
@@ -127,7 +198,7 @@ test("should ask before sending anything about the disc to a server", async () =
 
 test("should send nothing about the disc when the lookup is cancelled", async () => {
 	// Arrange
-	const askedAbout = mockBackend({ matches: [BRITISH] });
+	const { askedAbout } = mockBackend({ matches: [BRITISH] });
 	await render(<App />);
 	await askToLookUp();
 

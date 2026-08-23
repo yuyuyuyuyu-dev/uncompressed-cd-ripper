@@ -25,20 +25,23 @@ impl MetadataApi for FakeApi {
     }
 }
 
-fn titles() -> Vec<TitledTrack> {
+// One track credited away from the rest, which is what a disc has to be able
+// to say: the album is one artist's and a track on it is not.
+fn tracks() -> Vec<TitledTrack> {
     [
-        "Harbour Lights",
-        "Low Tide",
-        "Saltwater",
-        "The Long Jetty",
-        "Nightfishing",
-        "Coming About",
+        ("Harbour Lights", "Marina Blue"),
+        ("Low Tide", "Marina Blue"),
+        ("Saltwater", "Marina Blue"),
+        ("The Long Jetty", "Marina Blue"),
+        ("Nightfishing", "Marina Blue & The Tide"),
+        ("Coming About", "Marina Blue"),
     ]
     .into_iter()
     .enumerate()
-    .map(|(index, title)| TitledTrack {
+    .map(|(index, (title, artist))| TitledTrack {
         number: index as u8 + 1,
         title: title.to_owned(),
+        artist: artist.to_owned(),
     })
     .collect()
 }
@@ -61,7 +64,7 @@ fn should_look_up_the_metadata_for_a_disc() {
                 artist: "Marina Blue".to_owned(),
                 released: Some("1998-03-02".to_owned()),
                 country: Some("GB".to_owned()),
-                tracks: titles(),
+                tracks: tracks(),
             },
             Album {
                 id: "1c9d7e52-8b3a-4f6e-9d02-5a7b1c3e8f90".to_owned(),
@@ -69,7 +72,7 @@ fn should_look_up_the_metadata_for_a_disc() {
                 artist: "Marina Blue & The Tide".to_owned(),
                 released: Some("1998-04-22".to_owned()),
                 country: Some("JP".to_owned()),
-                tracks: titles(),
+                tracks: tracks(),
             },
         ]
     );
@@ -98,12 +101,12 @@ const ANSWER: &str = r#"{
           "track-count": 6,
           "discs": [{ "id": "49HHV7Eb8UKF3aQiNmu1GR8vKTY-", "sectors": 95462 }],
           "tracks": [
-            { "position": 1, "number": "1", "title": "Harbour Lights", "length": 205000 },
-            { "position": 2, "number": "2", "title": "Low Tide", "length": 226000 },
-            { "position": 3, "number": "3", "title": "Saltwater", "length": 190000 },
-            { "position": 4, "number": "4", "title": "The Long Jetty", "length": 224000 },
-            { "position": 5, "number": "5", "title": "Nightfishing", "length": 227000 },
-            { "position": 6, "number": "6", "title": "Coming About", "length": 199000 }
+            { "position": 1, "number": "1", "title": "Harbour Lights", "length": 205000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": "" }] },
+            { "position": 2, "number": "2", "title": "Low Tide", "length": 226000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": "" }] },
+            { "position": 3, "number": "3", "title": "Saltwater", "length": 190000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": "" }] },
+            { "position": 4, "number": "4", "title": "The Long Jetty", "length": 224000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": "" }] },
+            { "position": 5, "number": "5", "title": "Nightfishing", "length": 227000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": " & " }, { "name": "The Tide", "joinphrase": "" }] },
+            { "position": 6, "number": "6", "title": "Coming About", "length": 199000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": "" }] }
           ]
         }
       ]
@@ -143,12 +146,12 @@ const ANSWER: &str = r#"{
           "track-count": 6,
           "discs": [{ "id": "49HHV7Eb8UKF3aQiNmu1GR8vKTY-", "sectors": 95462 }],
           "tracks": [
-            { "position": 1, "number": "1", "title": "Harbour Lights", "length": 205000 },
-            { "position": 2, "number": "2", "title": "Low Tide", "length": 226000 },
-            { "position": 3, "number": "3", "title": "Saltwater", "length": 190000 },
-            { "position": 4, "number": "4", "title": "The Long Jetty", "length": 224000 },
-            { "position": 5, "number": "5", "title": "Nightfishing", "length": 227000 },
-            { "position": 6, "number": "6", "title": "Coming About", "length": 199000 }
+            { "position": 1, "number": "1", "title": "Harbour Lights", "length": 205000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": "" }] },
+            { "position": 2, "number": "2", "title": "Low Tide", "length": 226000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": "" }] },
+            { "position": 3, "number": "3", "title": "Saltwater", "length": 190000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": "" }] },
+            { "position": 4, "number": "4", "title": "The Long Jetty", "length": 224000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": "" }] },
+            { "position": 5, "number": "5", "title": "Nightfishing", "length": 227000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": " & " }, { "name": "The Tide", "joinphrase": "" }] },
+            { "position": 6, "number": "6", "title": "Coming About", "length": 199000, "artist-credit": [{ "name": "Marina Blue", "joinphrase": "" }] }
           ]
         }
       ]
