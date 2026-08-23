@@ -47,12 +47,68 @@ pub fn drives() -> Vec<String> {
     drive::holding_an_audio_disc()
 }
 
+// A disc is addressed from two seconds before its first track, which is where
+// the lead-in ends. libcdio counts from the first track instead, so every
+// offset an identifier is worked out from sits this much further along than
+// the sector libcdio names.
+const LEAD_IN: u32 = 150;
+
 pub fn tracks(device: &str) -> Result<Vec<Track>, String> {
-    Ok(drive::Drive::open(device)?.audio_tracks())
+    // A drive that will not say what is on the disc listed nothing rather than
+    // failing before any of this, and still does.
+    match drive::Drive::open(device)?.reported_tracks() {
+        Ok(reported) => Ok(listing(&reported)),
+        Err(_) => Ok(Vec::new()),
+    }
+}
+
+// A track that cannot be placed is left out rather than offered as something
+// that cannot be read.
+fn listing(reported: &[drive::ReportedTrack]) -> Vec<Track> {
+    reported
+        .iter()
+        .filter(|track| track.audio && track.first >= 0 && track.last >= track.first)
+        .map(|track| Track {
+            number: track.number,
+            sectors: track.last.abs_diff(track.first) + 1,
+        })
+        .collect()
 }
 
 pub fn table_of_contents(device: &str) -> Result<TableOfContents, String> {
-    drive::Drive::open(device)?.table_of_contents()
+    assembled(&drive::Drive::open(device)?.reported_tracks()?)
+}
+
+// Unlike a listing, a track that cannot be placed is refused rather than left
+// out: an identifier stands for the whole disc, and one worked out from part
+// of it names a different disc.
+fn assembled(reported: &[drive::ReportedTrack]) -> Result<TableOfContents, String> {
+    let mut toc = TableOfContents {
+        audio: Vec::new(),
+        data: None,
+        leadout: 0,
+    };
+
+    for track in reported {
+        if track.first < 0 || track.last < track.first {
+            return Err(format!(
+                "the drive will not say where track {} is",
+                track.number
+            ));
+        }
+
+        let start = track.first.unsigned_abs() + LEAD_IN;
+
+        if track.audio {
+            toc.audio.push(start);
+        } else {
+            toc.data = Some(start);
+        }
+
+        toc.leadout = toc.leadout.max(track.last.unsigned_abs() + 1 + LEAD_IN);
+    }
+
+    Ok(toc)
 }
 
 // What a name cannot hold. The list is Windows', which is the widest of the
@@ -118,8 +174,7 @@ pub fn rip(
 ) -> Result<PathBuf, String> {
     let drive = drive::Drive::open(device)?;
 
-    let sectors = drive
-        .audio_tracks()
+    let sectors = listing(&drive.reported_tracks()?)
         .into_iter()
         .find(|track| track.number == number)
         .ok_or_else(|| format!("the disc has no audio track {number}"))?
