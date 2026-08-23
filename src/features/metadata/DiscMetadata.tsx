@@ -1,5 +1,11 @@
 import { LoaderCircle } from "lucide-react";
-import { useId, useState } from "react";
+import {
+	type Dispatch,
+	type SetStateAction,
+	useId,
+	useRef,
+	useState,
+} from "react";
 import { type Album, commands, type Track } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +17,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { CoverArt } from "../artwork/CoverArt";
 import { expectOk } from "../error-report/backend";
 import { length } from "../ripping/track";
 import {
@@ -21,6 +28,7 @@ import {
 	withAlbum,
 	withAlbumArtist,
 	withArtist,
+	withCover,
 	withTitle,
 } from "./metadata";
 
@@ -52,7 +60,10 @@ type Props = {
 	drive: string | undefined;
 	tracks: Track[];
 	metadata: Metadata;
-	onChange: (metadata: Metadata) => void;
+	// Taking what to change it into rather than what to change it to, because
+	// the sleeve lands after the fields it arrives beside are already there to
+	// be typed in.
+	onChange: Dispatch<SetStateAction<Metadata>>;
 	disabled: boolean;
 };
 
@@ -70,13 +81,41 @@ export function DiscMetadata({
 	const [matches, setMatches] = useState<Album[]>();
 	const [chosen, setChosen] = useState<string>();
 	const [looking, setLooking] = useState(false);
+	const [fetchingCover, setFetchingCover] = useState(false);
+
+	// Which request the sleeve on its way belongs to. Clicking through the
+	// matches starts one for each, and an earlier answer arriving late would
+	// otherwise settle on the album that was clicked after it.
+	const asked = useRef(0);
 
 	const albumField = useId();
 	const albumArtistField = useId();
 
+	const takeCover = async (release: string) => {
+		const mine = asked.current + 1;
+		asked.current = mine;
+
+		setFetchingCover(true);
+
+		try {
+			const cover = await expectOk(commands.lookUpArtwork(release));
+
+			if (asked.current === mine) {
+				onChange((current) => withCover(current, cover));
+			}
+		} finally {
+			if (asked.current === mine) {
+				setFetchingCover(false);
+			}
+		}
+	};
+
+	// Not waited for: the album and the track titles are there to be read and
+	// corrected while the sleeve is still coming.
 	const take = (album: Album) => {
 		setChosen(album.id);
 		onChange(fromAlbum(album));
+		takeCover(album.id);
 	};
 
 	const look = async () => {
@@ -160,30 +199,34 @@ export function DiscMetadata({
 				</ul>
 			)}
 
-			<div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
-				<label className="text-sm" htmlFor={albumField}>
-					Album
-				</label>
-				<Input
-					id={albumField}
-					value={metadata.album}
-					onChange={(event) =>
-						onChange(withAlbum(metadata, event.target.value))
-					}
-					disabled={frozen}
-				/>
+			<div className="flex items-start gap-3">
+				<CoverArt cover={metadata.cover} looking={looking || fetchingCover} />
 
-				<label className="text-sm" htmlFor={albumArtistField}>
-					Album artist
-				</label>
-				<Input
-					id={albumArtistField}
-					value={metadata.albumArtist}
-					onChange={(event) =>
-						onChange(withAlbumArtist(metadata, event.target.value))
-					}
-					disabled={frozen}
-				/>
+				<div className="grid flex-1 grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
+					<label className="text-sm" htmlFor={albumField}>
+						Album
+					</label>
+					<Input
+						id={albumField}
+						value={metadata.album}
+						onChange={(event) =>
+							onChange(withAlbum(metadata, event.target.value))
+						}
+						disabled={frozen}
+					/>
+
+					<label className="text-sm" htmlFor={albumArtistField}>
+						Album artist
+					</label>
+					<Input
+						id={albumArtistField}
+						value={metadata.albumArtist}
+						onChange={(event) =>
+							onChange(withAlbumArtist(metadata, event.target.value))
+						}
+						disabled={frozen}
+					/>
+				</div>
 			</div>
 
 			{/* A field with nothing in it says nothing about itself, and there are
@@ -250,9 +293,12 @@ export function DiscMetadata({
 						<DialogDescription>
 							Finding the album and the track titles means sending a fingerprint
 							of this disc, worked out from where its tracks begin, to
-							MusicBrainz. The address your machine reaches the internet from
-							goes with it, as it does with any request. Nothing else about you
-							is sent, and nothing is sent at all unless you say so.
+							MusicBrainz. The sleeve is then asked for from the Cover Art
+							Archive, which is sent the identifier of whichever release matched
+							and serves the picture from the Internet Archive. The address your
+							machine reaches the internet from goes with both, as it does with
+							any request. Nothing else about you is sent, and nothing is sent
+							at all unless you say so.
 						</DialogDescription>
 					</DialogHeader>
 

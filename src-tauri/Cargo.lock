@@ -4586,6 +4586,7 @@ dependencies = [
 name = "uncompressed-cd-ripper"
 version = "0.1.0"
 dependencies = [
+ "base64 0.23.1",
  "cdtoc",
  "chrono",
  "flacenc",

@@ -27,6 +27,9 @@ tauri = { version = "2", features = ["specta"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# The cover art travels to the window and back as text, because what carries
+# it is JSON.
+base64 = "0.23.1"
 chrono = "0.4"
 # Tauri Specta is in beta and asks for exact versions, because a future release
 # is free to break the generated bindings.
