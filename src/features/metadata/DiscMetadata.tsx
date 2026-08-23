@@ -1,3 +1,4 @@
+import { LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { type Album, commands } from "@/bindings";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,12 @@ export function DiscMetadata({ drive, chosen, onChosen, disabled }: Props) {
 					onClick={() => setAsking(true)}
 					disabled={disabled || looking || drive === undefined}
 				>
-					Look this disc up
+					{/* The dialog closes as the lookup starts, so the eye is on the
+					    button that has just gone rather than on this one. Something
+					    turning is what carries across the gap: a button that only goes
+					    grey is a still picture, and a still picture is missed. */}
+					{looking && <LoaderCircle className="animate-spin" />}
+					{looking ? "Looking it up…" : "Look this disc up"}
 				</Button>
 			</div>
 
@@ -77,7 +83,7 @@ export function DiscMetadata({ drive, chosen, onChosen, disabled }: Props) {
 			) : (
 				<p className="text-muted-foreground text-sm">
 					{looking
-						? "Looking this disc up…"
+						? "Waiting for an answer about this disc."
 						: matches?.length === 0
 							? "This disc is not in the database."
 							: matches === undefined
