@@ -121,3 +121,5 @@ pub fn look_up(release: &str, http: &impl Http) -> Result<Option<Cover>, String>
     }))
 }
 
+#[cfg(test)]
+mod tests;
