@@ -16,7 +16,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
 	Progress,
 	ProgressLabel,
@@ -24,22 +23,7 @@ import {
 } from "@/components/ui/progress";
 import { expectOk } from "../error-report/backend";
 import { DiscMetadata } from "../metadata/DiscMetadata";
-import {
-	fileTitle,
-	NOTHING,
-	tagsFor,
-	titleOf,
-	withTitle,
-} from "../metadata/metadata";
-
-// A CD is addressed in sectors, 75 of which make a second.
-const SECTORS_PER_SECOND = 75;
-
-function length(sectors: number) {
-	const seconds = Math.round(sectors / SECTORS_PER_SECOND);
-
-	return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
+import { fileTitle, NOTHING, tagsFor } from "../metadata/metadata";
 
 type Reading = {
 	track: Track;
@@ -187,36 +171,11 @@ export function Ripper() {
 			<DiscMetadata
 				key={drive}
 				drive={drive}
+				tracks={tracks}
 				metadata={metadata}
 				onChange={setMetadata}
 				disabled={busy}
 			/>
-
-			{tracks.length > 0 && (
-				<ol className="flex flex-col gap-2">
-					{tracks.map((track) => (
-						<li key={track.number} className="flex items-center gap-3 text-sm">
-							{/* As wide as the labels above it, so the fields line up. */}
-							<span className="w-12 tabular-nums">
-								{String(track.number).padStart(2, "0")}
-							</span>
-							<Input
-								aria-label={`Title of track ${track.number}`}
-								value={titleOf(metadata, track.number)}
-								onChange={(event) =>
-									setMetadata(
-										withTitle(metadata, track.number, event.target.value),
-									)
-								}
-								disabled={busy}
-							/>
-							<span className="text-muted-foreground tabular-nums">
-								{length(track.sectors)}
-							</span>
-						</li>
-					))}
-				</ol>
-			)}
 
 			<div className="flex items-center gap-3">
 				<Button

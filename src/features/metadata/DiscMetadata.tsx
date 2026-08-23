@@ -1,6 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 import { useId, useState } from "react";
-import { type Album, commands } from "@/bindings";
+import { type Album, commands, type Track } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -12,7 +12,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { expectOk } from "../error-report/backend";
-import { fromAlbum, type Metadata, withAlbum, withArtist } from "./metadata";
+import { length } from "../ripping/track";
+import {
+	fromAlbum,
+	type Metadata,
+	titleOf,
+	withAlbum,
+	withArtist,
+	withTitle,
+} from "./metadata";
 
 // What tells one pressing from another when the record is the same: two of
 // them can agree on the title and the artist and differ only here.
@@ -40,12 +48,19 @@ function status(looking: boolean, matches: Album[] | undefined) {
 
 type Props = {
 	drive: string | undefined;
+	tracks: Track[];
 	metadata: Metadata;
 	onChange: (metadata: Metadata) => void;
 	disabled: boolean;
 };
 
-export function DiscMetadata({ drive, metadata, onChange, disabled }: Props) {
+export function DiscMetadata({
+	drive,
+	tracks,
+	metadata,
+	onChange,
+	disabled,
+}: Props) {
 	// A different disc is a different question. None of this survives one being
 	// put in, which is arranged by the drive being this component's key rather
 	// than by anything here.
@@ -86,6 +101,10 @@ export function DiscMetadata({ drive, metadata, onChange, disabled }: Props) {
 
 	const said = status(looking, matches);
 
+	// An answer on its way overwrites every one of these, so typing into them
+	// now is typing into something that is about to be taken away.
+	const frozen = disabled || looking;
+
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex items-center gap-2">
@@ -94,7 +113,7 @@ export function DiscMetadata({ drive, metadata, onChange, disabled }: Props) {
 					variant="outline"
 					size="sm"
 					onClick={() => setAsking(true)}
-					disabled={disabled || looking || drive === undefined}
+					disabled={frozen || drive === undefined}
 				>
 					{/* The dialog closes as the lookup starts, so the eye is on the
 					    button that has just gone rather than on this one. Something
@@ -122,7 +141,7 @@ export function DiscMetadata({ drive, metadata, onChange, disabled }: Props) {
 								size="sm"
 								className="h-auto w-full justify-start py-1.5 text-left"
 								onClick={() => take(match)}
-								disabled={disabled}
+								disabled={frozen}
 							>
 								<span className="truncate">
 									{match.title} — {match.artist}
@@ -151,7 +170,7 @@ export function DiscMetadata({ drive, metadata, onChange, disabled }: Props) {
 					onChange={(event) =>
 						onChange(withAlbum(metadata, event.target.value))
 					}
-					disabled={disabled}
+					disabled={frozen}
 				/>
 
 				<label className="text-sm" htmlFor={artistField}>
@@ -163,9 +182,35 @@ export function DiscMetadata({ drive, metadata, onChange, disabled }: Props) {
 					onChange={(event) =>
 						onChange(withArtist(metadata, event.target.value))
 					}
-					disabled={disabled}
+					disabled={frozen}
 				/>
 			</div>
+
+			{tracks.length > 0 && (
+				<ol className="flex flex-col gap-2">
+					{tracks.map((track) => (
+						<li key={track.number} className="flex items-center gap-3 text-sm">
+							{/* As wide as the labels above it, so the fields line up. */}
+							<span className="w-12 tabular-nums">
+								{String(track.number).padStart(2, "0")}
+							</span>
+							<Input
+								aria-label={`Title of track ${track.number}`}
+								value={titleOf(metadata, track.number)}
+								onChange={(event) =>
+									onChange(
+										withTitle(metadata, track.number, event.target.value),
+									)
+								}
+								disabled={frozen}
+							/>
+							<span className="text-muted-foreground tabular-nums">
+								{length(track.sectors)}
+							</span>
+						</li>
+					))}
+				</ol>
+			)}
 
 			<Dialog open={asking} onOpenChange={(open) => !open && setAsking(false)}>
 				<DialogContent>
