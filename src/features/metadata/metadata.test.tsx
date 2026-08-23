@@ -55,6 +55,9 @@ function mockBackend({ matches }: { matches: Album[] }) {
 			askedAbout.push((payload as { drive: string }).drive);
 			return matches;
 		}
+		if (command === "look_up_artwork") {
+			return null;
+		}
 		if (command === "plugin:dialog|open") {
 			return FOLDER;
 		}
@@ -171,12 +174,14 @@ test("should let the metadata be typed in by hand", async () => {
 				albumArtist: "Marina Blue",
 				artist: "Marina Blue",
 				title: "Harbour Lights",
+				cover: null,
 			},
 			{
 				album: "Sea Change",
 				albumArtist: "Marina Blue",
 				artist: "The Tide",
 				title: "Low Tide",
+				cover: null,
 			},
 		]);
 });

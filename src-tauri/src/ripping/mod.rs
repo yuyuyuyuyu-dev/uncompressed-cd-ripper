@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::artwork::Cover;
+
 mod drive;
 mod flac;
 
@@ -43,6 +45,9 @@ pub struct TrackTags {
     pub album_artist: Option<String>,
     pub artist: Option<String>,
     pub title: Option<String>,
+    // The front of the sleeve, which every track on the disc carries a copy
+    // of: a file has to stand on its own once it is in a library.
+    pub cover: Option<Cover>,
 }
 
 pub fn drives() -> Vec<String> {

@@ -48,6 +48,9 @@ fn rip(disc: &str, destination: &Path, metadata: &[String]) -> Result<(), String
             album_artist: artist.cloned(),
             artist: artist.cloned(),
             title: Some(title.clone()),
+            // Nothing here reaches a server, and the sleeve only ever comes
+            // off one.
+            cover: None,
         });
 
         // Nothing here is watching the progress a window would draw a bar from.
