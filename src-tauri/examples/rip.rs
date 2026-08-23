@@ -43,9 +43,9 @@ fn rip(disc: &str, destination: &Path, metadata: &[String]) -> Result<(), String
 
     for (index, track) in ripping::tracks(disc)?.into_iter().enumerate() {
         let tags = titles.get(index).map(|title| TrackTags {
-            album: album.cloned().unwrap_or_default(),
-            artist: artist.cloned().unwrap_or_default(),
-            title: title.clone(),
+            album: album.cloned(),
+            artist: artist.cloned(),
+            title: Some(title.clone()),
         });
 
         // Nothing here is watching the progress a window would draw a bar from.
