@@ -186,45 +186,58 @@ export function DiscMetadata({
 				/>
 			</div>
 
-			{/* An artist of its own for every track, because the one an album is
-			    credited to is not who played each of them on a compilation. The
-			    title gets the wider of the two, being the longer to read and the
-			    one a file is named after. */}
+			{/* A field with nothing in it says nothing about itself, and there are
+			    two of them on every row. The heading above the column is what
+			    names them, which is why this is a table rather than a list. */}
 			{tracks.length > 0 && (
-				<ol className="flex flex-col gap-2">
-					{tracks.map((track) => (
-						<li key={track.number} className="flex items-center gap-3 text-sm">
-							<span className="tabular-nums">
-								{String(track.number).padStart(2, "0")}
-							</span>
-							<Input
-								className="flex-[2]"
-								aria-label={`Title of track ${track.number}`}
-								value={titleOf(metadata, track.number)}
-								onChange={(event) =>
-									onChange(
-										withTitle(metadata, track.number, event.target.value),
-									)
-								}
-								disabled={frozen}
-							/>
-							<Input
-								className="flex-1"
-								aria-label={`Artist of track ${track.number}`}
-								value={artistOf(metadata, track.number)}
-								onChange={(event) =>
-									onChange(
-										withArtist(metadata, track.number, event.target.value),
-									)
-								}
-								disabled={frozen}
-							/>
-							<span className="text-muted-foreground tabular-nums">
-								{length(track.sectors)}
-							</span>
-						</li>
-					))}
-				</ol>
+				<table className="w-full">
+					<thead>
+						<tr className="border-b text-muted-foreground text-sm">
+							<th className="w-8 pb-1.5 text-left font-medium">#</th>
+							<th className="w-[44%] px-2 pb-1.5 text-left font-medium">
+								Title
+							</th>
+							<th className="px-2 pb-1.5 text-left font-medium">Artist</th>
+							<th className="pb-1.5 text-right font-medium">Length</th>
+						</tr>
+					</thead>
+					<tbody>
+						{tracks.map((track) => (
+							<tr key={track.number}>
+								<td className="py-1.5 text-sm tabular-nums">
+									{String(track.number).padStart(2, "0")}
+								</td>
+								<td className="px-2 py-1.5">
+									<Input
+										aria-label={`Title of track ${track.number}`}
+										value={titleOf(metadata, track.number)}
+										onChange={(event) =>
+											onChange(
+												withTitle(metadata, track.number, event.target.value),
+											)
+										}
+										disabled={frozen}
+									/>
+								</td>
+								<td className="px-2 py-1.5">
+									<Input
+										aria-label={`Artist of track ${track.number}`}
+										value={artistOf(metadata, track.number)}
+										onChange={(event) =>
+											onChange(
+												withArtist(metadata, track.number, event.target.value),
+											)
+										}
+										disabled={frozen}
+									/>
+								</td>
+								<td className="py-1.5 text-right text-muted-foreground text-sm tabular-nums">
+									{length(track.sectors)}
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
 			)}
 
 			<Dialog open={asking} onOpenChange={(open) => !open && setAsking(false)}>
