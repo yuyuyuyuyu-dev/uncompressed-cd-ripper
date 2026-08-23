@@ -58,11 +58,6 @@ tauri-plugin-notification = "2.3.3"
 # pins.
 cdtoc = { version = "0.13", default-features = false, features = ["musicbrainz"] }
 
-[dev-dependencies]
-# A directory that deletes itself, so the test that writes a FLAC file to disk
-# leaves nothing behind for the job that watches for stray files to find.
-tempfile = "3"
-
 [profile.release]
 # Line tables leave file and line in a backtrace without carrying types or
 # variables. Independent of opt-level: the machine code is the same, and the

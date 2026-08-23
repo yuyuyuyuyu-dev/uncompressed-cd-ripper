@@ -168,6 +168,46 @@ jobs:
             disc.bin
             ripped/01.flac
 
+  # The job above rips a disc nobody looked one thing up about. This one hands
+  # the rip what a lookup would have answered and asks a tool from the other
+  # side of the format what came out. Ubuntu rather than macOS: nothing here
+  # turns on how a decoder behaves, so the cheaper runner will do.
+  metadata:
+    name: should write the fetched metadata into the file a track is ripped to
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      # So the tags are read by something other than what wrote them.
+      - run: sudo apt-get install --yes flac
+
+      - name: Put a disc in the drive
+        run: |
+          .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
+          chmod 444 disc.bin disc.cue
+
+      - name: Rip it as a disc that was looked up
+        run: |
+          cargo run --example rip -- \
+            "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped" \
+            "Sea Change" "Marina Blue" "Harbour Lights"
+        working-directory: src-tauri
+
+      # Reached by the name the title had to have got into, so a title that
+      # never left the lookup fails here rather than passing quietly.
+      - name: A player reads back what the lookup answered
+        run: |
+          ls -la ripped
+          metaflac --export-tags-to=- "ripped/01_Harbour Lights.flac" | tee tags.txt
+          grep -qxF 'TITLE=Harbour Lights' tags.txt
+          grep -qxF 'ARTIST=Marina Blue' tags.txt
+          grep -qxF 'ALBUM=Sea Change' tags.txt
+          grep -qxF 'TRACKNUMBER=1' tags.txt
+
   # Pinned to a release: this depends on the runner being able to run a machine
   # inside itself, which should not move underfoot.
   disc-writes:

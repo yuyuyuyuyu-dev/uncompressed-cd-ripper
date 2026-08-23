@@ -159,6 +159,3 @@ fn store(
 
     Ok(file)
 }
-
-#[cfg(test)]
-mod tests;

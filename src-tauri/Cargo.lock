@@ -4603,7 +4603,6 @@ dependencies = [
  "tauri-plugin-notification",
  "tauri-plugin-opener",
  "tauri-specta",
- "tempfile",
  "ureq",
 ]
 
