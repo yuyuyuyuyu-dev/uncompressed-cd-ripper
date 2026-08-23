@@ -6,7 +6,7 @@ import {
 	sendNotification,
 } from "@tauri-apps/plugin-notification";
 import { useCallback, useEffect, useState } from "react";
-import { commands, type Track } from "@/bindings";
+import { type Album, commands, type Track, type TrackTags } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -22,6 +22,7 @@ import {
 	ProgressValue,
 } from "@/components/ui/progress";
 import { expectOk } from "../error-report/backend";
+import { DiscMetadata } from "../metadata/DiscMetadata";
 
 // A CD is addressed in sectors, 75 of which make a second.
 const SECTORS_PER_SECOND = 75;
@@ -36,6 +37,24 @@ type Reading = {
 	track: Track;
 	sectors: number;
 };
+
+// Nothing where the disc was never looked up, and nothing for a track the
+// answer had no title for. Both the tags and the file name come from here, so
+// a file cannot end up named after a title it was not tagged with.
+function titleOf(album: Album | undefined, number: number) {
+	return album?.tracks.find((track) => track.number === number)?.title ?? null;
+}
+
+// A file is better untagged than tagged wrongly.
+function tagsFor(album: Album | undefined, number: number): TrackTags | null {
+	const title = titleOf(album, number);
+
+	if (album === undefined || title === null) {
+		return null;
+	}
+
+	return { album: album.title, artist: album.artist, title };
+}
 
 // A disc takes long enough that nobody is still watching. Permission is asked
 // for here rather than at startup, when it is obvious what it is for.
@@ -60,6 +79,7 @@ export function Ripper() {
 	const [destination, setDestination] = useState<string>();
 	const [reading, setReading] = useState<Reading>();
 	const [overwriting, setOverwriting] = useState<string[]>();
+	const [album, setAlbum] = useState<Album>();
 
 	// Only drives holding a disc are listed, so an empty list is a machine with
 	// nothing loaded rather than a failure. Which one is selected when several
@@ -76,6 +96,9 @@ export function Ripper() {
 	}, [look]);
 
 	useEffect(() => {
+		// What the last disc was looked up as says nothing about this one.
+		setAlbum(undefined);
+
 		if (drive === undefined) {
 			setTracks([]);
 			return;
@@ -99,7 +122,13 @@ export function Ripper() {
 				progress.onmessage = (sectors) => setReading({ track, sectors });
 
 				await expectOk(
-					commands.ripTrack(drive, track.number, destination, progress),
+					commands.ripTrack(
+						drive,
+						track.number,
+						destination,
+						tagsFor(album, track.number),
+						progress,
+					),
 				);
 			}
 
@@ -118,7 +147,10 @@ export function Ripper() {
 
 		const existing = await commands.alreadyThere(
 			destination,
-			tracks.map((track) => track.number),
+			tracks.map((track) => ({
+				number: track.number,
+				title: titleOf(album, track.number),
+			})),
 		);
 
 		if (existing.length > 0) {
@@ -162,14 +194,27 @@ export function Ripper() {
 				</div>
 			)}
 
+			<DiscMetadata
+				key={drive}
+				drive={drive}
+				chosen={album}
+				onChosen={setAlbum}
+				disabled={busy}
+			/>
+
 			{tracks.length > 0 && (
 				<ol className="rounded-lg border">
 					{tracks.map((track) => (
 						<li
 							key={track.number}
-							className="flex justify-between border-b px-3 py-1.5 text-sm last:border-b-0"
+							className="flex items-center gap-3 border-b px-3 py-1.5 text-sm last:border-b-0"
 						>
-							<span>{String(track.number).padStart(2, "0")}</span>
+							<span className="tabular-nums">
+								{String(track.number).padStart(2, "0")}
+							</span>
+							<span className="flex-1 truncate text-left">
+								{titleOf(album, track.number) ?? ""}
+							</span>
 							<span className="text-muted-foreground tabular-nums">
 								{length(track.sectors)}
 							</span>

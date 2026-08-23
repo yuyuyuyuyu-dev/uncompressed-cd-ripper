@@ -13,9 +13,20 @@ use libcdio_sys::{
     CDIO_CD_FRAMESIZE_RAW,
 };
 
-use super::Track;
-
 pub const SAMPLES_PER_SECTOR: usize = CDIO_CD_FRAMESIZE_RAW as usize / size_of::<i16>();
+
+// Everything libcdio will say about a track, and the last of it that needs a
+// drive. What a listing or a table of contents is made of it is arithmetic,
+// and arithmetic is kept where a test can reach it without a disc.
+//
+// The sectors are the ones libcdio counts, which begin at the first track
+// rather than at the lead-in before it.
+pub struct ReportedTrack {
+    pub number: u8,
+    pub audio: bool,
+    pub first: i32,
+    pub last: i32,
+}
 
 pub fn holding_an_audio_disc() -> Vec<String> {
     let mut devices = Vec::new();
@@ -86,28 +97,23 @@ impl Drive {
         Ok(drive)
     }
 
-    pub fn audio_tracks(&self) -> Vec<Track> {
+    pub fn reported_tracks(&self) -> Result<Vec<ReportedTrack>, String> {
         let count = unsafe { cdio_cddap_tracks(self.handle) };
 
         // A drive that will not say how many tracks there are answers with the
         // value standing for no track, which counting would walk straight into.
         if u32::from(count) == cdio_track_enums_CDIO_INVALID_TRACK {
-            return Vec::new();
+            return Err("the drive will not say what is on the disc".to_owned());
         }
 
-        (1..=count)
-            .filter(|number| unsafe { cdio_cddap_track_audiop(self.handle, *number) } == 1)
-            .filter_map(|number| {
-                let first = unsafe { cdio_cddap_track_firstsector(self.handle, number) };
-                let last = unsafe { cdio_cddap_track_lastsector(self.handle, number) };
-
-                // Left out rather than offered as something that cannot be read.
-                (first >= 0 && last >= first).then(|| Track {
-                    number,
-                    sectors: last.abs_diff(first) + 1,
-                })
+        Ok((1..=count)
+            .map(|number| ReportedTrack {
+                number,
+                audio: unsafe { cdio_cddap_track_audiop(self.handle, number) } == 1,
+                first: unsafe { cdio_cddap_track_firstsector(self.handle, number) },
+                last: unsafe { cdio_cddap_track_lastsector(self.handle, number) },
             })
-            .collect()
+            .collect())
     }
 
     pub fn read_track(&self, number: u8, mut receive: impl FnMut(&[i16])) -> Result<(), String> {

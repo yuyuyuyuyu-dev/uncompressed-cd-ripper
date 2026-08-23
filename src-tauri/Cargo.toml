@@ -47,6 +47,16 @@ libcdio-sys = { version = "2.0.0", default-features = false, features = [
 libc = "0.2"
 flacenc = "0.5.1"
 tauri-plugin-notification = "2.3.3"
+# The ID MusicBrainz knows a disc by is a SHA-1 over its table of contents laid
+# out just so, in a base64 with three characters swapped. What is easy to get
+# wrong is the disc that carries data as well as audio, where the gap between
+# the two sessions comes off the lead-out first, and this knows to do it. Only
+# the one service is turned on, so the code behind the other three ID schemes
+# never reaches the app.
+#
+# Held at 0.13 because 0.14 wants a newer compiler than rust-toolchain.toml
+# pins.
+cdtoc = { version = "0.13", default-features = false, features = ["musicbrainz"] }
 
 [profile.release]
 # Line tables leave file and line in a backtrace without carrying types or
