@@ -24,8 +24,8 @@ pub struct TableOfContents {
     pub leadout: u32,
 }
 
-// What a track will be filed as. The title is what the disc was looked up as,
-// and nothing where it was not looked up or the answer had no title for it.
+// What a track will be filed as. The title is whatever the track is named as
+// on screen, and nothing where it is unnamed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackFile {
@@ -34,13 +34,14 @@ pub struct TrackFile {
 }
 
 // What a player shows for a track: the part of the metadata that ends up in
-// the file rather than staying on the screen.
+// the file rather than staying on the screen. Each field goes missing on its
+// own, because a disc named by hand can be left half-named.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackTags {
-    pub album: String,
-    pub artist: String,
-    pub title: String,
+    pub album: Option<String>,
+    pub artist: Option<String>,
+    pub title: Option<String>,
 }
 
 pub fn drives() -> Vec<String> {
@@ -211,7 +212,10 @@ fn store(
     destination: &Path,
     tags: Option<&TrackTags>,
 ) -> Result<PathBuf, String> {
-    let file = destination.join(file_name(number, tags.map(|tags| tags.title.as_str())));
+    let file = destination.join(file_name(
+        number,
+        tags.and_then(|tags| tags.title.as_deref()),
+    ));
 
     flac::write_uncompressed(samples, &file, number, tags)?;
 

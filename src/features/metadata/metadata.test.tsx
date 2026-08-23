@@ -78,10 +78,16 @@ test("should show the metadata fetched for the disc", async () => {
 	await page.getByRole("button", { name: "Look it up" }).click();
 
 	// Assert
-	await expect.element(page.getByText("Sea Change")).toBeVisible();
-	await expect.element(page.getByText("Marina Blue")).toBeVisible();
-	await expect.element(page.getByText("Harbour Lights")).toBeVisible();
-	await expect.element(page.getByText("Low Tide")).toBeVisible();
+	await expect.element(page.getByLabelText("Album")).toHaveValue("Sea Change");
+	await expect
+		.element(page.getByLabelText("Artist"))
+		.toHaveValue("Marina Blue");
+	await expect
+		.element(page.getByLabelText("Title of track 1"))
+		.toHaveValue("Harbour Lights");
+	await expect
+		.element(page.getByLabelText("Title of track 2"))
+		.toHaveValue("Low Tide");
 });
 
 test("should show every set of metadata found for the disc and let one of them be chosen", async () => {
@@ -106,8 +112,8 @@ test("should show every set of metadata found for the disc and let one of them b
 
 	// Assert
 	await expect
-		.element(page.getByText("Low Tide (Alternate Take)"))
-		.toBeVisible();
+		.element(page.getByLabelText("Title of track 2"))
+		.toHaveValue("Low Tide (Alternate Take)");
 });
 
 test("should ask before sending anything about the disc to a server", async () => {

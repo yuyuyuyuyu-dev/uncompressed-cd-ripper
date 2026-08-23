@@ -40,8 +40,8 @@ fn rip_track(
     drive: String,
     track: u8,
     destination: String,
-    // Nothing where the disc was never looked up, or the lookup found nothing,
-    // or the answer was refused. The file is then written as it always was.
+    // Nothing where the disc was never named, by a lookup or by hand. The file
+    // is then written as it always was.
     tags: Option<ripping::TrackTags>,
     progress: tauri::ipc::Channel<u32>,
 ) -> Result<String, String> {

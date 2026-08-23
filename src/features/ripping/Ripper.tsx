@@ -6,7 +6,7 @@ import {
 	sendNotification,
 } from "@tauri-apps/plugin-notification";
 import { useCallback, useEffect, useState } from "react";
-import { type Album, commands, type Track, type TrackTags } from "@/bindings";
+import { commands, type Track } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -16,6 +16,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
 	Progress,
 	ProgressLabel,
@@ -23,6 +24,13 @@ import {
 } from "@/components/ui/progress";
 import { expectOk } from "../error-report/backend";
 import { DiscMetadata } from "../metadata/DiscMetadata";
+import {
+	fileTitle,
+	NOTHING,
+	tagsFor,
+	titleOf,
+	withTitle,
+} from "../metadata/metadata";
 
 // A CD is addressed in sectors, 75 of which make a second.
 const SECTORS_PER_SECOND = 75;
@@ -37,24 +45,6 @@ type Reading = {
 	track: Track;
 	sectors: number;
 };
-
-// Nothing where the disc was never looked up, and nothing for a track the
-// answer had no title for. Both the tags and the file name come from here, so
-// a file cannot end up named after a title it was not tagged with.
-function titleOf(album: Album | undefined, number: number) {
-	return album?.tracks.find((track) => track.number === number)?.title ?? null;
-}
-
-// A file is better untagged than tagged wrongly.
-function tagsFor(album: Album | undefined, number: number): TrackTags | null {
-	const title = titleOf(album, number);
-
-	if (album === undefined || title === null) {
-		return null;
-	}
-
-	return { album: album.title, artist: album.artist, title };
-}
 
 // A disc takes long enough that nobody is still watching. Permission is asked
 // for here rather than at startup, when it is obvious what it is for.
@@ -79,7 +69,7 @@ export function Ripper() {
 	const [destination, setDestination] = useState<string>();
 	const [reading, setReading] = useState<Reading>();
 	const [overwriting, setOverwriting] = useState<string[]>();
-	const [album, setAlbum] = useState<Album>();
+	const [metadata, setMetadata] = useState(NOTHING);
 
 	// Only drives holding a disc are listed, so an empty list is a machine with
 	// nothing loaded rather than a failure. Which one is selected when several
@@ -96,8 +86,8 @@ export function Ripper() {
 	}, [look]);
 
 	useEffect(() => {
-		// What the last disc was looked up as says nothing about this one.
-		setAlbum(undefined);
+		// What the last disc was called says nothing about this one.
+		setMetadata(NOTHING);
 
 		if (drive === undefined) {
 			setTracks([]);
@@ -126,7 +116,7 @@ export function Ripper() {
 						drive,
 						track.number,
 						destination,
-						tagsFor(album, track.number),
+						tagsFor(metadata, track.number),
 						progress,
 					),
 				);
@@ -149,7 +139,7 @@ export function Ripper() {
 			destination,
 			tracks.map((track) => ({
 				number: track.number,
-				title: titleOf(album, track.number),
+				title: fileTitle(metadata, track.number),
 			})),
 		);
 
@@ -197,24 +187,29 @@ export function Ripper() {
 			<DiscMetadata
 				key={drive}
 				drive={drive}
-				chosen={album}
-				onChosen={setAlbum}
+				metadata={metadata}
+				onChange={setMetadata}
 				disabled={busy}
 			/>
 
 			{tracks.length > 0 && (
-				<ol className="rounded-lg border">
+				<ol className="flex flex-col gap-2">
 					{tracks.map((track) => (
-						<li
-							key={track.number}
-							className="flex items-center gap-3 border-b px-3 py-1.5 text-sm last:border-b-0"
-						>
-							<span className="tabular-nums">
+						<li key={track.number} className="flex items-center gap-3 text-sm">
+							{/* As wide as the labels above it, so the fields line up. */}
+							<span className="w-12 tabular-nums">
 								{String(track.number).padStart(2, "0")}
 							</span>
-							<span className="flex-1 truncate text-left">
-								{titleOf(album, track.number) ?? ""}
-							</span>
+							<Input
+								aria-label={`Title of track ${track.number}`}
+								value={titleOf(metadata, track.number)}
+								onChange={(event) =>
+									setMetadata(
+										withTitle(metadata, track.number, event.target.value),
+									)
+								}
+								disabled={busy}
+							/>
 							<span className="text-muted-foreground tabular-nums">
 								{length(track.sectors)}
 							</span>
