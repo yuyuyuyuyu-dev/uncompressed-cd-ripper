@@ -40,6 +40,7 @@ pub struct TrackFile {
 #[serde(rename_all = "camelCase")]
 pub struct TrackTags {
     pub album: Option<String>,
+    pub album_artist: Option<String>,
     pub artist: Option<String>,
     pub title: Option<String>,
 }

@@ -29,6 +29,13 @@ fn vorbis_comment(tags: &TrackTags, number: u8) -> Vec<u8> {
             .as_ref()
             .map(|artist| format!("ARTIST={artist}")),
         tags.album.as_ref().map(|album| format!("ALBUM={album}")),
+        // One word, which is what Picard writes and what most of what reads a
+        // library goes looking for. The spelling with a space also exists, and
+        // writing both would leave a tag editor showing the album's artist
+        // twice.
+        tags.album_artist
+            .as_ref()
+            .map(|artist| format!("ALBUMARTIST={artist}")),
         Some(format!("TRACKNUMBER={number}")),
     ]
     .into_iter()

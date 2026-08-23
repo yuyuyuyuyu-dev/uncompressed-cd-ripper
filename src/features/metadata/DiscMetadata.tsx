@@ -14,10 +14,12 @@ import { Input } from "@/components/ui/input";
 import { expectOk } from "../error-report/backend";
 import { length } from "../ripping/track";
 import {
+	artistOf,
 	fromAlbum,
 	type Metadata,
 	titleOf,
 	withAlbum,
+	withAlbumArtist,
 	withArtist,
 	withTitle,
 } from "./metadata";
@@ -70,7 +72,7 @@ export function DiscMetadata({
 	const [looking, setLooking] = useState(false);
 
 	const albumField = useId();
-	const artistField = useId();
+	const albumArtistField = useId();
 
 	const take = (album: Album) => {
 		setChosen(album.id);
@@ -158,9 +160,7 @@ export function DiscMetadata({
 				</ul>
 			)}
 
-			{/* The column the labels sit in is as wide as the one holding the track
-			    numbers, so that every field on the screen starts in one place. */}
-			<div className="grid grid-cols-[3rem_1fr] items-center gap-x-3 gap-y-2">
+			<div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
 				<label className="text-sm" htmlFor={albumField}>
 					Album
 				</label>
@@ -173,33 +173,48 @@ export function DiscMetadata({
 					disabled={frozen}
 				/>
 
-				<label className="text-sm" htmlFor={artistField}>
-					Artist
+				<label className="text-sm" htmlFor={albumArtistField}>
+					Album artist
 				</label>
 				<Input
-					id={artistField}
-					value={metadata.artist}
+					id={albumArtistField}
+					value={metadata.albumArtist}
 					onChange={(event) =>
-						onChange(withArtist(metadata, event.target.value))
+						onChange(withAlbumArtist(metadata, event.target.value))
 					}
 					disabled={frozen}
 				/>
 			</div>
 
+			{/* An artist of its own for every track, because the one an album is
+			    credited to is not who played each of them on a compilation. The
+			    title gets the wider of the two, being the longer to read and the
+			    one a file is named after. */}
 			{tracks.length > 0 && (
 				<ol className="flex flex-col gap-2">
 					{tracks.map((track) => (
 						<li key={track.number} className="flex items-center gap-3 text-sm">
-							{/* As wide as the labels above it, so the fields line up. */}
-							<span className="w-12 tabular-nums">
+							<span className="tabular-nums">
 								{String(track.number).padStart(2, "0")}
 							</span>
 							<Input
+								className="flex-[2]"
 								aria-label={`Title of track ${track.number}`}
 								value={titleOf(metadata, track.number)}
 								onChange={(event) =>
 									onChange(
 										withTitle(metadata, track.number, event.target.value),
+									)
+								}
+								disabled={frozen}
+							/>
+							<Input
+								className="flex-1"
+								aria-label={`Artist of track ${track.number}`}
+								value={artistOf(metadata, track.number)}
+								onChange={(event) =>
+									onChange(
+										withArtist(metadata, track.number, event.target.value),
 									)
 								}
 								disabled={frozen}

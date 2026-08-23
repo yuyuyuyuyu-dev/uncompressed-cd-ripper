@@ -8,8 +8,9 @@ use uncompressed_cd_ripper_lib::ripping::{self, TrackTags};
 // device path on a desk and a cue sheet in CI.
 //
 // The album and the artist stand for what a lookup answered, and the titles
-// after them go to the tracks in the order the disc plays. A run with none of
-// them rips a disc nobody looked up.
+// after them go to the tracks in the order the disc plays. The one artist is
+// credited with the album and with every track on it, which is a disc by one
+// artist throughout. A run with none of them rips a disc nobody looked up.
 //
 // An example rather than a test case, because it asserts nothing. The jobs
 // that run it are where the assertions live.
@@ -44,6 +45,7 @@ fn rip(disc: &str, destination: &Path, metadata: &[String]) -> Result<(), String
     for (index, track) in ripping::tracks(disc)?.into_iter().enumerate() {
         let tags = titles.get(index).map(|title| TrackTags {
             album: album.cloned(),
+            album_artist: artist.cloned(),
             artist: artist.cloned(),
             title: Some(title.clone()),
         });

@@ -18,8 +18,8 @@ const BRITISH: Album = {
 	released: "1998-03-02",
 	country: "GB",
 	tracks: [
-		{ number: 1, title: "Harbour Lights" },
-		{ number: 2, title: "Low Tide" },
+		{ number: 1, title: "Harbour Lights", artist: "Marina Blue" },
+		{ number: 2, title: "Low Tide", artist: "Marina Blue & The Tide" },
 	],
 };
 
@@ -29,8 +29,8 @@ const JAPANESE: Album = {
 	released: "1998-04-22",
 	country: "JP",
 	tracks: [
-		{ number: 1, title: "Harbour Lights" },
-		{ number: 2, title: "Low Tide (Alternate Take)" },
+		{ number: 1, title: "Harbour Lights", artist: "Marina Blue" },
+		{ number: 2, title: "Low Tide (Alternate Take)", artist: "The Tide" },
 	],
 };
 
@@ -97,16 +97,24 @@ test("should show the metadata fetched for the disc", async () => {
 	await page.getByRole("button", { name: "Look it up" }).click();
 
 	// Assert
-	await expect.element(page.getByLabelText("Album")).toHaveValue("Sea Change");
 	await expect
-		.element(page.getByLabelText("Artist"))
+		.element(page.getByLabelText("Album", { exact: true }))
+		.toHaveValue("Sea Change");
+	await expect
+		.element(page.getByLabelText("Album artist"))
 		.toHaveValue("Marina Blue");
 	await expect
 		.element(page.getByLabelText("Title of track 1"))
 		.toHaveValue("Harbour Lights");
 	await expect
+		.element(page.getByLabelText("Artist of track 1"))
+		.toHaveValue("Marina Blue");
+	await expect
 		.element(page.getByLabelText("Title of track 2"))
 		.toHaveValue("Low Tide");
+	await expect
+		.element(page.getByLabelText("Artist of track 2"))
+		.toHaveValue("Marina Blue & The Tide");
 });
 
 test("should show every set of metadata found for the disc and let one of them be chosen", async () => {
@@ -133,6 +141,9 @@ test("should show every set of metadata found for the disc and let one of them b
 	await expect
 		.element(page.getByLabelText("Title of track 2"))
 		.toHaveValue("Low Tide (Alternate Take)");
+	await expect
+		.element(page.getByLabelText("Artist of track 2"))
+		.toHaveValue("The Tide");
 });
 
 test("should let the metadata be typed in by hand", async () => {
@@ -141,10 +152,12 @@ test("should let the metadata be typed in by hand", async () => {
 	await render(<App />);
 
 	// Act
-	await page.getByLabelText("Album").fill("Sea Change");
-	await page.getByLabelText("Artist").fill("Marina Blue");
+	await page.getByLabelText("Album", { exact: true }).fill("Sea Change");
+	await page.getByLabelText("Album artist").fill("Marina Blue");
 	await page.getByLabelText("Title of track 1").fill("Harbour Lights");
+	await page.getByLabelText("Artist of track 1").fill("Marina Blue");
 	await page.getByLabelText("Title of track 2").fill("Low Tide");
+	await page.getByLabelText("Artist of track 2").fill("The Tide");
 	await page.getByRole("button", { name: "Choose a folder" }).click();
 	await expect.element(page.getByText(FOLDER)).toBeVisible();
 	await page.getByRole("button", { name: "Rip" }).click();
@@ -153,8 +166,18 @@ test("should let the metadata be typed in by hand", async () => {
 	await expect
 		.poll(() => ripped)
 		.toEqual([
-			{ album: "Sea Change", artist: "Marina Blue", title: "Harbour Lights" },
-			{ album: "Sea Change", artist: "Marina Blue", title: "Low Tide" },
+			{
+				album: "Sea Change",
+				albumArtist: "Marina Blue",
+				artist: "Marina Blue",
+				title: "Harbour Lights",
+			},
+			{
+				album: "Sea Change",
+				albumArtist: "Marina Blue",
+				artist: "The Tide",
+				title: "Low Tide",
+			},
 		]);
 });
 
