@@ -126,7 +126,9 @@ jobs:
           .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
           chmod 444 disc.bin disc.cue
 
-      - run: cargo run --example rip -- "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped"
+      - run: |
+          cargo run --example rip -- \
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/ripped"
         working-directory: src-tauri
 
       - name: It reads back as the audio that was on the disc
@@ -193,8 +195,9 @@ jobs:
       - name: Rip it as a disc that was looked up
         run: |
           cargo run --example rip -- \
-            "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped" \
-            "Sea Change" "Marina Blue" "Harbour Lights"
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/ripped" \
+            --album-name "Sea Change" --album-artist-name "Marina Blue" \
+            --track-title "Harbour Lights"
         working-directory: src-tauri
 
       # Reached by the name the title had to have got into, so a title that
