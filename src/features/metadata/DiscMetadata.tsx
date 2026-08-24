@@ -111,8 +111,8 @@ export function DiscMetadata({
 		}
 	};
 
-	// A picture chosen by hand settles the sleeve: the request it stops waiting
-	// for is one whose answer would otherwise land on top of it.
+	// Artwork chosen by hand settles it: the request it stops waiting for is one
+	// whose answer would otherwise land on top of it.
 	const takeChosen = (cover: Cover) => {
 		asked.current += 1;
 		setFetchingCover(false);

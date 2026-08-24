@@ -6,7 +6,7 @@ use uncompressed_cd_ripper_lib::ripping::{self, TrackTags};
 
 const USAGE: &str = "usage: rip --disc <device or disc image> -o <folder> \
                      [--album-name <name>] [--album-artist-name <name>] \
-                     [--album-artwork <picture>] [--track-title <title>]...";
+                     [--album-artwork <image>] [--track-title <title>]...";
 
 // What a lookup would have answered, as a command line can say it. Every flag
 // but the disc and the folder is optional, and a run with none of them rips a
@@ -78,7 +78,7 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
     std::fs::create_dir_all(destination).map_err(|error| error.to_string())?;
 
     // Read once for the whole disc: every track carries a copy of the same
-    // picture, and reading it again per track would say nothing new.
+    // artwork, and reading it again per track would say nothing new.
     let cover = given
         .artwork
         .as_ref()

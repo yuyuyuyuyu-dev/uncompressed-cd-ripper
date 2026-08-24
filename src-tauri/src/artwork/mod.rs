@@ -127,10 +127,10 @@ pub(crate) fn look_up(release: &str, http: &impl Http) -> Result<Option<Cover>, 
 const PNG: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a];
 const JPEG: [u8; 3] = [0xFF, 0xD8, 0xFF];
 
-// Read from the picture rather than from the name of the file: an extension is
-// whatever somebody typed, and a picture block that says the wrong thing is a
-// sleeve no player draws. The two recognised here are the two a block is
-// measured for, and the two the archive serves.
+// Read from the image itself rather than from the name of the file: an
+// extension is whatever somebody typed, and a picture block that says the wrong
+// thing is artwork no player draws. The two recognised here are the two a block
+// is measured for, and the two the archive serves.
 fn kind(image: &[u8]) -> Option<&'static str> {
     if image.starts_with(&PNG) {
         return Some("image/png");
@@ -143,8 +143,8 @@ fn kind(image: &[u8]) -> Option<&'static str> {
     None
 }
 
-// A picture off this computer rather than off the archive, for a disc no
-// database has a sleeve for, or one whose sleeve is wrong.
+// Artwork off this computer rather than off the archive, for a disc no database
+// has artwork for, or one whose artwork is wrong.
 pub fn chosen(path: &Path) -> Result<Cover, String> {
     let unreadable = |error: std::io::Error| format!("the cover art could not be read: {error}");
 

@@ -12,7 +12,7 @@ export function shown(cover: Cover) {
 // is turned down once it is read, so the picker does not offer one.
 const PICTURES = { name: "Pictures", extensions: ["png", "jpg", "jpeg"] };
 
-// Null is closing the picker, which keeps the sleeve that is already there.
+// Null is closing the picker, which keeps the artwork that is already there.
 export async function chosen(): Promise<Cover | null> {
 	const path = await open({ filters: [PICTURES] });
 

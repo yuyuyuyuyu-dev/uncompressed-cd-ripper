@@ -1,4 +1,4 @@
-// Public so that the example beside it can put a picture into a rip, as the
+// Public so that the example beside it can put artwork into a rip, as the
 // window does.
 pub mod artwork;
 mod error_report;
