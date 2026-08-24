@@ -10,8 +10,8 @@ use specta::Type;
 mod dimensions;
 mod http;
 
-pub use dimensions::measured;
-pub use http::Ureq;
+pub(crate) use dimensions::measured;
+pub(crate) use http::Ureq;
 
 // The front of the sleeve, on its way to the screen and then into the files.
 // Base64 rather than the bytes themselves: what carries this to the window is
@@ -21,12 +21,12 @@ pub use http::Ureq;
 #[serde(rename_all = "camelCase")]
 pub struct Cover {
     // What the image is, in the words a browser and a FLAC file both take.
-    pub media_type: String,
-    pub data: String,
+    pub(crate) media_type: String,
+    pub(crate) data: String,
 }
 
 impl Cover {
-    pub fn image(&self) -> Result<Vec<u8>, String> {
+    pub(crate) fn image(&self) -> Result<Vec<u8>, String> {
         BASE64_STANDARD
             .decode(&self.data)
             .map_err(|error| format!("the cover art could not be read: {error}"))
@@ -36,14 +36,14 @@ impl Cover {
 // What came back from a request, cut down to what the archive is read through.
 // Nothing here is interpreted: which status means what, and what the header
 // says the picture is, are settled below.
-pub struct Answer {
-    pub status: u16,
+pub(crate) struct Answer {
+    pub(crate) status: u16,
     // The header as it stands, whatever else it carries after the media type.
-    pub content_type: Option<String>,
-    pub body: Vec<u8>,
+    pub(crate) content_type: Option<String>,
+    pub(crate) body: Vec<u8>,
 }
 
-pub enum Failed {
+pub(crate) enum Failed {
     // The body ran past what the caller said it would read. Its own case
     // rather than a message, so that what to tell the user is settled in one
     // place with everything else that is.
@@ -55,7 +55,7 @@ pub enum Failed {
 
 // The one part of fetching a sleeve that a test cannot have, and therefore as
 // little as it can be: make the request, hand back what arrived.
-pub trait Http {
+pub(crate) trait Http {
     fn get(&self, url: &str, within: u64) -> Result<Answer, Failed>;
 }
 
@@ -64,7 +64,7 @@ pub trait Http {
 // length wrapped round and the file would not open, so it is turned down
 // where it arrives instead. The margin is for the fields that describe the
 // picture beside it.
-pub const ROOM_FOR_A_COVER: u64 = (1 << 24) - 1024;
+pub(crate) const ROOM_FOR_A_COVER: u64 = (1 << 24) - 1024;
 
 // The archive keeps the sleeve under the release rather than under the disc,
 // which is why this is asked by the identifier a lookup answered with rather
@@ -77,7 +77,7 @@ fn front_of(release: &str) -> String {
 const NOT_FOUND: u16 = 404;
 const SUCCEEDED: RangeInclusive<u16> = 200..=299;
 
-pub fn look_up(release: &str, http: &impl Http) -> Result<Option<Cover>, String> {
+pub(crate) fn look_up(release: &str, http: &impl Http) -> Result<Option<Cover>, String> {
     let answer = http
         .get(&front_of(release), ROOM_FOR_A_COVER)
         .map_err(|failed| match failed {

@@ -1,4 +1,6 @@
-mod artwork;
+// Public so that the example beside it can put a picture into a rip, as the
+// window does.
+pub mod artwork;
 mod error_report;
 mod metadata;
 // Public so that the example beside it can reach a rip without a window.
