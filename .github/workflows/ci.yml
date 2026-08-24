@@ -212,6 +212,55 @@ jobs:
           grep -qxF 'ALBUMARTIST=Marina Blue' tags.txt
           grep -qxF 'TRACKNUMBER=1' tags.txt
 
+  # The jobs above rip discs whose files carry nothing but audio and tags. This
+  # one hands the rip a picture off the machine and asks a tool from the other
+  # side of the format what came out.
+  artwork:
+    name: should write the chosen album artwork into the file a track is ripped to
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      # So the picture is read back by something other than what wrote it.
+      - run: sudo apt-get install --yes flac
+
+      - name: Put a disc in the drive
+        run: |
+          .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
+          chmod 444 disc.bin disc.cue
+
+      # A picture rather than something standing in for one: one red pixel,
+      # which is about the smallest a PNG comes, and the same one the test
+      # cases use.
+      - name: Put a picture on the machine
+        run: |
+          base64 --decode > sleeve.png <<'PNG'
+          iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC
+          PNG
+
+      # Nothing else is given, so the picture is all the rip is told: a disc
+      # nobody looked up can still be handed a sleeve.
+      - name: Rip it with a picture chosen from this computer
+        run: |
+          cargo run --example rip -- \
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/ripped" \
+            --album-artwork "$GITHUB_WORKSPACE/sleeve.png"
+        working-directory: src-tauri
+
+      # What the block says it holds, and then the picture itself: a block that
+      # named the wrong kind would be a sleeve no player draws, and one that
+      # held the wrong bytes would be somebody else's.
+      - name: A player finds the picture that was chosen
+        run: |
+          metaflac --list --block-type=PICTURE ripped/01.flac | tee picture.txt
+          grep -qF 'MIME type: image/png' picture.txt
+          metaflac --export-picture-to=exported.png ripped/01.flac
+          cmp sleeve.png exported.png
+
   # Pinned to a release: this depends on the runner being able to run a machine
   # inside itself, which should not move underfoot.
   disc-writes:
