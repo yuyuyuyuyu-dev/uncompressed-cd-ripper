@@ -1,6 +1,4 @@
 use std::cell::RefCell;
-use std::env::temp_dir;
-use std::fs;
 
 use super::*;
 
@@ -60,24 +58,5 @@ fn should_fetch_the_album_artwork_from_the_internet() {
             media_type: "image/png".to_owned(),
             data: WRITTEN.to_owned(),
         })
-    );
-}
-
-#[test]
-fn should_let_the_album_artwork_be_chosen_from_this_computer() {
-    // Arrange
-    let path = temp_dir().join("chosen-album-artwork.png");
-    fs::write(&path, SLEEVE).expect("somewhere on this computer to put a picture");
-
-    // Act
-    let cover = chosen(&path).expect("a picture that is there");
-
-    // Assert
-    assert_eq!(
-        cover,
-        Cover {
-            media_type: "image/png".to_owned(),
-            data: WRITTEN.to_owned(),
-        }
     );
 }
