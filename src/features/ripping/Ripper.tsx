@@ -229,7 +229,7 @@ export function Ripper() {
 					>
 						<ProgressLabel>
 							Ripping track {String(reading.track.number).padStart(2, "0")} ·
-							read {reading.read}
+							read {reading.read} (max {READS_ALLOWED})
 						</ProgressLabel>
 						<ProgressValue />
 					</Progress>
@@ -237,8 +237,8 @@ export function Ripper() {
 					{/* Otherwise the same track goes by several times with nothing on
 					    screen to say why. */}
 					<p className="text-muted-foreground text-sm">
-						A sector is kept once {AGREEMENTS_REQUIRED} reads of it agree, and
-						given up on after {READS_ALLOWED}.
+						Each part of the track is kept once {AGREEMENTS_REQUIRED} reads of
+						it match.
 					</p>
 				</div>
 			)}
