@@ -1,7 +1,7 @@
 use super::PNG;
 
 // What a picture block states about the image beside carrying the image
-// itself. A player draws the sleeve from the image; these are what a tag
+// itself. A player draws the artwork from the image; these are what a tag
 // editor can show without opening it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Dimensions {

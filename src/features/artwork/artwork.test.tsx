@@ -3,11 +3,11 @@ import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import App from "@/App";
-import type { Album, Cover, TrackTags } from "@/bindings";
+import type { Album, Artwork, TrackTags } from "@/bindings";
 
 const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
-const PICTURE = "/Users/someone/Pictures/sleeve.png";
+const CHOSEN = "/Users/someone/Pictures/artwork.png";
 
 const ALBUM: Album = {
 	id: "8f468b26-4d5f-4c2d-9e5d-3f1c2b7a9e01",
@@ -20,7 +20,7 @@ const ALBUM: Album = {
 
 // A picture rather than something standing in for one: one red pixel, which is
 // about the smallest a PNG comes.
-const SLEEVE: Cover = {
+const ARTWORK: Artwork = {
 	mediaType: "image/png",
 	data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
 };
@@ -51,19 +51,19 @@ function mockBackend() {
 		if (command === "look_up_artwork") {
 			askedFor.push((payload as { release: string }).release);
 
-			return SLEEVE;
+			return ARTWORK;
 		}
 		if (command === "plugin:dialog|open") {
 			// One picker serves both buttons, and only what it was opened with
 			// tells them apart.
 			const { options } = payload as { options: { directory?: boolean } };
 
-			return options.directory === true ? FOLDER : PICTURE;
+			return options.directory === true ? FOLDER : CHOSEN;
 		}
 		if (command === "read_artwork") {
 			read.push((payload as { path: string }).path);
 
-			return SLEEVE;
+			return ARTWORK;
 		}
 		if (command === "already_there") {
 			return [];
@@ -102,8 +102,8 @@ test("should fetch the album artwork from the internet", async () => {
 	await expect.poll(() => called).toContain("look_up_artwork");
 	await expect.poll(() => askedFor).toEqual([ALBUM.id]);
 	await expect
-		.element(page.getByRole("img", { name: "Cover art" }))
-		.toHaveAttribute("src", `data:${SLEEVE.mediaType};base64,${SLEEVE.data}`);
+		.element(page.getByRole("img", { name: "Album artwork" }))
+		.toHaveAttribute("src", `data:${ARTWORK.mediaType};base64,${ARTWORK.data}`);
 });
 
 test("should let the album artwork be chosen from this computer", async () => {
@@ -112,19 +112,19 @@ test("should let the album artwork be chosen from this computer", async () => {
 	await render(<App />);
 
 	// Act
-	await page.getByRole("button", { name: "Choose a picture" }).click();
+	await page.getByRole("button", { name: "Choose artwork" }).click();
 	await expect
-		.element(page.getByRole("img", { name: "Cover art" }))
+		.element(page.getByRole("img", { name: "Album artwork" }))
 		.toBeVisible();
 	await page.getByRole("button", { name: "Choose a folder" }).click();
 	await expect.element(page.getByText(FOLDER)).toBeVisible();
 	await page.getByRole("button", { name: "Rip" }).click();
 
 	// Assert
-	await expect.poll(() => read).toEqual([PICTURE]);
+	await expect.poll(() => read).toEqual([CHOSEN]);
 	await expect
-		.element(page.getByRole("img", { name: "Cover art" }))
-		.toHaveAttribute("src", `data:${SLEEVE.mediaType};base64,${SLEEVE.data}`);
+		.element(page.getByRole("img", { name: "Album artwork" }))
+		.toHaveAttribute("src", `data:${ARTWORK.mediaType};base64,${ARTWORK.data}`);
 	await expect
 		.poll(() => ripped)
 		.toEqual([
@@ -133,7 +133,7 @@ test("should let the album artwork be chosen from this computer", async () => {
 				albumArtist: null,
 				artist: null,
 				title: null,
-				cover: SLEEVE,
+				artwork: ARTWORK,
 			},
 		]);
 });

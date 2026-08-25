@@ -4,7 +4,7 @@ use super::*;
 
 // A picture rather than something standing in for one: one red pixel, which is
 // about the smallest a PNG comes.
-const SLEEVE: [u8; 69] = [
+const ARTWORK: [u8; 69] = [
     0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
     0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
     0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
@@ -12,7 +12,7 @@ const SLEEVE: [u8; 69] = [
     0x44, 0xAE, 0x42, 0x60, 0x82,
 ];
 
-// The same picture written the way it crosses to the window.
+// The same artwork written the way it crosses to the TypeScript side.
 const WRITTEN: &str =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
 
@@ -33,7 +33,7 @@ impl Http for FakeArchive {
         Ok(Answer {
             status: OK,
             content_type: Some("image/png".to_owned()),
-            body: SLEEVE.to_vec(),
+            body: ARTWORK.to_vec(),
         })
     }
 }
@@ -44,7 +44,7 @@ fn should_fetch_the_album_artwork_from_the_internet() {
     let archive = FakeArchive::default();
 
     // Act
-    let cover =
+    let artwork =
         look_up("d3dc4be9-9749-4959-99e5-133d0cb467fe", &archive).expect("the fake answers");
 
     // Assert
@@ -53,8 +53,8 @@ fn should_fetch_the_album_artwork_from_the_internet() {
         "https://coverartarchive.org/release/d3dc4be9-9749-4959-99e5-133d0cb467fe/front"
     );
     assert_eq!(
-        cover,
-        Some(Cover {
+        artwork,
+        Some(Artwork {
             media_type: "image/png".to_owned(),
             data: WRITTEN.to_owned(),
         })

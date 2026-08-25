@@ -1,5 +1,5 @@
 // Public so that the example beside it can put artwork into a rip, as the
-// window does.
+// TypeScript side does.
 pub mod artwork;
 mod error_report;
 mod metadata;
@@ -36,17 +36,17 @@ fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
     metadata::look_up(&ripping::table_of_contents(&drive)?, &metadata::MusicBrainz)
 }
 
-// The sleeve comes from another server, and waiting on it holds the window
+// The album artwork comes from another server, and waiting on it holds the window
 // still just as the lookup does.
 #[tauri::command(async)]
 #[specta::specta]
-fn look_up_artwork(release: String) -> Result<Option<artwork::Cover>, String> {
+fn look_up_artwork(release: String) -> Result<Option<artwork::Artwork>, String> {
     artwork::look_up(&release, &artwork::Ureq)
 }
 
 #[tauri::command]
 #[specta::specta]
-fn read_artwork(path: String) -> Result<artwork::Cover, String> {
+fn read_artwork(path: String) -> Result<artwork::Artwork, String> {
     artwork::chosen(Path::new(&path))
 }
 

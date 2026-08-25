@@ -9,7 +9,7 @@ const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
 
 // Two pressings of one record, which is what a disc matching more than once
-// usually means. They agree on everything a sleeve shows, so the year and the
+// usually means. They agree on everything the artwork shows, so the year and the
 // country are all there is to tell them apart.
 const BRITISH: Album = {
 	id: "8f468b26-4d5f-4c2d-9e5d-3f1c2b7a9e01",
@@ -174,14 +174,14 @@ test("should let the metadata be typed in by hand", async () => {
 				albumArtist: "Marina Blue",
 				artist: "Marina Blue",
 				title: "Harbour Lights",
-				cover: null,
+				artwork: null,
 			},
 			{
 				album: "Sea Change",
 				albumArtist: "Marina Blue",
 				artist: "The Tide",
 				title: "Low Tide",
-				cover: null,
+				artwork: null,
 			},
 		]);
 });

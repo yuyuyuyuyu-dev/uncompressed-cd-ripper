@@ -79,7 +79,7 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
 
     // Read once for the whole disc: every track carries a copy of the same
     // artwork, and reading it again per track would say nothing new.
-    let cover = given
+    let artwork = given
         .artwork
         .as_ref()
         .map(|path| artwork::chosen(Path::new(path)))
@@ -87,12 +87,12 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
 
     // Whether anything was said about the disc at all, which the titles can
     // add to a track at a time.
-    let named = given.album.is_some() || given.album_artist.is_some() || cover.is_some();
+    let named = given.album.is_some() || given.album_artist.is_some() || artwork.is_some();
 
     for (index, track) in ripping::tracks(disc)?.into_iter().enumerate() {
         let title = given.titles.get(index).cloned();
 
-        // Nothing where nothing was given, as the window leaves a disc nobody
+        // Nothing where nothing was given, as the TypeScript side leaves a disc nobody
         // named: a file is better untagged than tagged with a row of blanks.
         let tags = (named || title.is_some()).then(|| TrackTags {
             album: given.album.clone(),
@@ -101,7 +101,7 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
             // on it, which is a disc by one artist throughout.
             artist: given.album_artist.clone(),
             title,
-            cover: cover.clone(),
+            artwork: artwork.clone(),
         });
 
         // Nothing here is watching the progress a window would draw a bar from.
