@@ -1,4 +1,6 @@
 use std::cell::Cell;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use super::*;
 
@@ -17,11 +19,26 @@ fn written(reading: &[i16]) -> Vec<i32> {
     reading.iter().copied().map(i32::from).collect()
 }
 
-// A disc that hands back the readings the test laid out, one for each time it
-// is read, and counts the times it is asked. Asked rather than read, so that a
-// read past the end of the readings is still counted and the count still says
-// how many times the track was gone back to. Nothing here decides anything:
-// which readings there are, and what they ought to come to, is the test's.
+// Somewhere to rip to, emptied first so that whatever is in it afterwards is
+// this run's doing. Under the build directory, because a case writing anywhere
+// else would be caught by the job watching for files outside the working one.
+fn destination(case: &str) -> PathBuf {
+    let destination = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("target/ripped-by-the-tests")
+        .join(case);
+
+    let _ = fs::remove_dir_all(&destination);
+    fs::create_dir_all(&destination).expect("the build directory can be written to");
+
+    destination
+}
+
+// A disc carrying one audio track, which hands back the readings the test laid
+// out, one for each time it is read, and counts the times it is asked. Asked
+// rather than read, so that a read past the end of the readings is still
+// counted and the count still says how many times the track was gone back to.
+// Nothing here decides anything: which readings there are, and what they ought
+// to come to, is the test's.
 struct FakeDisc {
     readings: Vec<Vec<i16>>,
     reads: Cell<usize>,
@@ -86,12 +103,25 @@ fn should_write_the_samples_that_three_reads_of_the_disc_agreed_on() {
         reading(-4),
         agreed.clone(),
     ]);
+    let destination = destination("agreed");
 
     // Act
-    let samples = secure::samples(&disc, 1, |_| {}).expect("the fake disc answers");
+    let file = rip(&disc, 1, &destination, None, |_| {}).expect("the fake disc answers");
 
     // Assert
-    assert_eq!(samples, written(&agreed));
+    // Held against a file written from the samples that should have won,
+    // rather than against samples read back out of the one the rip wrote:
+    // nothing here can decode FLAC, and a decoder written beside a case is a
+    // second thing to get wrong. The format is lossless and the encoder
+    // settled, so two files alike are two runs of samples alike.
+    let expected = destination.join("what should have been read.flac");
+    flac::write_uncompressed(&written(&agreed), &expected, 1, None)
+        .expect("the build directory can be written to");
+
+    assert_eq!(
+        fs::read(&file).expect("the rip wrote a file"),
+        fs::read(&expected).expect("the case wrote a file")
+    );
 }
 
 #[test]
@@ -116,14 +146,22 @@ fn should_fail_when_ten_reads_of_the_disc_never_agree_three_times() {
         reading(7),
         reading(8),
     ]);
+    let destination = destination("never agreed");
 
     // Act
-    let samples = secure::samples(&disc, 1, |_| {});
+    let file = rip(&disc, 1, &destination, None, |_| {});
 
     // Assert
     assert!(
-        samples.is_err(),
-        "the track was handed over although no three reads of it agreed"
+        file.is_err(),
+        "the track was written although no three reads of it agreed"
     );
     assert_eq!(disc.reads.get(), 10);
+    assert_eq!(
+        fs::read_dir(&destination)
+            .expect("the folder ripped to is there")
+            .count(),
+        0,
+        "the folder should have been left as empty as it was found"
+    );
 }
