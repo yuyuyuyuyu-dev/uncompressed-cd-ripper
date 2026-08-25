@@ -237,10 +237,8 @@ export function Ripper() {
 					{/* Otherwise the same track goes by several times with nothing on
 					    screen to say why. */}
 					<p className="text-muted-foreground text-sm">
-						The track is kept once {AGREEMENTS_REQUIRED} reads of it match.
-						{/* One read has matched nothing, so the count stays away until
-						    there is a match to report. */}
-						{reading.matched > 1 && ` ${reading.matched} so far.`}
+						The track is saved when {AGREEMENTS_REQUIRED} reads of it match.{" "}
+						{AGREEMENTS_REQUIRED - reading.matched} more needed.
 					</p>
 				</div>
 			)}
