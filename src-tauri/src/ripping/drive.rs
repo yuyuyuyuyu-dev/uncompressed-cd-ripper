@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use std::os::raw::c_int;
 use std::ptr;
 
+use super::Disc;
 use libcdio_sys::{
     cdio_cddap_close, cdio_cddap_identify, cdio_cddap_open, cdio_cddap_track_audiop,
     cdio_cddap_track_firstsector, cdio_cddap_track_lastsector, cdio_cddap_tracks,
@@ -115,8 +116,10 @@ impl Drive {
             })
             .collect())
     }
+}
 
-    pub fn read_track(&self, number: u8, mut receive: impl FnMut(&[i16])) -> Result<(), String> {
+impl Disc for Drive {
+    fn read_track<R: FnMut(&[i16])>(&self, number: u8, mut receive: R) -> Result<(), String> {
         let first = unsafe { cdio_cddap_track_firstsector(self.handle, number) };
         let last = unsafe { cdio_cddap_track_lastsector(self.handle, number) };
 

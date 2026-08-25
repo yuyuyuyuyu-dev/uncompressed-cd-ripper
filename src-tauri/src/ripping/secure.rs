@@ -1,5 +1,5 @@
-use super::drive::{Drive, SAMPLES_PER_SECTOR};
-use super::TrackProgress;
+use super::drive::SAMPLES_PER_SECTOR;
+use super::{Disc, TrackProgress};
 
 // A sector is a seventy-fifth of a second and no bar moves that finely, so
 // seventy-five times fewer messages cross for a bar that looks the same.
@@ -74,7 +74,7 @@ impl Votes {
 // sector at a time, a different one on each read, would never hand back two
 // identical tracks to compare, while every sector on it still settles.
 pub fn samples(
-    drive: &Drive,
+    disc: &impl Disc,
     number: u8,
     mut progress: impl FnMut(TrackProgress),
 ) -> Result<Vec<i32>, String> {
@@ -88,7 +88,7 @@ pub fn samples(
     for read in 1..=READS_ALLOWED {
         let mut so_far = 0;
 
-        drive.read_track(number, |samples| {
+        disc.read_track(number, |samples| {
             // The first read is what says how long the track is. Every read
             // after it covers the same sectors, so it lands on the same votes.
             if so_far == sectors.len() {

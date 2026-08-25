@@ -174,6 +174,13 @@ pub fn already_there(destination: &Path, tracks: &[TrackFile]) -> Vec<String> {
         .collect()
 }
 
+// The one part of a careful read that a test cannot have, and therefore as
+// little as it can be: hand over the samples in every sector of a track, in
+// the order they sit on the disc.
+trait Disc {
+    fn read_track<R: FnMut(&[i16])>(&self, number: u8, receive: R) -> Result<(), String>;
+}
+
 // How far along a track a read has got. Which read it is comes with it,
 // because a bar that started over says nothing about why on its own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
@@ -224,3 +231,6 @@ fn store(
 
     Ok(file)
 }
+
+#[cfg(test)]
+mod tests;
