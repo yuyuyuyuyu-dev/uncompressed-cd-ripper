@@ -89,7 +89,11 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
     // add to a track at a time.
     let named = given.album.is_some() || given.album_artist.is_some() || artwork.is_some();
 
-    for (index, track) in ripping::tracks(disc)?.into_iter().enumerate() {
+    // Opened once for the whole disc, as the window opens it once per track:
+    // there is a window between one track and the next and there is none here.
+    let disc = ripping::Drive::open(disc)?;
+
+    for (index, track) in ripping::tracks(&disc).into_iter().enumerate() {
         let title = given.titles.get(index).cloned();
 
         // Nothing where nothing was given, as the TypeScript side leaves a disc nobody
@@ -105,7 +109,7 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
         });
 
         // Nothing here is watching the progress a window would draw a bar from.
-        let file = ripping::rip(disc, track.number, destination, tags.as_ref(), |_| {})?;
+        let file = ripping::rip(&disc, track.number, destination, tags.as_ref(), |_| {})?;
 
         println!("{}", file.display());
     }

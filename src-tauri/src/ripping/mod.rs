@@ -9,6 +9,7 @@ mod drive;
 mod flac;
 mod secure;
 
+pub use drive::{Drive, ReportedTrack};
 pub use secure::{AGREEMENTS_REQUIRED, READS_ALLOWED};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -57,18 +58,27 @@ pub fn drives() -> Vec<String> {
     drive::holding_an_audio_disc()
 }
 
+// The one part of reading a disc that a test cannot have, and therefore as
+// little as it can be: say what is on the disc, and hand over the samples in
+// every sector of a track, in the order they sit on it.
+pub trait Disc {
+    fn reported_tracks(&self) -> Result<Vec<ReportedTrack>, String>;
+
+    fn read_track<R: FnMut(&[i16])>(&self, number: u8, receive: R) -> Result<(), String>;
+}
+
 // A disc is addressed from two seconds before its first track, which is where
 // the lead-in ends. libcdio counts from the first track instead, so every
 // offset an identifier is worked out from sits this much further along than
 // the sector libcdio names.
 const LEAD_IN: u32 = 150;
 
-pub fn tracks(device: &str) -> Result<Vec<Track>, String> {
-    // A drive that will not say what is on the disc listed nothing rather than
-    // failing before any of this, and still does.
-    match drive::Drive::open(device)?.reported_tracks() {
-        Ok(reported) => Ok(listing(&reported)),
-        Err(_) => Ok(Vec::new()),
+pub fn tracks(disc: &impl Disc) -> Vec<Track> {
+    // A drive that will not say what is on the disc lists nothing rather than
+    // failing, as it always has.
+    match disc.reported_tracks() {
+        Ok(reported) => listing(&reported),
+        Err(_) => Vec::new(),
     }
 }
 
@@ -85,8 +95,8 @@ fn listing(reported: &[drive::ReportedTrack]) -> Vec<Track> {
         .collect()
 }
 
-pub fn table_of_contents(device: &str) -> Result<TableOfContents, String> {
-    assembled(&drive::Drive::open(device)?.reported_tracks()?)
+pub fn table_of_contents(disc: &impl Disc) -> Result<TableOfContents, String> {
+    assembled(&disc.reported_tracks()?)
 }
 
 // Unlike a listing, a track that cannot be placed is refused rather than left
@@ -174,13 +184,6 @@ pub fn already_there(destination: &Path, tracks: &[TrackFile]) -> Vec<String> {
         .collect()
 }
 
-// The one part of a careful read that a test cannot have, and therefore as
-// little as it can be: hand over the samples in every sector of a track, in
-// the order they sit on the disc.
-trait Disc {
-    fn read_track<R: FnMut(&[i16])>(&self, number: u8, receive: R) -> Result<(), String>;
-}
-
 // How far along a track a read has got. Which read it is comes with it,
 // because a bar that started over says nothing about why on its own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
@@ -192,17 +195,15 @@ pub struct TrackProgress {
 }
 
 pub fn rip(
-    device: &str,
+    disc: &impl Disc,
     number: u8,
     destination: &Path,
     tags: Option<&TrackTags>,
     progress: impl FnMut(TrackProgress),
 ) -> Result<PathBuf, String> {
-    let drive = drive::Drive::open(device)?;
-
     // Asked of the listing first, so that a number the disc answers to with
     // data, or with nothing at all, is refused rather than read as audio.
-    if !listing(&drive.reported_tracks()?)
+    if !listing(&disc.reported_tracks()?)
         .iter()
         .any(|track| track.number == number)
     {
@@ -211,7 +212,7 @@ pub fn rip(
 
     // The encoder is handed a finished run of samples, so the whole track is
     // held first.
-    let samples = secure::samples(&drive, number, progress)?;
+    let samples = secure::samples(disc, number, progress)?;
 
     store(&samples, number, destination, tags)
 }

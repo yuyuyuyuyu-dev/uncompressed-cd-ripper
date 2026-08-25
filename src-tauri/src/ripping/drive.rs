@@ -97,8 +97,10 @@ impl Drive {
 
         Ok(drive)
     }
+}
 
-    pub fn reported_tracks(&self) -> Result<Vec<ReportedTrack>, String> {
+impl Disc for Drive {
+    fn reported_tracks(&self) -> Result<Vec<ReportedTrack>, String> {
         let count = unsafe { cdio_cddap_tracks(self.handle) };
 
         // A drive that will not say how many tracks there are answers with the
@@ -116,9 +118,7 @@ impl Drive {
             })
             .collect())
     }
-}
 
-impl Disc for Drive {
     fn read_track<R: FnMut(&[i16])>(&self, number: u8, mut receive: R) -> Result<(), String> {
         let first = unsafe { cdio_cddap_track_firstsector(self.handle, number) };
         let last = unsafe { cdio_cddap_track_lastsector(self.handle, number) };

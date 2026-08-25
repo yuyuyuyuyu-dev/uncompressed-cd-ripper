@@ -19,7 +19,7 @@ fn drives() -> Vec<String> {
 #[tauri::command]
 #[specta::specta]
 fn tracks(drive: String) -> Result<Vec<ripping::Track>, String> {
-    ripping::tracks(&drive)
+    Ok(ripping::tracks(&ripping::Drive::open(&drive)?))
 }
 
 #[tauri::command]
@@ -33,7 +33,9 @@ fn already_there(destination: String, tracks: Vec<ripping::TrackFile>) -> Vec<St
 #[tauri::command(async)]
 #[specta::specta]
 fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
-    metadata::look_up(&ripping::table_of_contents(&drive)?, &metadata::MusicBrainz)
+    let toc = ripping::table_of_contents(&ripping::Drive::open(&drive)?)?;
+
+    metadata::look_up(&toc, &metadata::MusicBrainz)
 }
 
 // The album artwork comes from another server, and waiting on it holds the window
@@ -63,7 +65,7 @@ fn rip_track(
     progress: tauri::ipc::Channel<ripping::TrackProgress>,
 ) -> Result<String, String> {
     let file = ripping::rip(
-        &drive,
+        &ripping::Drive::open(&drive)?,
         track,
         Path::new(&destination),
         tags.as_ref(),

@@ -37,6 +37,15 @@ impl FakeDisc {
 }
 
 impl Disc for FakeDisc {
+    fn reported_tracks(&self) -> Result<Vec<ReportedTrack>, String> {
+        Ok(vec![ReportedTrack {
+            number: 1,
+            audio: true,
+            first: 0,
+            last: SECTORS as i32 - 1,
+        }])
+    }
+
     fn read_track<R: FnMut(&[i16])>(&self, _number: u8, mut receive: R) -> Result<(), String> {
         let read = self.reads.get();
         self.reads.set(read + 1);
