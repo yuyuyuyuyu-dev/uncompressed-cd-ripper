@@ -60,16 +60,16 @@ fn rip_track(
     // Nothing where the disc was never named, by a lookup or by hand. The file
     // is then written as it always was.
     tags: Option<ripping::TrackTags>,
-    progress: tauri::ipc::Channel<u32>,
+    progress: tauri::ipc::Channel<ripping::TrackProgress>,
 ) -> Result<String, String> {
     let file = ripping::rip(
         &drive,
         track,
         Path::new(&destination),
         tags.as_ref(),
-        |sectors| {
+        |so_far| {
             // Only fails once the window has gone, which the read does not care about.
-            let _ = progress.send(sectors);
+            let _ = progress.send(so_far);
         },
     )?;
 
@@ -92,17 +92,22 @@ fn send_error_report(report: error_report::ErrorReport) -> Result<(), String> {
 }
 
 pub fn builder() -> Builder<tauri::Wry> {
-    Builder::new().commands(collect_commands![
-        environment,
-        send_error_report,
-        drives,
-        tracks,
-        already_there,
-        look_up_disc,
-        look_up_artwork,
-        read_artwork,
-        rip_track
-    ])
+    Builder::new()
+        // Said on this side alone, so that what the window tells the user
+        // about a read and what the read does cannot drift apart.
+        .constant("AGREEMENTS_REQUIRED", ripping::AGREEMENTS_REQUIRED)
+        .constant("READS_ALLOWED", ripping::READS_ALLOWED)
+        .commands(collect_commands![
+            environment,
+            send_error_report,
+            drives,
+            tracks,
+            already_there,
+            look_up_disc,
+            look_up_artwork,
+            read_artwork,
+            rip_track
+        ])
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -7,6 +7,9 @@ use crate::artwork::Artwork;
 
 mod drive;
 mod flac;
+mod secure;
+
+pub use secure::{AGREEMENTS_REQUIRED, READS_ALLOWED};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -171,43 +174,36 @@ pub fn already_there(destination: &Path, tracks: &[TrackFile]) -> Vec<String> {
         .collect()
 }
 
-// A sector is a seventy-fifth of a second and no bar moves that finely, so
-// seventy-five times fewer messages cross for a bar that looks the same.
-const SECTORS_BETWEEN_REPORTS: u32 = 75;
+// How far along a track a read has got. Which read it is comes with it,
+// because a bar that started over says nothing about why on its own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackProgress {
+    pub read: u8,
+    pub sectors: u32,
+}
 
 pub fn rip(
     device: &str,
     number: u8,
     destination: &Path,
     tags: Option<&TrackTags>,
-    mut progress: impl FnMut(u32),
+    progress: impl FnMut(TrackProgress),
 ) -> Result<PathBuf, String> {
     let drive = drive::Drive::open(device)?;
 
-    let sectors = listing(&drive.reported_tracks()?)
-        .into_iter()
-        .find(|track| track.number == number)
-        .ok_or_else(|| format!("the disc has no audio track {number}"))?
-        .sectors;
+    // Asked of the listing first, so that a number the disc answers to with
+    // data, or with nothing at all, is refused rather than read as audio.
+    if !listing(&drive.reported_tracks()?)
+        .iter()
+        .any(|track| track.number == number)
+    {
+        return Err(format!("the disc has no audio track {number}"));
+    }
 
     // The encoder is handed a finished run of samples, so the whole track is
-    // held first. Asking for the room up front keeps the read from stopping to
-    // grow the buffer.
-    let mut samples = Vec::with_capacity(sectors as usize * drive::SAMPLES_PER_SECTOR);
-    let mut read = 0;
-
-    drive.read_track(number, |sector| {
-        samples.extend(sector.iter().copied().map(i32::from));
-        read += 1;
-
-        if read % SECTORS_BETWEEN_REPORTS == 0 {
-            progress(read);
-        }
-    })?;
-
-    // The last stretch is shorter than the gap between reports, so without this
-    // the bar stops short of the end of every track.
-    progress(read);
+    // held first.
+    let samples = secure::samples(&drive, number, progress)?;
 
     store(&samples, number, destination, tags)
 }
