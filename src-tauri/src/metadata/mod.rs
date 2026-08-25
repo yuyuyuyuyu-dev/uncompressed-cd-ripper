@@ -83,7 +83,7 @@ struct Release {
 
 // An album or a track can be credited to several artists at once, each
 // carrying the words that join it to the next, so that "and" or a comma reads
-// the way the sleeve has it.
+// the way the album has it.
 #[derive(Deserialize)]
 struct Credit {
     name: String,

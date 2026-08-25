@@ -3,9 +3,11 @@ import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import App from "@/App";
-import type { Album, Cover } from "@/bindings";
+import type { Album, Artwork, TrackTags } from "@/bindings";
 
 const DRIVE = "/dev/disk4";
+const FOLDER = "/Users/someone/Music";
+const CHOSEN = "/Users/someone/Pictures/artwork.png";
 
 const ALBUM: Album = {
 	id: "8f468b26-4d5f-4c2d-9e5d-3f1c2b7a9e01",
@@ -18,18 +20,21 @@ const ALBUM: Album = {
 
 // A picture rather than something standing in for one: one red pixel, which is
 // about the smallest a PNG comes.
-const SLEEVE: Cover = {
+const ARTWORK: Artwork = {
 	mediaType: "image/png",
 	data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
 };
 
-// The drive, the disc and the archive are all across the IPC. Every command
-// that crosses it is collected, and every release the archive was asked about
-// with it, so that the test can say the sleeve was asked for and asked for
-// under the release the disc turned out to be.
+// The drive, the disc, the archive, the picker and the folder are all across
+// the IPC. Every command that crosses it is collected, and with them every
+// release the archive was asked about, every file the backend was asked to
+// read, and the tags each track was ripped with, so that the test can say what
+// was asked for and what ended up in the files.
 function mockBackend() {
 	const called: string[] = [];
 	const askedFor: string[] = [];
+	const read: string[] = [];
+	const ripped: (TrackTags | null)[] = [];
 
 	mockIPC((command, payload) => {
 		called.push(command);
@@ -46,12 +51,38 @@ function mockBackend() {
 		if (command === "look_up_artwork") {
 			askedFor.push((payload as { release: string }).release);
 
-			return SLEEVE;
+			return ARTWORK;
+		}
+		if (command === "plugin:dialog|open") {
+			// One picker serves both buttons, and only what it was opened with
+			// tells them apart.
+			const { options } = payload as { options: { directory?: boolean } };
+
+			return options.directory === true ? FOLDER : CHOSEN;
+		}
+		if (command === "read_artwork") {
+			read.push((payload as { path: string }).path);
+
+			return ARTWORK;
+		}
+		if (command === "already_there") {
+			return [];
+		}
+		if (command === "rip_track") {
+			ripped.push((payload as { tags: TrackTags | null }).tags);
+
+			return null;
+		}
+		if (command === "plugin:notification|is_permission_granted") {
+			return true;
+		}
+		if (command === "plugin:notification|notify") {
+			return null;
 		}
 		throw new Error(`the test did not expect ${command}`);
 	});
 
-	return { called, askedFor };
+	return { called, askedFor, read, ripped };
 }
 
 afterEach(() => {
@@ -71,6 +102,38 @@ test("should fetch the album artwork from the internet", async () => {
 	await expect.poll(() => called).toContain("look_up_artwork");
 	await expect.poll(() => askedFor).toEqual([ALBUM.id]);
 	await expect
-		.element(page.getByRole("img", { name: "Cover art" }))
-		.toHaveAttribute("src", `data:${SLEEVE.mediaType};base64,${SLEEVE.data}`);
+		.element(page.getByRole("img", { name: "Album artwork" }))
+		.toHaveAttribute("src", `data:${ARTWORK.mediaType};base64,${ARTWORK.data}`);
+});
+
+test("should let the album artwork be chosen from this computer", async () => {
+	// Arrange
+	const { read, ripped } = mockBackend();
+	await render(<App />);
+
+	// Act
+	await page.getByRole("button", { name: "Choose artwork" }).click();
+	await expect
+		.element(page.getByRole("img", { name: "Album artwork" }))
+		.toBeVisible();
+	await page.getByRole("button", { name: "Choose a folder" }).click();
+	await expect.element(page.getByText(FOLDER)).toBeVisible();
+	await page.getByRole("button", { name: "Rip" }).click();
+
+	// Assert
+	await expect.poll(() => read).toEqual([CHOSEN]);
+	await expect
+		.element(page.getByRole("img", { name: "Album artwork" }))
+		.toHaveAttribute("src", `data:${ARTWORK.mediaType};base64,${ARTWORK.data}`);
+	await expect
+		.poll(() => ripped)
+		.toEqual([
+			{
+				album: null,
+				albumArtist: null,
+				artist: null,
+				title: null,
+				artwork: ARTWORK,
+			},
+		]);
 });

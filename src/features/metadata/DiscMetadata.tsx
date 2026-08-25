@@ -6,7 +6,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { type Album, commands, type Track } from "@/bindings";
+import { type Album, type Artwork, commands, type Track } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -17,7 +17,8 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { CoverArt } from "../artwork/CoverArt";
+import { AlbumArtwork } from "../artwork/AlbumArtwork";
+import { ChooseArtwork } from "../artwork/ChooseArtwork";
 import { expectOk } from "../error-report/backend";
 import { length } from "../ripping/track";
 import {
@@ -28,7 +29,7 @@ import {
 	withAlbum,
 	withAlbumArtist,
 	withArtist,
-	withCover,
+	withArtwork,
 	withTitle,
 } from "./metadata";
 
@@ -61,7 +62,7 @@ type Props = {
 	tracks: Track[];
 	metadata: Metadata;
 	// Taking what to change it into rather than what to change it to, because
-	// the sleeve lands after the fields it arrives beside are already there to
+	// the artwork lands after the fields it arrives beside are already there to
 	// be typed in.
 	onChange: Dispatch<SetStateAction<Metadata>>;
 	disabled: boolean;
@@ -81,9 +82,9 @@ export function DiscMetadata({
 	const [matches, setMatches] = useState<Album[]>();
 	const [chosen, setChosen] = useState<string>();
 	const [looking, setLooking] = useState(false);
-	const [fetchingCover, setFetchingCover] = useState(false);
+	const [fetchingArtwork, setFetchingArtwork] = useState(false);
 
-	// Which request the sleeve on its way belongs to. Clicking through the
+	// Which request the artwork on its way belongs to. Clicking through the
 	// matches starts one for each, and an earlier answer arriving late would
 	// otherwise settle on the album that was clicked after it.
 	const asked = useRef(0);
@@ -91,31 +92,39 @@ export function DiscMetadata({
 	const albumField = useId();
 	const albumArtistField = useId();
 
-	const takeCover = async (release: string) => {
+	const takeArtwork = async (release: string) => {
 		const mine = asked.current + 1;
 		asked.current = mine;
 
-		setFetchingCover(true);
+		setFetchingArtwork(true);
 
 		try {
-			const cover = await expectOk(commands.lookUpArtwork(release));
+			const artwork = await expectOk(commands.lookUpArtwork(release));
 
 			if (asked.current === mine) {
-				onChange((current) => withCover(current, cover));
+				onChange((current) => withArtwork(current, artwork));
 			}
 		} finally {
 			if (asked.current === mine) {
-				setFetchingCover(false);
+				setFetchingArtwork(false);
 			}
 		}
 	};
 
+	// Artwork chosen by hand settles it: the request it stops waiting for is one
+	// whose answer would otherwise land on top of it.
+	const takeChosen = (artwork: Artwork) => {
+		asked.current += 1;
+		setFetchingArtwork(false);
+		onChange((current) => withArtwork(current, artwork));
+	};
+
 	// Not waited for: the album and the track titles are there to be read and
-	// corrected while the sleeve is still coming.
+	// corrected while the artwork is still coming.
 	const take = (album: Album) => {
 		setChosen(album.id);
 		onChange(fromAlbum(album));
-		takeCover(album.id);
+		takeArtwork(album.id);
 	};
 
 	const look = async () => {
@@ -200,7 +209,13 @@ export function DiscMetadata({
 			)}
 
 			<div className="flex items-start gap-3">
-				<CoverArt cover={metadata.cover} looking={looking || fetchingCover} />
+				<div className="flex shrink-0 flex-col items-center gap-2">
+					<AlbumArtwork
+						artwork={metadata.artwork}
+						looking={looking || fetchingArtwork}
+					/>
+					<ChooseArtwork onChoose={takeChosen} disabled={frozen} />
+				</div>
 
 				<div className="grid flex-1 grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
 					<label className="text-sm" htmlFor={albumField}>
@@ -293,12 +308,12 @@ export function DiscMetadata({
 						<DialogDescription>
 							Finding the album and the track titles means sending a fingerprint
 							of this disc, worked out from where its tracks begin, to
-							MusicBrainz. The sleeve is then asked for from the Cover Art
-							Archive, which is sent the identifier of whichever release matched
-							and serves the picture from the Internet Archive. The address your
-							machine reaches the internet from goes with both, as it does with
-							any request. Nothing else about you is sent, and nothing is sent
-							at all unless you say so.
+							MusicBrainz. The album artwork is then asked for from the Artwork
+							Art Archive, which is sent the identifier of whichever release
+							matched and serves the picture from the Internet Archive. The
+							address your machine reaches the internet from goes with both, as
+							it does with any request. Nothing else about you is sent, and
+							nothing is sent at all unless you say so.
 						</DialogDescription>
 					</DialogHeader>
 

@@ -7,7 +7,7 @@ use flacenc::error::Verify;
 use flacenc::source::MemSource;
 
 use super::TrackTags;
-use crate::artwork::{self, Cover};
+use crate::artwork::{self, Artwork};
 
 const SAMPLE_RATE: usize = 44_100;
 const CHANNELS: usize = 2;
@@ -19,8 +19,9 @@ const VORBIS_COMMENT: u8 = 4;
 // The number it gives the block a player takes a picture out of.
 const PICTURE: u8 = 6;
 
-// Which of the pictures a release can carry this one is. Three is the front of
-// the sleeve, and it is the one a player shows beside the track.
+// Which of the pictures a release can carry this one is. Three is the front
+// cover, which is the one a player shows beside the track and what the format
+// calls this number.
 const FRONT_COVER: u32 = 3;
 
 // A block states how long it is in twenty-four bits, and the picture goes into
@@ -80,9 +81,9 @@ fn vorbis_comment(tags: &TrackTags, number: u8) -> Vec<u8> {
 
 // Unlike the Vorbis comment, every length here is written big-endian, which is
 // the way round the rest of the file is.
-fn picture(cover: &Cover) -> Result<Vec<u8>, String> {
-    let image = cover.image()?;
-    let dimensions = artwork::measured(&cover.media_type, &image);
+fn picture(artwork: &Artwork) -> Result<Vec<u8>, String> {
+    let image = artwork.image()?;
+    let dimensions = artwork::measured(&artwork.media_type, &image);
 
     fn counted(bytes: &[u8], block: &mut Vec<u8>) {
         block.extend((bytes.len() as u32).to_be_bytes());
@@ -92,9 +93,9 @@ fn picture(cover: &Cover) -> Result<Vec<u8>, String> {
     let mut block = Vec::new();
 
     block.extend(FRONT_COVER.to_be_bytes());
-    counted(cover.media_type.as_bytes(), &mut block);
+    counted(artwork.media_type.as_bytes(), &mut block);
     // A description is what tells one picture from another where a file
-    // carries several, and this one carries the sleeve alone.
+    // carries several, and this one carries the album artwork alone.
     counted(b"", &mut block);
     block.extend(dimensions.width.to_be_bytes());
     block.extend(dimensions.height.to_be_bytes());
@@ -105,7 +106,7 @@ fn picture(cover: &Cover) -> Result<Vec<u8>, String> {
     counted(&image, &mut block);
 
     if block.len() > ROOM_IN_A_BLOCK {
-        return Err("the cover art is too large to write into the file".to_owned());
+        return Err("the album artwork is too large to write into the file".to_owned());
     }
 
     Ok(block)
@@ -153,9 +154,9 @@ pub fn write_uncompressed(
         stream.add_metadata_block(block);
     }
 
-    if let Some(cover) = tags.and_then(|tags| tags.cover.as_ref()) {
-        let block = MetadataBlockData::new_unknown(PICTURE, &picture(cover)?)
-            .map_err(|error| format!("the cover art was rejected: {error}"))?;
+    if let Some(artwork) = tags.and_then(|tags| tags.artwork.as_ref()) {
+        let block = MetadataBlockData::new_unknown(PICTURE, &picture(artwork)?)
+            .map_err(|error| format!("the album artwork was rejected: {error}"))?;
 
         stream.add_metadata_block(block);
     }

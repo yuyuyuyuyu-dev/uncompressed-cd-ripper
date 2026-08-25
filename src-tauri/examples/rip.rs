@@ -1,30 +1,36 @@
 use std::path::Path;
 use std::process::ExitCode;
 
+use uncompressed_cd_ripper_lib::artwork;
 use uncompressed_cd_ripper_lib::ripping::{self, TrackTags};
 
+const USAGE: &str = "usage: rip --disc <device or disc image> -o <folder> \
+                     [--album-name <name>] [--album-artist-name <name>] \
+                     [--album-artwork <image>] [--track-title <title>]...";
+
+// What a lookup would have answered, as a command line can say it. Every flag
+// but the disc and the folder is optional, and a run with none of them rips a
+// disc nobody looked up.
+#[derive(Default)]
+struct Given {
+    disc: Option<String>,
+    destination: Option<String>,
+    album: Option<String>,
+    album_artist: Option<String>,
+    artwork: Option<String>,
+    // One per track, in the order the disc plays, because that is how a title
+    // is told which track it belongs to.
+    titles: Vec<String>,
+}
+
 // The rip a window would start, reached from a command line so that CI can run
-// one. libcdio takes a disc image where it takes a drive, so the argument is a
+// one. libcdio takes a disc image where it takes a drive, so the disc is a
 // device path on a desk and a cue sheet in CI.
-//
-// The album and the artist stand for what a lookup answered, and the titles
-// after them go to the tracks in the order the disc plays. The one artist is
-// credited with the album and with every track on it, which is a disc by one
-// artist throughout. A run with none of them rips a disc nobody looked up.
 //
 // An example rather than a test case, because it asserts nothing. The jobs
 // that run it are where the assertions live.
 fn main() -> ExitCode {
-    let mut arguments = std::env::args().skip(1);
-    let (Some(disc), Some(destination)) = (arguments.next(), arguments.next()) else {
-        eprintln!("usage: rip <device or disc image> <folder> [<album> <artist> <title>...]");
-
-        return ExitCode::FAILURE;
-    };
-
-    let metadata = arguments.collect::<Vec<_>>();
-
-    if let Err(error) = rip(&disc, Path::new(&destination), &metadata) {
+    if let Err(error) = run() {
         eprintln!("{error}");
 
         return ExitCode::FAILURE;
@@ -33,24 +39,69 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn rip(disc: &str, destination: &Path, metadata: &[String]) -> Result<(), String> {
-    std::fs::create_dir_all(destination).map_err(|error| error.to_string())?;
+fn run() -> Result<(), String> {
+    let given = given()?;
 
-    let (album, artist, titles) = match metadata {
-        [] => (None, None, [].as_slice()),
-        [album, artist, titles @ ..] => (Some(album), Some(artist), titles),
-        _ => return Err("an album needs an artist after it".to_owned()),
+    let (Some(disc), Some(destination)) = (given.disc.as_ref(), given.destination.as_ref()) else {
+        return Err(USAGE.to_owned());
     };
 
+    rip(&given, disc, Path::new(destination))
+}
+
+fn given() -> Result<Given, String> {
+    let mut given = Given::default();
+    let mut arguments = std::env::args().skip(1);
+
+    while let Some(flag) = arguments.next() {
+        let mut after = || {
+            arguments
+                .next()
+                .ok_or_else(|| format!("{flag} needs something after it"))
+        };
+
+        match flag.as_str() {
+            "--disc" => given.disc = Some(after()?),
+            "-o" => given.destination = Some(after()?),
+            "--album-name" => given.album = Some(after()?),
+            "--album-artist-name" => given.album_artist = Some(after()?),
+            "--album-artwork" => given.artwork = Some(after()?),
+            "--track-title" => given.titles.push(after()?),
+            _ => return Err(format!("there is no {flag}\n{USAGE}")),
+        }
+    }
+
+    Ok(given)
+}
+
+fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(destination).map_err(|error| error.to_string())?;
+
+    // Read once for the whole disc: every track carries a copy of the same
+    // artwork, and reading it again per track would say nothing new.
+    let artwork = given
+        .artwork
+        .as_ref()
+        .map(|path| artwork::chosen(Path::new(path)))
+        .transpose()?;
+
+    // Whether anything was said about the disc at all, which the titles can
+    // add to a track at a time.
+    let named = given.album.is_some() || given.album_artist.is_some() || artwork.is_some();
+
     for (index, track) in ripping::tracks(disc)?.into_iter().enumerate() {
-        let tags = titles.get(index).map(|title| TrackTags {
-            album: album.cloned(),
-            album_artist: artist.cloned(),
-            artist: artist.cloned(),
-            title: Some(title.clone()),
-            // Nothing here reaches a server, and the sleeve only ever comes
-            // off one.
-            cover: None,
+        let title = given.titles.get(index).cloned();
+
+        // Nothing where nothing was given, as the TypeScript side leaves a disc nobody
+        // named: a file is better untagged than tagged with a row of blanks.
+        let tags = (named || title.is_some()).then(|| TrackTags {
+            album: given.album.clone(),
+            album_artist: given.album_artist.clone(),
+            // The one artist is credited with the album and with every track
+            // on it, which is a disc by one artist throughout.
+            artist: given.album_artist.clone(),
+            title,
+            artwork: artwork.clone(),
         });
 
         // Nothing here is watching the progress a window would draw a bar from.

@@ -1,4 +1,4 @@
-import type { Album, Cover, TrackTags } from "@/bindings";
+import type { Album, Artwork, TrackTags } from "@/bindings";
 
 // What will be written, as it is being typed. Not an Album, which is one
 // answer a server gave about the disc: an answer is somewhere to start from,
@@ -13,7 +13,7 @@ export type Metadata = {
 	artists: Map<number, string>;
 	// One for the disc rather than one per track, and nothing where none was
 	// found or none was asked for.
-	cover: Cover | null;
+	artwork: Artwork | null;
 };
 
 export const NOTHING: Metadata = {
@@ -21,7 +21,7 @@ export const NOTHING: Metadata = {
 	albumArtist: "",
 	titles: new Map(),
 	artists: new Map(),
-	cover: null,
+	artwork: null,
 };
 
 export function fromAlbum(album: Album): Metadata {
@@ -30,14 +30,17 @@ export function fromAlbum(album: Album): Metadata {
 		albumArtist: album.artist,
 		titles: new Map(album.tracks.map((track) => [track.number, track.title])),
 		artists: new Map(album.tracks.map((track) => [track.number, track.artist])),
-		// The sleeve is asked for after the album is, from somewhere else, so
+		// The artwork is asked for after the album is, from somewhere else, so
 		// this is what there is until that answer arrives.
-		cover: null,
+		artwork: null,
 	};
 }
 
-export function withCover(metadata: Metadata, cover: Cover | null): Metadata {
-	return { ...metadata, cover };
+export function withArtwork(
+	metadata: Metadata,
+	artwork: Artwork | null,
+): Metadata {
+	return { ...metadata, artwork };
 }
 
 export function titleOf(metadata: Metadata, number: number) {
@@ -100,7 +103,7 @@ export function tagsFor(metadata: Metadata, number: number): TrackTags | null {
 		albumArtist: written(metadata.albumArtist),
 		artist: written(artistOf(metadata, number)),
 		title: fileTitle(metadata, number),
-		cover: metadata.cover,
+		artwork: metadata.artwork,
 	};
 
 	return Object.values(tags).every((field) => field === null) ? null : tags;

@@ -126,7 +126,9 @@ jobs:
           .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
           chmod 444 disc.bin disc.cue
 
-      - run: cargo run --example rip -- "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped"
+      - run: |
+          cargo run --example rip -- \
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/ripped"
         working-directory: src-tauri
 
       - name: It reads back as the audio that was on the disc
@@ -193,8 +195,9 @@ jobs:
       - name: Rip it as a disc that was looked up
         run: |
           cargo run --example rip -- \
-            "$GITHUB_WORKSPACE/disc.cue" "$GITHUB_WORKSPACE/ripped" \
-            "Sea Change" "Marina Blue" "Harbour Lights"
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/ripped" \
+            --album-name "Sea Change" --album-artist-name "Marina Blue" \
+            --track-title "Harbour Lights"
         working-directory: src-tauri
 
       # Reached by the name the title had to have got into, so a title that
@@ -208,6 +211,54 @@ jobs:
           grep -qxF 'ALBUM=Sea Change' tags.txt
           grep -qxF 'ALBUMARTIST=Marina Blue' tags.txt
           grep -qxF 'TRACKNUMBER=1' tags.txt
+
+  # The jobs above rip discs whose files carry nothing but audio and tags. This
+  # one hands the rip album artwork off this computer and asks a tool from the
+  # other side of the format what came out.
+  artwork:
+    name: should write the chosen album artwork into the file a track is ripped to
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      # So the artwork is read back by something other than what wrote it.
+      - run: sudo apt-get install --yes flac
+
+      - name: Put a disc in the drive
+        run: |
+          .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
+          chmod 444 disc.bin disc.cue
+
+      # Artwork rather than something standing in for it: one red pixel, which
+      # is about the smallest a PNG comes, and the same one the test cases use.
+      - name: Put artwork on this computer
+        run: |
+          base64 --decode > artwork.png <<'PNG'
+          iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC
+          PNG
+
+      # Nothing else is given, so the artwork is all the rip is told: a disc
+      # nobody looked up can still be given its artwork.
+      - name: Rip it with artwork chosen from this computer
+        run: |
+          cargo run --example rip -- \
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/ripped" \
+            --album-artwork "$GITHUB_WORKSPACE/artwork.png"
+        working-directory: src-tauri
+
+      # What the block says it holds, and then the artwork itself: a block that
+      # named the wrong kind is artwork no player draws, and one that held the
+      # wrong bytes is somebody else's.
+      - name: A player finds the artwork that was chosen
+        run: |
+          metaflac --list --block-type=PICTURE ripped/01.flac | tee block.txt
+          grep -qF 'MIME type: image/png' block.txt
+          metaflac --export-picture-to=exported.png ripped/01.flac
+          cmp artwork.png exported.png
 
   # Pinned to a release: this depends on the runner being able to run a machine
   # inside itself, which should not move underfoot.

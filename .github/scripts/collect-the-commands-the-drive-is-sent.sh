@@ -151,7 +151,7 @@ dbus-run-session -- bash -euxo pipefail -c '
 
     cd "$HOME/app/src-tauri"
     cargo test --all-features
-    cargo run --example rip -- "$drive" "$HOME/ripped"
+    cargo run --example rip -- --disc "$drive" -o "$HOME/ripped"
 
     # A rip that found no tracks writes nothing and says it went fine, and
     # everything after it then reports on a drive that was never read.
