@@ -181,6 +181,7 @@ pub fn already_there(destination: &Path, tracks: &[TrackFile]) -> Vec<String> {
 pub struct TrackProgress {
     pub read: u8,
     pub sectors: u32,
+    pub matched: u8,
 }
 
 pub fn rip(

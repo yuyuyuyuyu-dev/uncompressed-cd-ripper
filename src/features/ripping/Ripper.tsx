@@ -95,11 +95,11 @@ export function Ripper() {
 			// One at a time: the drive is no faster for being asked for several,
 			// and a disc that fails halfway keeps the tracks before it.
 			for (const track of tracks) {
-				setReading({ track, read: 1, sectors: 0 });
+				setReading({ track, read: 1, sectors: 0, matched: 0 });
 
 				const progress = new Channel<TrackProgress>();
-				progress.onmessage = ({ read, sectors }) =>
-					setReading({ track, read, sectors });
+				progress.onmessage = ({ read, sectors, matched }) =>
+					setReading({ track, read, sectors, matched });
 
 				await expectOk(
 					commands.ripTrack(
@@ -239,6 +239,9 @@ export function Ripper() {
 					<p className="text-muted-foreground text-sm">
 						Each part of the track is kept once {AGREEMENTS_REQUIRED} reads of
 						it match.
+						{/* One read has matched nothing, so the count stays away until
+						    there is a match to report. */}
+						{reading.matched > 1 && ` ${reading.matched} so far.`}
 					</p>
 				</div>
 			)}

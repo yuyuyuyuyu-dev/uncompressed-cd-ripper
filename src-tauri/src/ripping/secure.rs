@@ -29,6 +29,13 @@ struct Votes(Vec<Candidate>);
 
 impl Votes {
     fn count(&mut self, samples: &[i16]) {
+        // A part that is already believed gains nothing from another reading,
+        // and this is also what holds the count at what was asked for rather
+        // than letting it climb with the reads.
+        if self.agreed().is_some() {
+            return;
+        }
+
         match self
             .0
             .iter_mut()
@@ -40,6 +47,16 @@ impl Votes {
                 agreements: 1,
             }),
         }
+    }
+
+    // How many reads have come back the same way, counting whichever reading
+    // has come back most often.
+    fn matches(&self) -> u8 {
+        self.0
+            .iter()
+            .map(|candidate| candidate.agreements)
+            .max()
+            .unwrap_or(0)
     }
 
     fn agreed(&self) -> Option<&[i16]> {
@@ -65,6 +82,10 @@ pub fn samples(
 
     for read in 1..=READS_ALLOWED {
         let mut so_far = 0;
+        // The least any part covered so far has matched, which is what says how
+        // near the track is to being finished. A part still to be reached this
+        // read would hold this at what it was a read ago, so it is left out.
+        let mut matched = AGREEMENTS_REQUIRED;
 
         drive.read_track(number, |samples| {
             // The first read is what says how long the track is. Every read
@@ -74,12 +95,14 @@ pub fn samples(
             }
 
             sectors[so_far].count(samples);
+            matched = matched.min(sectors[so_far].matches());
             so_far += 1;
 
             if so_far.is_multiple_of(SECTORS_BETWEEN_REPORTS) {
                 progress(TrackProgress {
                     read,
                     sectors: so_far as u32,
+                    matched,
                 });
             }
         })?;
@@ -89,6 +112,7 @@ pub fn samples(
         progress(TrackProgress {
             read,
             sectors: so_far as u32,
+            matched,
         });
 
         if sectors.iter().all(|votes| votes.agreed().is_some()) {
