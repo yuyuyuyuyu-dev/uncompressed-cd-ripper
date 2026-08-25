@@ -57,17 +57,24 @@ impl Disc for FakeDisc {
 #[test]
 fn should_write_the_samples_that_three_reads_of_the_disc_agreed_on() {
     // Arrange
-    // Two readings of the same track, one coming back three times and the
-    // other twice. The three are neither the first to arrive nor in a row, so
-    // taking whichever came first, or counting a run, would take the other
-    // one, and so would settling for two.
+    // Ten readings of the same track. The one that is believed comes back on
+    // the second, the sixth and the tenth, so its third agreement lands on the
+    // last read a track is allowed: a read that stopped counting part way
+    // through would never reach it. Three other readings come back twice
+    // each, one of them getting there first, so settling for two would settle
+    // for the wrong one. Nothing comes back twice in a row, so counting a run
+    // would find nothing at all.
     let agreed = reading(1000);
-    let odd = reading(-1000);
     let disc = FakeDisc::holding(vec![
-        odd.clone(),
+        reading(-1),
         agreed.clone(),
-        odd,
+        reading(-1),
+        reading(-2),
+        reading(-2),
         agreed.clone(),
+        reading(-3),
+        reading(-3),
+        reading(-4),
         agreed.clone(),
     ]);
 
@@ -81,11 +88,25 @@ fn should_write_the_samples_that_three_reads_of_the_disc_agreed_on() {
 #[test]
 fn should_fail_when_ten_reads_of_the_disc_never_agree_three_times() {
     // Arrange
-    // Ten readings, no two of them the same, which is a disc that cannot be
-    // read rather than one that reads slowly. Ten because the specification
-    // says ten: reading the number off the app would let the number change
-    // and this go on passing.
-    let disc = FakeDisc::holding((0..10).map(reading).collect());
+    // Ten readings, one of which comes back twice and none three times. The
+    // pair is what makes this more than a disc of ten strangers: a track
+    // handed over on the strength of whichever reading showed up most, once
+    // the reads ran out, would be handed over here. Ten because the
+    // specification says ten: reading the number off the app would let the
+    // number change and this go on passing.
+    let twice = reading(3);
+    let disc = FakeDisc::holding(vec![
+        reading(0),
+        reading(1),
+        twice.clone(),
+        reading(2),
+        reading(4),
+        reading(5),
+        reading(6),
+        twice,
+        reading(7),
+        reading(8),
+    ]);
 
     // Act
     let samples = secure::samples(&disc, 1, |_| {});
