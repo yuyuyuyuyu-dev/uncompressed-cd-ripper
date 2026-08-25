@@ -79,13 +79,14 @@ pub fn samples(
     mut progress: impl FnMut(TrackProgress),
 ) -> Result<Vec<i32>, String> {
     let mut sectors: Vec<Votes> = Vec::new();
+    // What the last read that ran to the end came back with, which is the
+    // least any part of the track has matched. Taken part way through a read
+    // it would count the stretch behind the head and none of the stretch in
+    // front, and claim a read that has not finished.
+    let mut matched = 0;
 
     for read in 1..=READS_ALLOWED {
         let mut so_far = 0;
-        // The least any part covered so far has matched, which is what says how
-        // near the track is to being finished. A part still to be reached this
-        // read would hold this at what it was a read ago, so it is left out.
-        let mut matched = AGREEMENTS_REQUIRED;
 
         drive.read_track(number, |samples| {
             // The first read is what says how long the track is. Every read
@@ -95,7 +96,6 @@ pub fn samples(
             }
 
             sectors[so_far].count(samples);
-            matched = matched.min(sectors[so_far].matches());
             so_far += 1;
 
             if so_far.is_multiple_of(SECTORS_BETWEEN_REPORTS) {
@@ -114,6 +114,8 @@ pub fn samples(
             sectors: so_far as u32,
             matched,
         });
+
+        matched = sectors.iter().map(Votes::matches).min().unwrap_or(0);
 
         if sectors.iter().all(|votes| votes.agreed().is_some()) {
             break;
