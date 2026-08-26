@@ -6,7 +6,7 @@ use flacenc::config;
 use flacenc::error::Verify;
 use flacenc::source::MemSource;
 
-use super::TrackTags;
+use super::{Encoder, TrackTags};
 use crate::artwork::{self, Artwork};
 
 const SAMPLE_RATE: usize = 44_100;
@@ -112,7 +112,22 @@ fn picture(artwork: &Artwork) -> Result<Vec<u8>, String> {
     Ok(block)
 }
 
-pub fn write_uncompressed(
+// FLAC with nothing taken out, which is what this app exists to write.
+pub struct Flac;
+
+impl Encoder for Flac {
+    fn write(
+        &self,
+        samples: &[i32],
+        destination: &Path,
+        number: u8,
+        tags: Option<&TrackTags>,
+    ) -> Result<(), String> {
+        write_uncompressed(samples, destination, number, tags)
+    }
+}
+
+fn write_uncompressed(
     samples: &[i32],
     destination: &Path,
     number: u8,

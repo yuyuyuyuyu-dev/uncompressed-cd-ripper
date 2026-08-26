@@ -6,7 +6,13 @@ import {
 	sendNotification,
 } from "@tauri-apps/plugin-notification";
 import { useCallback, useEffect, useState } from "react";
-import { commands, type Track } from "@/bindings";
+import {
+	AGREEMENTS_REQUIRED,
+	commands,
+	READS_ALLOWED,
+	type Track,
+	type TrackProgress,
+} from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -27,8 +33,7 @@ import { fileTitle, NOTHING, tagsFor } from "../metadata/metadata";
 
 type Reading = {
 	track: Track;
-	sectors: number;
-};
+} & TrackProgress;
 
 // A disc takes long enough that nobody is still watching. Permission is asked
 // for here rather than at startup, when it is obvious what it is for.
@@ -90,10 +95,11 @@ export function Ripper() {
 			// One at a time: the drive is no faster for being asked for several,
 			// and a disc that fails halfway keeps the tracks before it.
 			for (const track of tracks) {
-				setReading({ track, sectors: 0 });
+				setReading({ track, read: 1, sectors: 0, matched: 0 });
 
-				const progress = new Channel<number>();
-				progress.onmessage = (sectors) => setReading({ track, sectors });
+				const progress = new Channel<TrackProgress>();
+				progress.onmessage = ({ read, sectors, matched }) =>
+					setReading({ track, read, sectors, matched });
 
 				await expectOk(
 					commands.ripTrack(
@@ -213,15 +219,28 @@ export function Ripper() {
 			</div>
 
 			{reading !== undefined && (
-				<Progress
-					// Out of what the disc says the track holds.
-					value={Math.min(100, (reading.sectors / reading.track.sectors) * 100)}
-				>
-					<ProgressLabel>
-						Ripping track {String(reading.track.number).padStart(2, "0")}
-					</ProgressLabel>
-					<ProgressValue />
-				</Progress>
+				<div className="flex flex-col gap-1.5">
+					<Progress
+						// Out of what the disc says the track holds.
+						value={Math.min(
+							100,
+							(reading.sectors / reading.track.sectors) * 100,
+						)}
+					>
+						<ProgressLabel>
+							Ripping track {String(reading.track.number).padStart(2, "0")} ·
+							read {reading.read} (max {READS_ALLOWED})
+						</ProgressLabel>
+						<ProgressValue />
+					</Progress>
+
+					{/* Otherwise the same track goes by several times with nothing on
+					    screen to say why. */}
+					<p className="text-muted-foreground text-sm">
+						The track is saved when {AGREEMENTS_REQUIRED} reads of it match.{" "}
+						{AGREEMENTS_REQUIRED - reading.matched} more needed.
+					</p>
+				</div>
 			)}
 
 			<Dialog

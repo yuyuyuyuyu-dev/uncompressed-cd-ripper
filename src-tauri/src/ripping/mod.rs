@@ -7,6 +7,11 @@ use crate::artwork::Artwork;
 
 mod drive;
 mod flac;
+mod secure;
+
+pub use drive::{Drive, ReportedTrack};
+pub use flac::Flac;
+pub use secure::{AGREEMENTS_REQUIRED, READS_ALLOWED};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -54,18 +59,27 @@ pub fn drives() -> Vec<String> {
     drive::holding_an_audio_disc()
 }
 
+// The one part of reading a disc that a test cannot have, and therefore as
+// little as it can be: say what is on the disc, and hand over the samples in
+// every sector of a track, in the order they sit on it.
+pub trait Disc {
+    fn reported_tracks(&self) -> Result<Vec<ReportedTrack>, String>;
+
+    fn read_track<R: FnMut(&[i16])>(&self, number: u8, receive: R) -> Result<(), String>;
+}
+
 // A disc is addressed from two seconds before its first track, which is where
 // the lead-in ends. libcdio counts from the first track instead, so every
 // offset an identifier is worked out from sits this much further along than
 // the sector libcdio names.
 const LEAD_IN: u32 = 150;
 
-pub fn tracks(device: &str) -> Result<Vec<Track>, String> {
-    // A drive that will not say what is on the disc listed nothing rather than
-    // failing before any of this, and still does.
-    match drive::Drive::open(device)?.reported_tracks() {
-        Ok(reported) => Ok(listing(&reported)),
-        Err(_) => Ok(Vec::new()),
+pub fn tracks(disc: &impl Disc) -> Vec<Track> {
+    // A drive that will not say what is on the disc lists nothing rather than
+    // failing, as it always has.
+    match disc.reported_tracks() {
+        Ok(reported) => listing(&reported),
+        Err(_) => Vec::new(),
     }
 }
 
@@ -82,8 +96,8 @@ fn listing(reported: &[drive::ReportedTrack]) -> Vec<Track> {
         .collect()
 }
 
-pub fn table_of_contents(device: &str) -> Result<TableOfContents, String> {
-    assembled(&drive::Drive::open(device)?.reported_tracks()?)
+pub fn table_of_contents(disc: &impl Disc) -> Result<TableOfContents, String> {
+    assembled(&disc.reported_tracks()?)
 }
 
 // Unlike a listing, a track that cannot be placed is refused rather than left
@@ -171,45 +185,51 @@ pub fn already_there(destination: &Path, tracks: &[TrackFile]) -> Vec<String> {
         .collect()
 }
 
-// A sector is a seventy-fifth of a second and no bar moves that finely, so
-// seventy-five times fewer messages cross for a bar that looks the same.
-const SECTORS_BETWEEN_REPORTS: u32 = 75;
+// How far along a track a read has got. Which read it is comes with it,
+// because a bar that started over says nothing about why on its own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackProgress {
+    pub read: u8,
+    pub sectors: u32,
+    pub matched: u8,
+}
+
+// What a track is written as. Behind it is the file and every player that
+// will ever open it, which is why what it does is stated by a job holding its
+// output against tools from the other side of the format.
+pub trait Encoder {
+    fn write(
+        &self,
+        samples: &[i32],
+        destination: &Path,
+        number: u8,
+        tags: Option<&TrackTags>,
+    ) -> Result<(), String>;
+}
 
 pub fn rip(
-    device: &str,
+    disc: &impl Disc,
     number: u8,
     destination: &Path,
     tags: Option<&TrackTags>,
-    mut progress: impl FnMut(u32),
+    encoder: &impl Encoder,
+    progress: impl FnMut(TrackProgress),
 ) -> Result<PathBuf, String> {
-    let drive = drive::Drive::open(device)?;
-
-    let sectors = listing(&drive.reported_tracks()?)
-        .into_iter()
-        .find(|track| track.number == number)
-        .ok_or_else(|| format!("the disc has no audio track {number}"))?
-        .sectors;
+    // Asked of the listing first, so that a number the disc answers to with
+    // data, or with nothing at all, is refused rather than read as audio.
+    if !listing(&disc.reported_tracks()?)
+        .iter()
+        .any(|track| track.number == number)
+    {
+        return Err(format!("the disc has no audio track {number}"));
+    }
 
     // The encoder is handed a finished run of samples, so the whole track is
-    // held first. Asking for the room up front keeps the read from stopping to
-    // grow the buffer.
-    let mut samples = Vec::with_capacity(sectors as usize * drive::SAMPLES_PER_SECTOR);
-    let mut read = 0;
+    // held first.
+    let samples = secure::samples(disc, number, progress)?;
 
-    drive.read_track(number, |sector| {
-        samples.extend(sector.iter().copied().map(i32::from));
-        read += 1;
-
-        if read % SECTORS_BETWEEN_REPORTS == 0 {
-            progress(read);
-        }
-    })?;
-
-    // The last stretch is shorter than the gap between reports, so without this
-    // the bar stops short of the end of every track.
-    progress(read);
-
-    store(&samples, number, destination, tags)
+    store(&samples, number, destination, tags, encoder)
 }
 
 fn store(
@@ -217,13 +237,17 @@ fn store(
     number: u8,
     destination: &Path,
     tags: Option<&TrackTags>,
+    encoder: &impl Encoder,
 ) -> Result<PathBuf, String> {
     let file = destination.join(file_name(
         number,
         tags.and_then(|tags| tags.title.as_deref()),
     ));
 
-    flac::write_uncompressed(samples, &file, number, tags)?;
+    encoder.write(samples, &file, number, tags)?;
 
     Ok(file)
 }
+
+#[cfg(test)]
+mod tests;
