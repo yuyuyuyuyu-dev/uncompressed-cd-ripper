@@ -10,6 +10,7 @@ mod flac;
 mod secure;
 
 pub use drive::{Drive, ReportedTrack};
+pub use flac::Flac;
 pub use secure::{AGREEMENTS_REQUIRED, READS_ALLOWED};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -194,11 +195,25 @@ pub struct TrackProgress {
     pub matched: u8,
 }
 
+// What a track is written as. Behind it is the file and every player that
+// will ever open it, which is why what it does is stated by a job holding its
+// output against tools from the other side of the format.
+pub trait Encoder {
+    fn write(
+        &self,
+        samples: &[i32],
+        destination: &Path,
+        number: u8,
+        tags: Option<&TrackTags>,
+    ) -> Result<(), String>;
+}
+
 pub fn rip(
     disc: &impl Disc,
     number: u8,
     destination: &Path,
     tags: Option<&TrackTags>,
+    encoder: &impl Encoder,
     progress: impl FnMut(TrackProgress),
 ) -> Result<PathBuf, String> {
     // Asked of the listing first, so that a number the disc answers to with
@@ -214,7 +229,7 @@ pub fn rip(
     // held first.
     let samples = secure::samples(disc, number, progress)?;
 
-    store(&samples, number, destination, tags)
+    store(&samples, number, destination, tags, encoder)
 }
 
 fn store(
@@ -222,13 +237,14 @@ fn store(
     number: u8,
     destination: &Path,
     tags: Option<&TrackTags>,
+    encoder: &impl Encoder,
 ) -> Result<PathBuf, String> {
     let file = destination.join(file_name(
         number,
         tags.and_then(|tags| tags.title.as_deref()),
     ));
 
-    flac::write_uncompressed(samples, &file, number, tags)?;
+    encoder.write(samples, &file, number, tags)?;
 
     Ok(file)
 }

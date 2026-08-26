@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -80,6 +80,31 @@ impl Disc for FakeDisc {
     }
 }
 
+// An encoder that keeps the samples rather than writing them. What FLAC makes
+// of samples is stated by the job that rips a disc and holds the file against
+// tools from the other side of the format; what is being stated here is which
+// samples were believed, and reading those back out of a written file would
+// only say that two encodings match, which is the same thing only for an
+// encoder that is faithful.
+#[derive(Default)]
+struct FakeEncoder {
+    written: RefCell<Vec<i32>>,
+}
+
+impl Encoder for FakeEncoder {
+    fn write(
+        &self,
+        samples: &[i32],
+        _destination: &Path,
+        _number: u8,
+        _tags: Option<&TrackTags>,
+    ) -> Result<(), String> {
+        self.written.replace(samples.to_vec());
+
+        Ok(())
+    }
+}
+
 #[test]
 fn should_write_the_samples_that_three_reads_of_the_disc_agreed_on() {
     // Arrange
@@ -103,25 +128,15 @@ fn should_write_the_samples_that_three_reads_of_the_disc_agreed_on() {
         reading(-4),
         agreed.clone(),
     ]);
-    let destination = destination("agreed");
+    let encoder = FakeEncoder::default();
 
     // Act
-    let file = rip(&disc, 1, &destination, None, |_| {}).expect("the fake disc answers");
+    // Nothing of this reaches the filesystem, so the folder is only something
+    // for a name to be built against.
+    rip(&disc, 1, Path::new("wherever"), None, &encoder, |_| {}).expect("the fake disc answers");
 
     // Assert
-    // Held against a file written from the samples that should have won,
-    // rather than against samples read back out of the one the rip wrote:
-    // nothing here can decode FLAC, and a decoder written beside a case is a
-    // second thing to get wrong. The format is lossless and the encoder
-    // settled, so two files alike are two runs of samples alike.
-    let expected = destination.join("what should have been read.flac");
-    flac::write_uncompressed(&written(&agreed), &expected, 1, None)
-        .expect("the build directory can be written to");
-
-    assert_eq!(
-        fs::read(&file).expect("the rip wrote a file"),
-        fs::read(&expected).expect("the case wrote a file")
-    );
+    assert_eq!(encoder.written.into_inner(), written(&agreed));
 }
 
 #[test]
@@ -149,7 +164,9 @@ fn should_fail_when_ten_reads_of_the_disc_never_agree_three_times() {
     let destination = destination("never agreed");
 
     // Act
-    let file = rip(&disc, 1, &destination, None, |_| {});
+    // The real encoder, because nothing here would pass that should not: a
+    // rip that failed writes no file, and an empty folder says so plainly.
+    let file = rip(&disc, 1, &destination, None, &Flac, |_| {});
 
     // Assert
     assert!(

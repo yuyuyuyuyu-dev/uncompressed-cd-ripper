@@ -109,7 +109,14 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
         });
 
         // Nothing here is watching the progress a window would draw a bar from.
-        let file = ripping::rip(&disc, track.number, destination, tags.as_ref(), |_| {})?;
+        let file = ripping::rip(
+            &disc,
+            track.number,
+            destination,
+            tags.as_ref(),
+            &ripping::Flac,
+            |_| {},
+        )?;
 
         println!("{}", file.display());
     }

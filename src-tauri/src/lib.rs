@@ -69,6 +69,7 @@ fn rip_track(
         track,
         Path::new(&destination),
         tags.as_ref(),
+        &ripping::Flac,
         |so_far| {
             // Only fails once the window has gone, which the read does not care about.
             let _ = progress.send(so_far);
