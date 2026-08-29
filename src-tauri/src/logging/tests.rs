@@ -97,11 +97,14 @@ fn should_record_a_log_of_what_happened() {
         |_| {},
     )
     .expect("the fake disc answers");
+    // What the window caught, which reaches this side through the command that
+    // hands it to exactly this call.
+    failed("BackendError: the drive stopped responding", &log);
 
     // Assert
-    // Every line, in order, in the words they are written in: a rip that
-    // recorded one thing more, one thing fewer, or the same things in another
-    // order would fail here.
+    // Every line, in order, in the words it is written in: a rip that recorded
+    // one thing more, one thing fewer, or the same things in another order
+    // fails here.
     assert_eq!(
         log.written.into_inner(),
         [
@@ -111,5 +114,14 @@ fn should_record_a_log_of_what_happened() {
             ("ripping", "the file for track 1 was written"),
         ]
         .map(|(category, message)| (category.to_owned(), message.to_owned()))
+    );
+    // A failure is called out rather than filed beside the rest, and it says
+    // what was thrown.
+    assert_eq!(
+        log.failures.into_inner(),
+        [(
+            "window".to_owned(),
+            "BackendError: the drive stopped responding".to_owned()
+        )]
     );
 }

@@ -2,6 +2,7 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import App from "@/App";
 import type { Breadcrumb, Environment, ErrorReport } from "@/bindings";
 import { ErrorReporter } from "./ErrorReporter";
 import { buildErrorReport } from "./error-report";
@@ -54,6 +55,63 @@ function mockBackend() {
 	});
 
 	return sent;
+}
+
+const DRIVE = "/dev/disk4";
+const FOLDER = "/Users/someone/Music";
+const TRACKS = [1, 2, 3];
+const GAVE_UP = "the drive stopped responding";
+
+// A whole app in front of the reporter, and behind it a drive that gives up as
+// soon as a track is asked for. What is thrown is a string rather than an
+// Error, because that is how a command that failed comes back: as a refusal
+// the window turns into something thrown, rather than as a rejection.
+function mockBackendFailingToRip() {
+	const logged: string[] = [];
+
+	mockIPC((command, payload) => {
+		if (command === "log_error") {
+			logged.push((payload as { error: string }).error);
+
+			return null;
+		}
+		if (command === "environment") {
+			return environment;
+		}
+		if (command === "breadcrumbs") {
+			return BREADCRUMBS;
+		}
+		if (command === "drives") {
+			return [DRIVE];
+		}
+		if (command === "tracks") {
+			return TRACKS.map((number) => ({ number, sectors: 7500 }));
+		}
+		if (command === "drive_name") {
+			return "MARINA BLUE  CD-RW MB-1";
+		}
+		if (command === "plugin:store|load") {
+			return 1;
+		}
+		if (command === "plugin:store|get") {
+			return [null, false];
+		}
+		if (command === "plugin:store|set" || command === "plugin:store|save") {
+			return null;
+		}
+		if (command === "plugin:dialog|open") {
+			return FOLDER;
+		}
+		if (command === "already_there") {
+			return [];
+		}
+		if (command === "rip_track") {
+			throw GAVE_UP;
+		}
+		throw new Error(`the test did not expect ${command}`);
+	});
+
+	return logged;
 }
 
 // Base UI puts the toasts in a region it labels, and gives each one the dialog
@@ -178,6 +236,27 @@ test("should keep a notification until it is dismissed", async () => {
 
 	// Assert
 	await expect.poll(() => notifications().all()).toHaveLength(1);
+});
+
+test("should record an error in the window as a log", async () => {
+	// Arrange
+	const logged = mockBackendFailingToRip();
+
+	await render(
+		<ErrorReporter>
+			<App />
+		</ErrorReporter>,
+	);
+
+	await page.getByRole("button", { name: "Choose a folder" }).click();
+
+	// Act
+	await page.getByRole("button", { name: "Rip", exact: true }).click();
+
+	// Assert
+	// What the window caught, in the words the log is given: what it arrived
+	// as, and what it said.
+	await expect.poll(() => logged).toEqual([`BackendError: ${GAVE_UP}`]);
 });
 
 test("should build the error report from nothing but event ID, timestamp, platform, release version, exception type and value, breadcrumbs, OS name and version, architecture tag, stacktrace, component stack, and user comment", () => {
