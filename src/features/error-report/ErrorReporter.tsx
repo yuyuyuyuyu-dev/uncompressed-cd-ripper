@@ -40,6 +40,14 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 	const catchThrown = useCallback((thrown: unknown, componentStack = "") => {
 		const { type, value } = describe(thrown);
 		const occurredAt = new Date();
+
+		// The log is what a machine nobody can reach leaves behind, and a
+		// failure nobody sent a report about is the one thing worth having in
+		// it from this side. Nothing waits on it.
+		commands.logError(`${type}: ${value}`).catch(() => {
+			// Nothing to do about it, and nothing worth telling the user.
+		});
+
 		const id = toast.add({
 			type: "error",
 			title: type,

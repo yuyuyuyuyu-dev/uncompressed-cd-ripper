@@ -139,6 +139,15 @@ fn environment() -> error_report::Environment {
     error_report::Environment::current()
 }
 
+// What the window caught, for the log alone. The window sends this as well as
+// putting a notification on screen, because a machine nobody can reach leaves
+// nothing else behind about a failure nobody reported.
+#[tauri::command]
+#[specta::specta]
+fn log_error(error: String) {
+    logging::failed(&error, &logging::Plugin);
+}
+
 // Asked for the moment an error is caught rather than when the report is
 // built, so that a report says what the app was doing when it failed and not
 // what it did while the notification sat on screen.
@@ -166,6 +175,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         .commands(collect_commands![
             environment,
             send_error_report,
+            log_error,
             breadcrumbs,
             drives,
             tracks,

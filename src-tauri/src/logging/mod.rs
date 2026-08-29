@@ -99,6 +99,11 @@ impl Happening {
 // to be a file, a console, or nothing at all.
 pub trait Log {
     fn write(&self, category: &str, message: &str);
+
+    // Something that failed. Its own way in, because a log marks these and
+    // because what a failure says is whatever was thrown, which is not
+    // something a breadcrumb is allowed to carry.
+    fn write_failure(&self, category: &str, message: &str);
 }
 
 // What the app logs through. The line is handed to the log crate, which hands
@@ -109,6 +114,10 @@ pub struct Plugin;
 impl Log for Plugin {
     fn write(&self, category: &str, message: &str) {
         log::info!(target: category, "{message}");
+    }
+
+    fn write_failure(&self, category: &str, message: &str) {
+        log::error!(target: category, "{message}");
     }
 }
 
@@ -147,9 +156,19 @@ pub fn record(happening: Happening, log: &impl Log) {
     });
 }
 
+// What the window caught, which reaches the log and stops there. The report
+// about it carries the whole of what was thrown already, and breadcrumbs are
+// the part that leaves the machine, so what was thrown is not made into one.
+pub fn failed(message: &str, log: &impl Log) {
+    log.write_failure("window", message);
+}
+
 pub fn breadcrumbs() -> Vec<Breadcrumb> {
     kept().iter().cloned().collect()
 }
+
+#[cfg(test)]
+mod tests;
 
 // A thread that panicked while holding these poisons them. They are still the
 // account of the run that panicked, and they are what the report about that
