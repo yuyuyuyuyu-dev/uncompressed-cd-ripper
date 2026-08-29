@@ -346,14 +346,13 @@ jobs:
         with:
           workspaces: src-tauri
 
-      # ARver verifies rips against AccurateRip for a living, and one of its
-      # commands does nothing but work out the checksums of a file. Only that
-      # much of it is installed: the rest of it reaches for a drive and a
-      # network this job has neither of. The wheel it ships is built already
-      # and wants libsndfile beside it.
+      # ARver verifies rips against AccurateRip for a living. Only what it
+      # needs to work a checksum out is installed: the rest of it reaches for a
+      # drive and a network this job has neither of, and asks for libraries
+      # that would have to be built against libcdio. The wheel it ships is
+      # built already and carries the libraries that read a file with it.
       - name: Fetch the other implementation
         run: |
-          sudo apt-get install --yes libsndfile1
           python3 -m venv theirs
           theirs/bin/pip install --no-deps ARver
 
@@ -373,13 +372,16 @@ jobs:
             > "$GITHUB_WORKSPACE/ours.txt"
         working-directory: src-tauri
 
-      # The last two columns of their table are the two checksums, and the
-      # second and third words of our line are the same two.
+      # Track one of one, so both of the stretches AccurateRip leaves out are
+      # left out on their side as well as on ours. Their interpreter rather
+      # than the runner's, because that is the one they were installed into.
       - name: The other implementation works out the same two numbers
         run: |
-          theirs/bin/arver-ripinfo ripped/01.flac | tee theirs.txt
+          theirs/bin/python \
+            .github/scripts/checksums-from-another-implementation.py \
+            ripped/01.flac 1 1 > theirs.txt
           ours="$(awk '{ print $2, $3 }' ours.txt)"
-          theirs="$(awk '/01\.flac/ { print $(NF - 1), $NF }' theirs.txt)"
+          theirs="$(cat theirs.txt)"
           echo "ours:   $ours"
           echo "theirs: $theirs"
           test "$ours" = "$theirs"
