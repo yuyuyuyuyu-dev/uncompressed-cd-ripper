@@ -4,6 +4,7 @@ use cdtoc::Toc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::logging::{self, Happening, Service};
 use crate::ripping::{Hardware, TableOfContents};
 
 mod accuraterip;
@@ -134,11 +135,18 @@ pub fn verify(
         .parse_checksums(&answer)
         .map_err(|error| format!("what AccurateRip sent back could not be read: {error}"))?;
 
-    Ok(ours
+    let verdicts: Vec<Verdict> = ours
         .iter()
         .enumerate()
         .map(|(index, ours)| verdict(ours, theirs.get(index)))
-        .collect())
+        .collect();
+
+    logging::record(Happening::LookedUp {
+        service: Service::AccurateRip,
+        found: verdicts.len() as u32,
+    });
+
+    Ok(verdicts)
 }
 
 fn verdict(ours: &Checksums, theirs: Option<&BTreeMap<u32, u8>>) -> Verdict {
@@ -181,6 +189,11 @@ pub fn read_offset(hardware: &Hardware, api: &impl VerificationApi) -> Result<Op
         .into_iter()
         .find(|((vendor, model), _)| same(vendor, &hardware.vendor) && same(model, &hardware.model))
         .map(|(_, offset)| i32::from(offset));
+
+    logging::record(Happening::LookedUp {
+        service: Service::AccurateRip,
+        found: u32::from(offset.is_some()),
+    });
 
     Ok(offset)
 }

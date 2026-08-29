@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { commands, type Environment } from "@/bindings";
+import { type Breadcrumb, commands, type Environment } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -20,6 +20,7 @@ type Caught = {
 	componentStack: string;
 	occurredAt: Date;
 	comment: string;
+	trail: Breadcrumb[];
 	failedToSend?: string;
 };
 
@@ -56,6 +57,20 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 				componentStack,
 				occurredAt,
 				comment: "",
+				trail: [],
+			}),
+		);
+
+		// Asked for here rather than when the report is built, so that a report
+		// says what the app was doing when it failed rather than what it went
+		// on to do while the notification sat on screen.
+		commands.trail().then((trail) =>
+			setCaught((caught) => {
+				const one = caught.get(id);
+
+				return one === undefined
+					? caught
+					: new Map(caught).set(id, { ...one, trail });
 			}),
 		);
 	}, []);
@@ -122,6 +137,7 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 					environment,
 					occurredAt: showing.occurredAt,
 					comment: showing.comment,
+					trail: showing.trail,
 				});
 
 	return (

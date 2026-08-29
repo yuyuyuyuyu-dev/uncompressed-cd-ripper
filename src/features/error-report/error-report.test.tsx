@@ -25,6 +25,9 @@ function mockBackend() {
 		if (command === "environment") {
 			return environment;
 		}
+		if (command === "trail") {
+			return [];
+		}
 		if (command === "send_error_report") {
 			sent.push((payload as { report: ErrorReport }).report);
 			return null;
@@ -131,10 +134,17 @@ test("should keep a notification until it is dismissed", async () => {
 	await expect.poll(() => notifications().all()).toHaveLength(1);
 });
 
-test("should build the error report from nothing but event ID, timestamp, platform, release version, exception type and value, OS name and version, architecture tag, stacktrace, component stack, and user comment", () => {
+test("should build the error report from nothing but event ID, timestamp, platform, release version, exception type and value, the trail of what the app was doing, OS name and version, architecture tag, stacktrace, component stack, and user comment", () => {
 	// Arrange
 	const thrown = new TypeError("cannot read properties of undefined");
 	thrown.stack = "TypeError: cannot read properties of undefined\n    at rip";
+	const trail = [
+		{
+			timestamp: "2026-08-13T08:59:58.750Z",
+			category: "ripping",
+			message: "track 3 was started",
+		},
+	];
 
 	// Act
 	const report = buildErrorReport({
@@ -144,6 +154,7 @@ test("should build the error report from nothing but event ID, timestamp, platfo
 		environment,
 		occurredAt: new Date("2026-08-13T09:00:00.000Z"),
 		comment: "it stopped on the third track",
+		trail,
 	});
 
 	// Assert
@@ -159,6 +170,15 @@ test("should build the error report from nothing but event ID, timestamp, platfo
 				{
 					type: "TypeError",
 					value: "cannot read properties of undefined",
+				},
+			],
+		},
+		breadcrumbs: {
+			values: [
+				{
+					timestamp: "2026-08-13T08:59:58.750Z",
+					category: "ripping",
+					message: "track 3 was started",
 				},
 			],
 		},

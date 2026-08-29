@@ -2,6 +2,7 @@
 // TypeScript side does.
 pub mod artwork;
 mod error_report;
+mod logging;
 mod metadata;
 // Public so that the example beside it can reach a rip without a window.
 pub mod ripping;
@@ -123,6 +124,23 @@ fn environment() -> error_report::Environment {
     error_report::Environment::current()
 }
 
+// What the window did, put into the same trail the backend records its own
+// doings in, so that one account reads in the order things happened.
+#[tauri::command]
+#[specta::specta]
+fn record(happening: logging::Happening) {
+    logging::record(happening);
+}
+
+// Asked for the moment an error is caught rather than when the report is
+// built, so that a report says what the app was doing when it failed and not
+// what it did while the notification sat on screen.
+#[tauri::command]
+#[specta::specta]
+fn trail() -> Vec<logging::Breadcrumb> {
+    logging::trail()
+}
+
 // Taking the whole report as an argument is what stops anything being added
 // to it here: there is no field to add without changing the type the frontend
 // was generated from.
@@ -141,6 +159,8 @@ pub fn builder() -> Builder<tauri::Wry> {
         .commands(collect_commands![
             environment,
             send_error_report,
+            record,
+            trail,
             drives,
             tracks,
             already_there,
@@ -157,6 +177,11 @@ pub fn builder() -> Builder<tauri::Wry> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Left at its defaults, which write to the log directory each of the
+        // three platforms keeps one at and hold the file to a size by rotating
+        // it. Where that directory is on each platform is exactly the part
+        // that would be got wrong by hand.
+        .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())

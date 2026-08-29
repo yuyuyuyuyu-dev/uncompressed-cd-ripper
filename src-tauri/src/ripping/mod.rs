@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::artwork::Artwork;
+use crate::logging::{self, Happening};
 use crate::verification::{self, Checksums, Position};
 
 mod drive;
@@ -85,10 +86,16 @@ const LEAD_IN: u32 = 150;
 pub fn tracks(disc: &impl Disc) -> Vec<Track> {
     // A drive that will not say what is on the disc lists nothing rather than
     // failing, as it always has.
-    match disc.reported_tracks() {
+    let tracks = match disc.reported_tracks() {
         Ok(reported) => listing(&reported),
         Err(_) => Vec::new(),
-    }
+    };
+
+    logging::record(Happening::DiscRead {
+        tracks: tracks.len() as u8,
+    });
+
+    tracks
 }
 
 // A track that cannot be placed is left out rather than offered as something
@@ -244,11 +251,15 @@ pub fn rip(
         return Err(format!("the disc has no audio track {number}"));
     };
 
+    logging::record(Happening::TrackStarted { track: number });
+
     // The encoder is handed a finished run of samples, so the whole track is
     // held first.
     let samples = secure::samples(disc, number, offset, progress)?;
     let checksums = verification::checksums(&samples, position);
     let file = store(&samples, number, destination, tags, encoder)?;
+
+    logging::record(Happening::TrackWritten { track: number });
 
     Ok(Ripped {
         file: file.to_string_lossy().into_owned(),

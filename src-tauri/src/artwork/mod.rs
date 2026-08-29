@@ -7,6 +7,8 @@ use base64::prelude::{Engine as _, BASE64_STANDARD};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::logging::{self, Happening, Service};
+
 mod dimensions;
 mod http;
 
@@ -90,6 +92,11 @@ pub(crate) fn look_up(release: &str, http: &impl Http) -> Result<Option<Artwork>
     // Nothing where no front cover has been added for this release, which is
     // an answer rather than a failure: plenty of releases have none.
     if answer.status == NOT_FOUND {
+        logging::record(Happening::LookedUp {
+            service: Service::CoverArtArchive,
+            found: 0,
+        });
+
         return Ok(None);
     }
 
@@ -117,6 +124,11 @@ pub(crate) fn look_up(release: &str, http: &impl Http) -> Result<Option<Artwork>
             "what came back for the album artwork is {media_type}, which is not an image"
         ));
     }
+
+    logging::record(Happening::LookedUp {
+        service: Service::CoverArtArchive,
+        found: 1,
+    });
 
     Ok(Some(Artwork {
         media_type: media_type.to_owned(),

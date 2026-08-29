@@ -30,6 +30,7 @@ import {
 	ProgressValue,
 } from "@/components/ui/progress";
 import { expectOk } from "../error-report/backend";
+import { record } from "../logging/logging";
 import { DiscMetadata } from "../metadata/DiscMetadata";
 import { fileTitle, NOTHING, tagsFor } from "../metadata/metadata";
 import { Verification } from "../verification/Verification";
@@ -156,6 +157,8 @@ export function Ripper() {
 			return;
 		}
 
+		record({ happening: "ripRequested", tracks: tracks.length });
+
 		const existing = await commands.alreadyThere(
 			destination,
 			tracks.map((track) => ({
@@ -196,7 +199,10 @@ export function Ripper() {
 							key={found}
 							variant={found === drive ? "default" : "outline"}
 							size="sm"
-							onClick={() => setDrive(found)}
+							onClick={() => {
+								record({ happening: "driveChosen" });
+								setDrive(found);
+							}}
 							disabled={busy}
 						>
 							{found}
@@ -223,6 +229,7 @@ export function Ripper() {
 
 						// Null is closing the picker, which keeps the last choice.
 						if (chosen !== null) {
+							record({ happening: "folderChosen" });
 							setDestination(chosen);
 						}
 					}}

@@ -54,6 +54,11 @@ function mockBackend({ alreadyThere }: { alreadyThere: string[] }) {
 				checksums: { v1: 0, v2: 0 },
 			};
 		}
+		// What the window did, which is filed rather than answered: the trail
+		// itself is stated by the logging cases.
+		if (command === "record") {
+			return null;
+		}
 		throw new Error(`the test did not expect ${command}`);
 	});
 

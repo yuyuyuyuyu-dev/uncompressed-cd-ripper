@@ -1,5 +1,6 @@
 use super::drive::SAMPLES_PER_SECTOR;
 use super::{Disc, TrackProgress};
+use crate::logging::{self, Happening};
 
 // A sector is a seventy-fifth of a second and no bar moves that finely, so
 // seventy-five times fewer messages cross for a bar that looks the same.
@@ -87,6 +88,15 @@ pub fn samples(
     let mut matched = 0;
 
     for read in 1..=READS_ALLOWED {
+        // The first read is the rip; every one after it is the disc failing to
+        // agree with itself, which is the whole reason there is a trail.
+        if read > 1 {
+            logging::record(Happening::TrackReadAgain {
+                track: number,
+                read,
+            });
+        }
+
         let mut so_far = 0;
 
         disc.read_track(number, offset, |samples| {

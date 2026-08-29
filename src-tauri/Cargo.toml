@@ -72,6 +72,8 @@ cdtoc = { version = "0.13", default-features = false, features = [
     "accuraterip",
     "musicbrainz",
 ] }
+tauri-plugin-log = "2.9.0"
+log = "0.4.34"
 
 [profile.release]
 # Line tables leave file and line in a backtrace without carrying types or

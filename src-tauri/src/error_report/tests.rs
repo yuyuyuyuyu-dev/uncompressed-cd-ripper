@@ -26,6 +26,13 @@ fn report() -> ErrorReport {
                 value: "cannot read properties of undefined".to_owned(),
             }],
         },
+        breadcrumbs: Breadcrumbs {
+            values: vec![Breadcrumb {
+                timestamp: "2026-08-12T08:59:58.750Z".to_owned(),
+                category: "ripping".to_owned(),
+                message: "track 3 was started".to_owned(),
+            }],
+        },
         contexts: Contexts {
             os: OperatingSystem {
                 name: "macOS".to_owned(),
