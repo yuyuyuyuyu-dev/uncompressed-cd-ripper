@@ -1,14 +1,39 @@
 use std::cell::RefCell;
 
 use super::*;
+use crate::ripping::{Disc, ReportedTrack};
 
 // A real disc, and the one cdtoc's own documentation works through: four
-// tracks, and AccurateRip has an answer for it.
-fn toc() -> TableOfContents {
-    TableOfContents {
-        audio: vec![150, 11563, 25174, 45863],
-        data: None,
-        leadout: 55370,
+// tracks, and AccurateRip has an answer for it. Where each of them begins and
+// ends is given as libcdio gives it, counting from the first track, so that
+// working the table of contents out from a disc is part of what is stated
+// here rather than something written down already done.
+const TRACKS: [(i32, i32); 4] = [(0, 11412), (11413, 25023), (25024, 45712), (45713, 55219)];
+
+struct FakeDisc;
+
+impl Disc for FakeDisc {
+    fn reported_tracks(&self) -> Result<Vec<ReportedTrack>, String> {
+        Ok(TRACKS
+            .iter()
+            .enumerate()
+            .map(|(index, &(first, last))| ReportedTrack {
+                number: index as u8 + 1,
+                audio: true,
+                first,
+                last,
+            })
+            .collect())
+    }
+
+    // Never reached: nothing here reads a track.
+    fn read_track<R: FnMut(&[i16])>(
+        &self,
+        _number: u8,
+        _offset: i32,
+        _receive: R,
+    ) -> Result<(), String> {
+        unreachable!("a checksum is handed over rather than read off the disc")
     }
 }
 
@@ -95,7 +120,12 @@ fn should_fetch_the_accuraterip_confidence_for_each_ripped_track() {
     ];
 
     // Act
-    let verdicts = verify(&toc(), &ours, &accuraterip).expect("AccurateRip answered");
+    // From the disc rather than from a table of contents written out by hand,
+    // because that is where the command behind the window starts: an
+    // identifier worked out from the wrong sectors would ask about the wrong
+    // disc, and nothing further along would notice.
+    let toc = crate::ripping::table_of_contents(&FakeDisc).expect("the fake disc answers");
+    let verdicts = verify(&toc, &ours, &accuraterip).expect("AccurateRip answered");
 
     // Assert
     assert_eq!(accuraterip.asked.into_inner(), vec![ANSWER_FOR_THE_DISC]);

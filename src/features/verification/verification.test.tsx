@@ -18,18 +18,19 @@ const READ_OFFSET = 6;
 // here looks at beyond passing it back.
 const SETTINGS = 1;
 
-const TRACKS = [1, 2, 3];
-
-// Three tracks, each agreed with by a different number of submissions, so that
-// a confidence landing on the wrong row shows up.
-const CONFIDENCES = [68, 7, 1];
-
 // The drive, the disc, the folder and AccurateRip are all across the IPC.
 // Every command that crosses it is collected, and with them every track that
-// was ripped, so that a case can say what was asked for and what was not. The
-// settings file starts empty, as it does on a machine the app has not been set
-// up on.
-function mockBackend() {
+// was ripped, so that a case can say what was asked for and what was not. What
+// is on the disc and what AccurateRip says about it are the case's to lay out.
+// The settings file starts empty, as it does on a machine the app has not been
+// set up on.
+function mockBackend({
+	tracks,
+	confidences = [],
+}: {
+	tracks: number[];
+	confidences?: number[];
+}) {
 	const called: string[] = [];
 	const ripped: number[] = [];
 
@@ -40,7 +41,7 @@ function mockBackend() {
 			return [DRIVE];
 		}
 		if (command === "tracks") {
-			return TRACKS.map((number) => ({ number, sectors: 7500 }));
+			return tracks.map((number) => ({ number, sectors: 7500 }));
 		}
 		if (command === "drive_name") {
 			return DRIVE_NAME;
@@ -69,7 +70,7 @@ function mockBackend() {
 			return { file: "", checksums: { v1: 0, v2: 0 } };
 		}
 		if (command === "check_rip") {
-			return CONFIDENCES.map(
+			return confidences.map(
 				(others): Verdict => ({ outcome: "matched", others }),
 			);
 		}
@@ -107,7 +108,11 @@ afterEach(() => {
 
 test("should show the AccurateRip confidence for each ripped track", async () => {
 	// Arrange
-	mockBackend();
+	// Three tracks, each agreed with by a different number of submissions, so
+	// that a confidence landing on the wrong row shows up.
+	const confidences = [68, 7, 1];
+
+	mockBackend({ tracks: [1, 2, 3], confidences });
 	await render(<App />);
 	await turnTheCheckOn();
 
@@ -117,7 +122,7 @@ test("should show the AccurateRip confidence for each ripped track", async () =>
 	// Assert
 	// Each row against the number that came back for it, so that a table which
 	// showed the right numbers in the wrong order would fail here.
-	for (const [index, confidence] of CONFIDENCES.entries()) {
+	for (const [index, confidence] of confidences.entries()) {
 		await expect
 			.element(
 				page
@@ -131,7 +136,11 @@ test("should show the AccurateRip confidence for each ripped track", async () =>
 
 test("should send no disc id to AccurateRip when the check is off", async () => {
 	// Arrange
-	const { called, ripped } = mockBackend();
+	// Nothing is laid out for AccurateRip to answer with, because nothing here
+	// should get as far as asking it.
+	const tracks = [1, 2, 3];
+	const { called, ripped } = mockBackend({ tracks });
+
 	await render(<App />);
 	await expect.element(page.getByRole("switch")).not.toBeChecked();
 
@@ -143,7 +152,7 @@ test("should send no disc id to AccurateRip when the check is off", async () => 
 	// to life, which it only does once the rip has run all the way out. What is
 	// being stated is about a whole rip rather than about one that never got
 	// as far as asking.
-	await expect.poll(() => ripped).toEqual(TRACKS);
+	await expect.poll(() => ripped).toEqual(tracks);
 	await expect
 		.element(page.getByRole("button", { name: "Rip", exact: true }))
 		.toBeEnabled();
