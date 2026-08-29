@@ -5,8 +5,9 @@ use uncompressed_cd_ripper_lib::artwork;
 use uncompressed_cd_ripper_lib::ripping::{self, TrackTags};
 
 const USAGE: &str = "usage: rip --disc <device or disc image> -o <folder> \
-                     [--album-name <name>] [--album-artist-name <name>] \
-                     [--album-artwork <image>] [--track-title <title>]...";
+                     [--read-offset <frames>] [--album-name <name>] \
+                     [--album-artist-name <name>] [--album-artwork <image>] \
+                     [--track-title <title>]...";
 
 // What a lookup would have answered, as a command line can say it. Every flag
 // but the disc and the folder is optional, and a run with none of them rips a
@@ -15,6 +16,9 @@ const USAGE: &str = "usage: rip --disc <device or disc image> -o <folder> \
 struct Given {
     disc: Option<String>,
     destination: Option<String>,
+    // What a window looks up from AccurateRip before it starts. Zero unless it
+    // is given, which reads the disc exactly as it sits.
+    offset: i32,
     album: Option<String>,
     album_artist: Option<String>,
     artwork: Option<String>,
@@ -63,6 +67,11 @@ fn given() -> Result<Given, String> {
         match flag.as_str() {
             "--disc" => given.disc = Some(after()?),
             "-o" => given.destination = Some(after()?),
+            "--read-offset" => {
+                given.offset = after()?
+                    .parse()
+                    .map_err(|_| "--read-offset needs a whole number of frames".to_owned())?;
+            }
             "--album-name" => given.album = Some(after()?),
             "--album-artist-name" => given.album_artist = Some(after()?),
             "--album-artwork" => given.artwork = Some(after()?),
@@ -109,16 +118,22 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
         });
 
         // Nothing here is watching the progress a window would draw a bar from.
-        let file = ripping::rip(
+        let ripped = ripping::rip(
             &disc,
             track.number,
             destination,
             tags.as_ref(),
+            given.offset,
             &ripping::Flac,
             |_| {},
         )?;
 
-        println!("{}", file.display());
+        // The checksums beside the file, because they are worked out from what
+        // came off the disc and nothing can read them back off the file.
+        println!(
+            "{} {:08x} {:08x}",
+            ripped.file, ripped.checksums.v1, ripped.checksums.v2
+        );
     }
 
     Ok(())

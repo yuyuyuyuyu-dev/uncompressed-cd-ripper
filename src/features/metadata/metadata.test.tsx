@@ -7,6 +7,10 @@ import type { Album, TrackTags } from "@/bindings";
 
 const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
+const DRIVE_NAME = "MARINA BLUE  CD-RW MB-1";
+// What the store plugin hands back for an opened settings file, which nothing
+// here looks at beyond passing it back.
+const SETTINGS = 1;
 
 // Two pressings of one record, which is what a disc matching more than once
 // usually means. They agree on everything the artwork shows, so the year and the
@@ -45,6 +49,17 @@ function mockBackend({ matches }: { matches: Album[] }) {
 		if (command === "drives") {
 			return [DRIVE];
 		}
+		if (command === "drive_name") {
+			return DRIVE_NAME;
+		}
+		// The settings file with nothing in it: no read offset has ever been
+		// kept for this drive, which is a machine the app has not been set up on.
+		if (command === "plugin:store|load") {
+			return SETTINGS;
+		}
+		if (command === "plugin:store|get") {
+			return [null, false];
+		}
 		if (command === "tracks") {
 			return [
 				{ number: 1, sectors: 7500 },
@@ -66,7 +81,8 @@ function mockBackend({ matches }: { matches: Album[] }) {
 		}
 		if (command === "rip_track") {
 			ripped.push((payload as { tags: TrackTags | null }).tags);
-			return null;
+
+			return { file: "", checksums: { v1: 0, v2: 0 } };
 		}
 		if (command === "plugin:notification|is_permission_granted") {
 			return true;
@@ -163,7 +179,9 @@ test("should let the metadata be typed in by hand", async () => {
 	await page.getByLabelText("Artist of track 2").fill("The Tide");
 	await page.getByRole("button", { name: "Choose a folder" }).click();
 	await expect.element(page.getByText(FOLDER)).toBeVisible();
-	await page.getByRole("button", { name: "Rip" }).click();
+	// Exact, because the button offering to check the rip is named after
+	// AccurateRip and would otherwise answer to this too.
+	await page.getByRole("button", { name: "Rip", exact: true }).click();
 
 	// Assert
 	await expect

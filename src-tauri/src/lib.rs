@@ -5,6 +5,9 @@ mod error_report;
 mod metadata;
 // Public so that the example beside it can reach a rip without a window.
 pub mod ripping;
+// Public so that the example beside it can read what a track came to, as the
+// TypeScript side does.
+pub mod verification;
 
 use std::path::Path;
 
@@ -52,6 +55,38 @@ fn read_artwork(path: String) -> Result<artwork::Artwork, String> {
     artwork::chosen(Path::new(&path))
 }
 
+// What the drive calls itself, which is what a read offset is kept under: a
+// device path is whatever the operating system handed out this time, and the
+// offset belongs to the drive.
+#[tauri::command]
+#[specta::specta]
+fn drive_name(drive: String) -> Result<String, String> {
+    Ok(ripping::Drive::open(&drive)?.hardware()?.to_string())
+}
+
+// AccurateRip's list of drive read offsets is a third of a megabyte, so this
+// waits on the network as the lookups do.
+#[tauri::command(async)]
+#[specta::specta]
+fn read_offset(drive: String) -> Result<Option<i32>, String> {
+    let drive = ripping::Drive::open(&drive)?;
+
+    verification::read_offset(&drive.hardware()?, &verification::AccurateRip)
+}
+
+// Asked once the whole disc is read rather than track by track, because one
+// answer covers the disc and asking per track would fetch it again each time.
+#[tauri::command(async)]
+#[specta::specta]
+fn check_rip(
+    drive: String,
+    checksums: Vec<verification::Checksums>,
+) -> Result<Vec<verification::Verdict>, String> {
+    let toc = ripping::table_of_contents(&ripping::Drive::open(&drive)?)?;
+
+    verification::verify(&toc, &checksums, &verification::AccurateRip)
+}
+
 // Reading a track blocks for minutes, so it is handed to a worker thread.
 #[tauri::command(async)]
 #[specta::specta]
@@ -62,21 +97,24 @@ fn rip_track(
     // Nothing where the disc was never named, by a lookup or by hand. The file
     // is then written as it always was.
     tags: Option<ripping::TrackTags>,
+    // The drive's own read offset, which the window looked up before it began.
+    // Zero where AccurateRip has never been told about this drive, which reads
+    // the track exactly as the drive hands it over.
+    offset: i32,
     progress: tauri::ipc::Channel<ripping::TrackProgress>,
-) -> Result<String, String> {
-    let file = ripping::rip(
+) -> Result<ripping::Ripped, String> {
+    ripping::rip(
         &ripping::Drive::open(&drive)?,
         track,
         Path::new(&destination),
         tags.as_ref(),
+        offset,
         &ripping::Flac,
         |so_far| {
             // Only fails once the window has gone, which the read does not care about.
             let _ = progress.send(so_far);
         },
-    )?;
-
-    Ok(file.to_string_lossy().into_owned())
+    )
 }
 
 #[tauri::command]
@@ -109,7 +147,10 @@ pub fn builder() -> Builder<tauri::Wry> {
             look_up_disc,
             look_up_artwork,
             read_artwork,
-            rip_track
+            drive_name,
+            read_offset,
+            rip_track,
+            check_rip
         ])
 }
 
@@ -119,6 +160,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_store::Builder::new().build())
         .invoke_handler(builder().invoke_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

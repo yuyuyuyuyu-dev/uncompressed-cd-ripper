@@ -260,6 +260,130 @@ jobs:
           metaflac --export-picture-to=exported.png ripped/01.flac
           cmp artwork.png exported.png
 
+  # Every drive hands over samples a little further along the disc than the
+  # sectors it was asked for, or a little further back, and putting that right
+  # happens below the seam the Rust cases drive: it is in the code that talks
+  # to libcdio. A job reaches it, because the disc image is the same every
+  # time, so what comes back with an offset applied is that image moved along
+  # by exactly that much.
+  read-offset:
+    name: should correct for the drive's read offset
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      # So what came off the disc is read back by something other than what
+      # wrote it.
+      - run: sudo apt-get install --yes flac
+
+      - name: Put a disc in the drive
+        run: |
+          .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
+          chmod 444 disc.bin disc.cue
+
+      # 667 is a real drive's offset, and is not a whole number of the 588
+      # frames a sector holds: the samples wanted begin part way into one
+      # sector and end part way into another, so the reading has to be cut up
+      # again against the track rather than against the disc.
+      - name: Rip it as a drive that reads 667 frames ahead
+        run: |
+          cargo run --example rip -- \
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/ahead" \
+            --read-offset 667
+        working-directory: src-tauri
+
+      - name: It holds the samples that far further along the disc
+        run: |
+          flac --decode --force-raw-format --endian=little --sign=signed \
+            --output-name=ahead.raw ahead/01.flac
+          .github/scripts/shift-the-disc.py disc.bin 667 expected-ahead.raw
+          cmp ahead.raw expected-ahead.raw
+
+      # The other way round, which is the one that reaches past the start of
+      # the disc, where there is nothing to read and silence has to stand in.
+      - name: Rip it as a drive that reads 667 frames behind
+        run: |
+          cargo run --example rip -- \
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/behind" \
+            --read-offset -667
+        working-directory: src-tauri
+
+      - name: It holds the samples that far further back, silence before them
+        run: |
+          flac --decode --force-raw-format --endian=little --sign=signed \
+            --output-name=behind.raw behind/01.flac
+          .github/scripts/shift-the-disc.py disc.bin -667 expected-behind.raw
+          cmp behind.raw expected-behind.raw
+
+      # A disagreement is worth having in hand, not just in a log.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: the-disc-and-what-came-off-it-with-an-offset
+          path: |
+            disc.bin
+            ahead.raw
+            behind.raw
+
+  # The numbers this app works out have to be the numbers everybody else's rips
+  # were counted with, or a rip would match nothing however well it was read.
+  # Nothing written here can state that: a case that made up its own expected
+  # numbers would only say that the code does what the code does. So they come
+  # from somebody else's implementation of the same algorithm, the way the jobs
+  # above hold a written file against tools from the other side of the format.
+  checksums:
+    name: should work out the same AccurateRip checksums as another implementation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-tauri-linux
+      - uses: ./.github/actions/setup-libcdio
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # ARver verifies rips against AccurateRip for a living, and one of its
+      # commands does nothing but work out the checksums of a file. Only that
+      # much of it is installed: the rest of it reaches for a drive and a
+      # network this job has neither of. The wheel it ships is built already
+      # and wants libsndfile beside it.
+      - name: Fetch the other implementation
+        run: |
+          sudo apt-get install --yes libsndfile1
+          python3 -m venv theirs
+          theirs/bin/pip install --no-deps ARver
+
+      - name: Put a disc in the drive
+        run: |
+          .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
+          chmod 444 disc.bin disc.cue
+
+      # One track, which is both the first on the disc and the last, so both
+      # of the stretches AccurateRip leaves out of a checksum are left out of
+      # this one. Cargo's own chatter goes to the error stream, so what lands
+      # in the file is the line the rip prints and nothing else.
+      - name: Rip it, and take down what it made of the track
+        run: |
+          cargo run --example rip -- \
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/ripped" \
+            > "$GITHUB_WORKSPACE/ours.txt"
+        working-directory: src-tauri
+
+      # The last two columns of their table are the two checksums, and the
+      # second and third words of our line are the same two.
+      - name: The other implementation works out the same two numbers
+        run: |
+          theirs/bin/arver-ripinfo ripped/01.flac | tee theirs.txt
+          ours="$(awk '{ print $2, $3 }' ours.txt)"
+          theirs="$(awk '/01\.flac/ { print $(NF - 1), $NF }' theirs.txt)"
+          echo "ours:   $ours"
+          echo "theirs: $theirs"
+          test "$ours" = "$theirs"
+
   # Pinned to a release: this depends on the runner being able to run a machine
   # inside itself, which should not move underfoot.
   disc-writes:

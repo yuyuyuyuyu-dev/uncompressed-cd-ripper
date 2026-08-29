@@ -6,7 +6,13 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { type Album, type Artwork, commands, type Track } from "@/bindings";
+import {
+	type Album,
+	type Artwork,
+	commands,
+	type Track,
+	type Verdict,
+} from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -21,6 +27,7 @@ import { AlbumArtwork } from "../artwork/AlbumArtwork";
 import { ChooseArtwork } from "../artwork/ChooseArtwork";
 import { expectOk } from "../error-report/backend";
 import { length } from "../ripping/track";
+import { matching } from "../verification/verdicts";
 import {
 	artistOf,
 	fromAlbum,
@@ -61,6 +68,15 @@ type Props = {
 	drive: string | undefined;
 	tracks: Track[];
 	metadata: Metadata;
+	// What AccurateRip said about each track once they were ripped, in the
+	// order they play, and nothing until they have been. It belongs in this
+	// table rather than in one of its own: it is one more thing to know about
+	// a track, beside its title and how long it is.
+	//
+	// The column stands there from the start, holding nothing. A column that
+	// appears once the reading is done moves every other column as it arrives,
+	// and says nothing beforehand about what is coming.
+	verdicts: Verdict[] | undefined;
 	// Taking what to change it into rather than what to change it to, because
 	// the artwork lands after the fields it arrives beside are already there to
 	// be typed in.
@@ -72,6 +88,7 @@ export function DiscMetadata({
 	drive,
 	tracks,
 	metadata,
+	verdicts,
 	onChange,
 	disabled,
 }: Props) {
@@ -257,10 +274,13 @@ export function DiscMetadata({
 							</th>
 							<th className="px-2 pb-1.5 text-left font-medium">Artist</th>
 							<th className="pb-1.5 text-right font-medium">Length</th>
+							<th className="pb-1.5 pl-2 text-right font-medium">
+								Matching submissions
+							</th>
 						</tr>
 					</thead>
 					<tbody>
-						{tracks.map((track) => (
+						{tracks.map((track, index) => (
 							<tr key={track.number}>
 								<td className="py-1.5 text-sm tabular-nums">
 									{String(track.number).padStart(2, "0")}
@@ -291,6 +311,9 @@ export function DiscMetadata({
 								</td>
 								<td className="py-1.5 text-right text-muted-foreground text-sm tabular-nums">
 									{length(track.sectors)}
+								</td>
+								<td className="py-1.5 pl-2 text-right text-muted-foreground text-sm tabular-nums">
+									{matching(verdicts?.[index])}
 								</td>
 							</tr>
 						))}

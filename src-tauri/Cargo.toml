@@ -50,16 +50,28 @@ libcdio-sys = { version = "2.0.0", default-features = false, features = [
 libc = "0.2"
 flacenc = "0.5.1"
 tauri-plugin-notification = "2.3.3"
+# A drive's read offset belongs to the drive and is worth keeping between runs.
+# Tauri's own store rather than a file written by hand: it settles where a
+# settings file goes on each of the three platforms, and writing that by hand
+# is the part that would go wrong.
+tauri-plugin-store = "2"
 # The ID MusicBrainz knows a disc by is a SHA-1 over its table of contents laid
 # out just so, in a base64 with three characters swapped. What is easy to get
 # wrong is the disc that carries data as well as audio, where the gap between
-# the two sessions comes off the lead-out first, and this knows to do it. Only
-# the one service is turned on, so the code behind the other three ID schemes
-# never reaches the app.
+# the two sessions comes off the lead-out first, and this knows to do it.
+#
+# The same table of contents gives AccurateRip the three numbers it knows a
+# disc by and the address its checksums are kept at, and this also reads back
+# the two files that come from there, both of which are raw bytes rather than
+# anything a person would read. Only the two services are turned on, so the
+# code behind the other ID scheme never reaches the app.
 #
 # Held at 0.13 because 0.14 wants a newer compiler than rust-toolchain.toml
 # pins.
-cdtoc = { version = "0.13", default-features = false, features = ["musicbrainz"] }
+cdtoc = { version = "0.13", default-features = false, features = [
+    "accuraterip",
+    "musicbrainz",
+] }
 
 [profile.release]
 # Line tables leave file and line in a backtrace without carrying types or
