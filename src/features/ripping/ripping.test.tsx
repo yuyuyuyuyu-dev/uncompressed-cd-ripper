@@ -8,6 +8,10 @@ import "@/index.css";
 
 const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
+const DRIVE_NAME = "MARINA BLUE  CD-RW MB-1";
+// What the store plugin hands back for an opened settings file, which nothing
+// here looks at beyond passing it back.
+const SETTINGS = 1;
 
 // The drive, the disc and the filesystem are all across the IPC.
 function mockBackend({ alreadyThere }: { alreadyThere: string[] }) {
@@ -16,6 +20,17 @@ function mockBackend({ alreadyThere }: { alreadyThere: string[] }) {
 	mockIPC((command, payload) => {
 		if (command === "drives") {
 			return [DRIVE];
+		}
+		if (command === "drive_name") {
+			return DRIVE_NAME;
+		}
+		// The settings file with nothing in it: no read offset has ever been
+		// kept for this drive, which is a machine the app has not been set up on.
+		if (command === "plugin:store|load") {
+			return SETTINGS;
+		}
+		if (command === "plugin:store|get") {
+			return [null, false];
 		}
 		if (command === "tracks") {
 			return [
@@ -30,8 +45,14 @@ function mockBackend({ alreadyThere }: { alreadyThere: string[] }) {
 			return alreadyThere;
 		}
 		if (command === "rip_track") {
-			ripped.push((payload as { track: number }).track);
-			return null;
+			const { track } = payload as { track: number };
+
+			ripped.push(track);
+
+			return {
+				file: `${FOLDER}/0${track}.flac`,
+				checksums: { v1: 0, v2: 0 },
+			};
 		}
 		throw new Error(`the test did not expect ${command}`);
 	});
@@ -55,7 +76,9 @@ test("should ask whether to overwrite when the destination already holds a file 
 	await chooseAFolder();
 
 	// Act
-	await page.getByRole("button", { name: "Rip" }).click();
+	// Exact, because the button offering to check the rip is named after
+	// AccurateRip and would otherwise answer to this too.
+	await page.getByRole("button", { name: "Rip", exact: true }).click();
 
 	// Assert
 	await expect
@@ -70,7 +93,9 @@ test("should not start ripping when the overwrite dialog is cancelled", async ()
 	const ripped = mockBackend({ alreadyThere: ["01.flac"] });
 	await render(<Ripper />);
 	await chooseAFolder();
-	await page.getByRole("button", { name: "Rip" }).click();
+	// Exact, because the button offering to check the rip is named after
+	// AccurateRip and would otherwise answer to this too.
+	await page.getByRole("button", { name: "Rip", exact: true }).click();
 
 	// Act
 	await page.getByRole("button", { name: "Cancel" }).click();

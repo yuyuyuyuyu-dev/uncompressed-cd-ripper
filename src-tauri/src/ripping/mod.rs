@@ -4,12 +4,13 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::artwork::Artwork;
+use crate::verification::{self, Checksums, Position};
 
 mod drive;
 mod flac;
 mod secure;
 
-pub use drive::{Drive, ReportedTrack};
+pub use drive::{Drive, Hardware, ReportedTrack};
 pub use flac::Flac;
 pub use secure::{AGREEMENTS_REQUIRED, READS_ALLOWED};
 
@@ -65,7 +66,14 @@ pub fn drives() -> Vec<String> {
 pub trait Disc {
     fn reported_tracks(&self) -> Result<Vec<ReportedTrack>, String>;
 
-    fn read_track<R: FnMut(&[i16])>(&self, number: u8, receive: R) -> Result<(), String>;
+    // The offset is the drive's own, in frames, and moves what is read along
+    // the disc by that much. Nothing here decides what it should be.
+    fn read_track<R: FnMut(&[i16])>(
+        &self,
+        number: u8,
+        offset: i32,
+        receive: R,
+    ) -> Result<(), String>;
 }
 
 // A disc is addressed from two seconds before its first track, which is where
@@ -208,28 +216,56 @@ pub trait Encoder {
     ) -> Result<(), String>;
 }
 
+// What a finished track leaves behind.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct Ripped {
+    pub file: String,
+    // Worked out here rather than read back off the file, because this is what
+    // came off the disc and a file is what an encoder made of it. Asking
+    // AccurateRip about them waits until the whole disc is read.
+    pub checksums: Checksums,
+}
+
 pub fn rip(
     disc: &impl Disc,
     number: u8,
     destination: &Path,
     tags: Option<&TrackTags>,
+    offset: i32,
     encoder: &impl Encoder,
     progress: impl FnMut(TrackProgress),
-) -> Result<PathBuf, String> {
+) -> Result<Ripped, String> {
     // Asked of the listing first, so that a number the disc answers to with
     // data, or with nothing at all, is refused rather than read as audio.
-    if !listing(&disc.reported_tracks()?)
-        .iter()
-        .any(|track| track.number == number)
-    {
+    let audio = listing(&disc.reported_tracks()?);
+
+    let Some(position) = position(&audio, number) else {
         return Err(format!("the disc has no audio track {number}"));
-    }
+    };
 
     // The encoder is handed a finished run of samples, so the whole track is
     // held first.
-    let samples = secure::samples(disc, number, progress)?;
+    let samples = secure::samples(disc, number, offset, progress)?;
+    let checksums = verification::checksums(&samples, position);
+    let file = store(&samples, number, destination, tags, encoder)?;
 
-    store(&samples, number, destination, tags, encoder)
+    Ok(Ripped {
+        file: file.to_string_lossy().into_owned(),
+        checksums,
+    })
+}
+
+// Which of the audio tracks this is, counting only the audio ones: a disc that
+// carries data as well still has a first and a last track of music, and those
+// are the two a checksum leaves the edges off.
+fn position(audio: &[Track], number: u8) -> Option<Position> {
+    let at = audio.iter().position(|track| track.number == number)?;
+
+    Some(Position {
+        first: at == 0,
+        last: at + 1 == audio.len(),
+    })
 }
 
 fn store(

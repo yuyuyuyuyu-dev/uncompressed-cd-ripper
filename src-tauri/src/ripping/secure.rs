@@ -76,6 +76,7 @@ impl Votes {
 pub fn samples(
     disc: &impl Disc,
     number: u8,
+    offset: i32,
     mut progress: impl FnMut(TrackProgress),
 ) -> Result<Vec<i32>, String> {
     let mut sectors: Vec<Votes> = Vec::new();
@@ -88,7 +89,7 @@ pub fn samples(
     for read in 1..=READS_ALLOWED {
         let mut so_far = 0;
 
-        disc.read_track(number, |samples| {
+        disc.read_track(number, offset, |samples| {
             // The first read is what says how long the track is. Every read
             // after it covers the same sectors, so it lands on the same votes.
             if so_far == sectors.len() {

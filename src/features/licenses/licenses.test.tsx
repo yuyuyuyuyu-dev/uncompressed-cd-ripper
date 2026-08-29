@@ -4,6 +4,10 @@ import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import App from "@/App";
 
+// What the store plugin hands back for an opened settings file, which nothing
+// here looks at beyond passing it back.
+const SETTINGS = 1;
+
 function entryFor(library: RegExp) {
 	return page
 		.getByRole("listitem")
@@ -16,6 +20,14 @@ function mockBackend() {
 	mockIPC((command) => {
 		if (command === "drives") {
 			return [];
+		}
+		// It also reads what it was left set to. Nothing has ever set it, so the
+		// settings file is empty.
+		if (command === "plugin:store|load") {
+			return SETTINGS;
+		}
+		if (command === "plugin:store|get") {
+			return [null, false];
 		}
 		throw new Error(`the test did not expect ${command}`);
 	});
