@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 
-# Writes what a disc image comes back as once a drive's read offset has been
-# taken off it: the same samples, moved along the disc by that many frames,
-# with silence standing in at whichever end the move reached past. A frame is
-# one moment of sound on both channels, four bytes of it.
+# Cuts a disc that stands in for one read by a drive with a read offset.
 #
-# A drive that reads ahead hands over what sits further along than what was
-# asked for, so putting it right means taking the samples from further along
-# and running out of disc at the end. A drive that reads behind is the same
-# the other way round.
+# A drive that runs late hands over what sits further along the disc than what
+# was asked for, so the disc it appears to be reading is one where the audio
+# sits that much further along than it should. Delaying the recorded audio by
+# that many frames makes such a disc; advancing it makes the disc a drive
+# running early appears to read. Whichever end the move runs off, silence
+# stands in, as there is nothing recorded past either edge of a disc.
+#
+# A frame is one moment of sound on both channels, four bytes of it.
+#
+# What this cannot stand in for is which way round a real drive is out. The
+# shift is put in here by hand, so a run of this only ever says that correcting
+# by the same amount brings the recorded audio back.
 
 import sys
 from pathlib import Path
@@ -17,17 +22,17 @@ BYTES_PER_FRAME = 4
 
 
 def main():
-    disc = Path(sys.argv[1]).read_bytes()
-    # Not argparse: a negative offset reads as a flag to it.
-    offset = int(sys.argv[2]) * BYTES_PER_FRAME
-    written = Path(sys.argv[3])
+    recorded = Path(sys.argv[1]).read_bytes()
+    # Not argparse: a negative number of frames reads as a flag to it.
+    frames = int(sys.argv[2]) * BYTES_PER_FRAME
+    disc = Path(sys.argv[3])
 
-    if offset >= 0:
-        shifted = disc[offset:] + bytes(offset)
+    if frames >= 0:
+        shifted = recorded[frames:] + bytes(frames)
     else:
-        shifted = bytes(-offset) + disc[:offset]
+        shifted = bytes(-frames) + recorded[:frames]
 
-    written.write_bytes(shifted)
+    disc.write_bytes(shifted)
 
 
 if __name__ == "__main__":

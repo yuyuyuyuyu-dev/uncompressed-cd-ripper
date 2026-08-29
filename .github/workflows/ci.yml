@@ -262,10 +262,15 @@ jobs:
 
   # Every drive hands over samples a little further along the disc than the
   # sectors it was asked for, or a little further back, and putting that right
-  # happens below the seam the Rust cases drive: it is in the code that talks
-  # to libcdio. A job reaches it, because the disc image is the same every
-  # time, so what comes back with an offset applied is that image moved along
-  # by exactly that much.
+  # happens below the seam a Rust case can drive: it is in the code that talks
+  # to libcdio. A job reaches it, because a disc can be cut that stands in for
+  # one such a drive read — the audio sitting that much further along it than
+  # it should — and correcting for the offset has to hand back what was
+  # recorded.
+  #
+  # The one thing no disc can stand in for is which way round a real drive is
+  # out, because the shift is put in here by hand. Nothing available to a job
+  # reaches that; a real disc matching in the database is what says it.
   read-offset:
     name: should correct for the drive's read offset
     runs-on: ubuntu-latest
@@ -280,44 +285,58 @@ jobs:
       # wrote it.
       - run: sudo apt-get install --yes flac
 
-      - name: Put a disc in the drive
+      - name: Record the audio a disc is meant to hold
         run: |
           .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
-          chmod 444 disc.bin disc.cue
+          mv disc.bin recorded.bin
+          chmod 444 recorded.bin disc.cue
 
       # 667 is a real drive's offset, and is not a whole number of the 588
       # frames a sector holds: the samples wanted begin part way into one
       # sector and end part way into another, so the reading has to be cut up
       # again against the track rather than against the disc.
-      - name: Rip it as a drive that reads 667 frames ahead
+      - name: Cut the disc a drive reading 667 frames late hands over
+        run: |
+          .github/scripts/shift-the-disc.py recorded.bin -667 disc.bin
+          chmod 444 disc.bin
+
+      - name: Rip it, told that the drive reads 667 frames late
         run: |
           cargo run --example rip -- \
-            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/ahead" \
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/late" \
             --read-offset 667
         working-directory: src-tauri
 
-      - name: It holds the samples that far further along the disc
+      # Everything the drive could reach comes back as it was recorded. The
+      # last 667 frames it could not: a drive running late is already past the
+      # end of the disc there, and silence stands in, as it does in every
+      # ripper.
+      - name: What was recorded comes back, and silence past the end
         run: |
           flac --decode --force-raw-format --endian=little --sign=signed \
-            --output-name=ahead.raw ahead/01.flac
-          .github/scripts/shift-the-disc.py disc.bin 667 expected-ahead.raw
-          cmp ahead.raw expected-ahead.raw
+            --output-name=late.raw late/01.flac
+          .github/scripts/compare-what-came-off-the-disc.py late.raw recorded.bin 667
 
-      # The other way round, which is the one that reaches past the start of
-      # the disc, where there is nothing to read and silence has to stand in.
-      - name: Rip it as a drive that reads 667 frames behind
+      # The other way round, where what the drive cannot reach is at the start
+      # of the disc rather than the end.
+      - name: Cut the disc a drive reading 667 frames early hands over
+        run: |
+          rm -f disc.bin
+          .github/scripts/shift-the-disc.py recorded.bin 667 disc.bin
+          chmod 444 disc.bin
+
+      - name: Rip it, told that the drive reads 667 frames early
         run: |
           cargo run --example rip -- \
-            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/behind" \
+            --disc "$GITHUB_WORKSPACE/disc.cue" -o "$GITHUB_WORKSPACE/early" \
             --read-offset -667
         working-directory: src-tauri
 
-      - name: It holds the samples that far further back, silence before them
+      - name: What was recorded comes back, and silence before the start
         run: |
           flac --decode --force-raw-format --endian=little --sign=signed \
-            --output-name=behind.raw behind/01.flac
-          .github/scripts/shift-the-disc.py disc.bin -667 expected-behind.raw
-          cmp behind.raw expected-behind.raw
+            --output-name=early.raw early/01.flac
+          .github/scripts/compare-what-came-off-the-disc.py early.raw recorded.bin -667
 
       # A disagreement is worth having in hand, not just in a log.
       - uses: actions/upload-artifact@v4
@@ -325,9 +344,10 @@ jobs:
         with:
           name: the-disc-and-what-came-off-it-with-an-offset
           path: |
+            recorded.bin
             disc.bin
-            ahead.raw
-            behind.raw
+            late.raw
+            early.raw
 
   # The numbers this app works out have to be the numbers everybody else's rips
   # were counted with, or a rip would match nothing however well it was read.
