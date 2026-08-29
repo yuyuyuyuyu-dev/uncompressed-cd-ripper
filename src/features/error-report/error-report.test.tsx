@@ -30,7 +30,7 @@ function mockBackend() {
 		if (command === "environment") {
 			return environment;
 		}
-		if (command === "trail") {
+		if (command === "breadcrumbs") {
 			return [];
 		}
 		if (command === "send_error_report") {
@@ -43,17 +43,17 @@ function mockBackend() {
 	return sent;
 }
 
-// A whole app in front of the reporter, and behind it a backend that keeps a
-// trail as the real one does: an entry as each piece of the work arrives,
+// A whole app in front of the reporter, and behind it a backend that keeps
+// breadcrumbs as the real one does: one as each piece of the work arrives,
 // worded on that side. Rather than a list this case hands over, so that what
 // ends up in the report is what using the app came to.
-function mockBackendKeepingATrail() {
-	const trail: Breadcrumb[] = [];
+function mockBackendKeepingBreadcrumbs() {
+	const breadcrumbs: Breadcrumb[] = [];
 
 	const file = (category: string, message: string) => {
-		trail.push({
+		breadcrumbs.push({
 			timestamp: new Date(
-				Date.UTC(2026, 7, 29, 9, 0, trail.length),
+				Date.UTC(2026, 7, 29, 9, 0, breadcrumbs.length),
 			).toISOString(),
 			category,
 			message,
@@ -64,14 +64,14 @@ function mockBackendKeepingATrail() {
 		if (command === "environment") {
 			return environment;
 		}
-		if (command === "trail") {
-			return [...trail];
+		if (command === "breadcrumbs") {
+			return [...breadcrumbs];
 		}
 		if (command === "drives") {
 			return [DRIVE];
 		}
 		if (command === "tracks") {
-			file("ripping", `the disc holds ${TRACKS.length} audio tracks`);
+			file("ripping", `the disc's audio tracks were listed: ${TRACKS.length}`);
 
 			return TRACKS.map((number) => ({ number, sectors: 7500 }));
 		}
@@ -91,14 +91,17 @@ function mockBackendKeepingATrail() {
 			return FOLDER;
 		}
 		if (command === "already_there") {
-			file("ripping", `a rip of ${TRACKS.length} tracks was asked for`);
+			file(
+				"ripping",
+				`the folder was checked for files a rip of ${TRACKS.length} tracks would replace`,
+			);
 
 			return [];
 		}
 		if (command === "rip_track") {
 			file(
 				"ripping",
-				`track ${(payload as { track: number }).track} was written`,
+				`the file for track ${(payload as { track: number }).track} was written`,
 			);
 
 			return { file: "", checksums: { v1: 0, v2: 0 } };
@@ -112,7 +115,7 @@ function mockBackendKeepingATrail() {
 		throw new Error(`the test did not expect ${command}`);
 	});
 
-	return trail;
+	return breadcrumbs;
 }
 
 // Base UI puts the toasts in a region it labels, and gives each one the dialog
@@ -215,7 +218,7 @@ test("should show what the app was doing before the error in the report", async 
 	// Arrange
 	// The app is used the way anybody uses it — a folder, a rip — and only
 	// then does something fail.
-	const trail = mockBackendKeepingATrail();
+	const breadcrumbs = mockBackendKeepingBreadcrumbs();
 
 	await render(
 		<ErrorReporter>
@@ -230,14 +233,14 @@ test("should show what the app was doing before the error in the report", async 
 		.element(page.getByRole("button", { name: "Rip", exact: true }))
 		.toBeEnabled();
 
-	const before = [...trail];
+	const before = [...breadcrumbs];
 
 	expect(before.map((crumb) => crumb.message)).toEqual([
-		"the disc holds 3 audio tracks",
-		"a rip of 3 tracks was asked for",
-		"track 1 was written",
-		"track 2 was written",
-		"track 3 was written",
+		"the disc's audio tracks were listed: 3",
+		"the folder was checked for files a rip of 3 tracks would replace",
+		"the file for track 1 was written",
+		"the file for track 2 was written",
+		"the file for track 3 was written",
 	]);
 
 	// Act
@@ -246,7 +249,7 @@ test("should show what the app was doing before the error in the report", async 
 
 	// Assert
 	// Read off the screen the user is asked to agree to rather than out of the
-	// call that sends it: the trail travels only if it is shown first.
+	// call that sends it: a breadcrumb travels only if it was shown first.
 	const shown = page.getByLabelText("The error report");
 
 	await expect.element(shown).toBeVisible();
@@ -259,11 +262,11 @@ test("should build the error report from nothing but event ID, timestamp, platfo
 	// Arrange
 	const thrown = new TypeError("cannot read properties of undefined");
 	thrown.stack = "TypeError: cannot read properties of undefined\n    at rip";
-	const trail = [
+	const breadcrumbs = [
 		{
 			timestamp: "2026-08-13T08:59:58.750Z",
 			category: "ripping",
-			message: "track 3 was started",
+			message: "the rip of track 3 started",
 		},
 	];
 
@@ -275,7 +278,7 @@ test("should build the error report from nothing but event ID, timestamp, platfo
 		environment,
 		occurredAt: new Date("2026-08-13T09:00:00.000Z"),
 		comment: "it stopped on the third track",
-		trail,
+		breadcrumbs,
 	});
 
 	// Assert
@@ -299,7 +302,7 @@ test("should build the error report from nothing but event ID, timestamp, platfo
 				{
 					timestamp: "2026-08-13T08:59:58.750Z",
 					category: "ripping",
-					message: "track 3 was started",
+					message: "the rip of track 3 started",
 				},
 			],
 		},

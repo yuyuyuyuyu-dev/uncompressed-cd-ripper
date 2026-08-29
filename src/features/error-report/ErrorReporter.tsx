@@ -20,7 +20,7 @@ type Caught = {
 	componentStack: string;
 	occurredAt: Date;
 	comment: string;
-	trail: Breadcrumb[];
+	breadcrumbs: Breadcrumb[];
 	failedToSend?: string;
 };
 
@@ -57,20 +57,20 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 				componentStack,
 				occurredAt,
 				comment: "",
-				trail: [],
+				breadcrumbs: [],
 			}),
 		);
 
 		// Asked for here rather than when the report is built, so that a report
 		// says what the app was doing when it failed rather than what it went
 		// on to do while the notification sat on screen.
-		commands.trail().then((trail) =>
+		commands.breadcrumbs().then((breadcrumbs) =>
 			setCaught((caught) => {
 				const one = caught.get(id);
 
 				return one === undefined
 					? caught
-					: new Map(caught).set(id, { ...one, trail });
+					: new Map(caught).set(id, { ...one, breadcrumbs });
 			}),
 		);
 	}, []);
@@ -137,7 +137,7 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 					environment,
 					occurredAt: showing.occurredAt,
 					comment: showing.comment,
-					trail: showing.trail,
+					breadcrumbs: showing.breadcrumbs,
 				});
 
 	return (

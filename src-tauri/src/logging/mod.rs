@@ -6,83 +6,115 @@ use chrono::{SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-// How much of the trail is kept. An error report carries whatever is in it, so
+// How many breadcrumbs are kept. An error report carries whatever is here, so
 // this is what holds a report to a size somebody can read: a disc that fights
-// back leaves dozens of entries per track, and the ones nearest the failure
-// are the ones worth having.
+// back leaves dozens per track, and the ones nearest the failure are the ones
+// worth having.
 const KEPT: usize = 100;
 
-// Everything the app can record, and the whole of it. What a person chose is
-// not in here: no variant carries a folder, a disc title or a file name, so a
-// trail cannot come to hold one, and an error report built from a trail cannot
-// either.
+// Everything the app can record, and the whole of it. Each of these is one
+// thing that happens, named after what happens rather than after what the code
+// was doing at the time, and each is recorded where it happens.
 //
-// Each of these is recorded where the work is done rather than where it was
-// asked for. What the window did reaches this side as a command anyway, and a
-// command that arrived is a better account of a rip than the window's word for
-// it.
+// What a person chose is not in here: no variant carries a folder, a disc
+// title or a file name, only numbers and whether something was found. A
+// breadcrumb cannot come to hold one, and an error report built out of
+// breadcrumbs cannot either.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Happening {
-    RipRequested { tracks: u8 },
-    DiscRead { tracks: u8 },
-    LookedUp { service: Service, found: u32 },
-    TrackStarted { track: u8 },
+    AudioTracksListed { tracks: u8 },
+    FolderCheckedForOverwrites { tracks: u8 },
+    DiscLookedUp { releases: u32 },
+    ArtworkLookedUp { found: bool },
+    ReadOffsetLookedUp { found: bool },
+    TrackRipStarted { track: u8 },
     TrackReadAgain { track: u8, read: u8 },
-    TrackWritten { track: u8 },
+    TrackFileWritten { track: u8 },
+    RipCheckedAgainstAccurateRip { tracks: u32 },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Service {
-    MusicBrainz,
-    CoverArtArchive,
-    AccurateRip,
-}
-
-impl Display for Service {
-    fn fmt(&self, out: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::MusicBrainz => write!(out, "MusicBrainz"),
-            Self::CoverArtArchive => write!(out, "the Cover Art Archive"),
-            Self::AccurateRip => write!(out, "AccurateRip"),
-        }
-    }
-}
-
+// One line each, saying what the name says and carrying the numbers with it.
 impl Display for Happening {
     fn fmt(&self, out: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::RipRequested { tracks } => write!(out, "a rip of {tracks} tracks was asked for"),
-            Self::DiscRead { tracks } => write!(out, "the disc holds {tracks} audio tracks"),
-            Self::LookedUp { service, found } => {
-                write!(out, "{service} was asked and answered with {found}")
+            Self::AudioTracksListed { tracks } => {
+                write!(out, "the disc's audio tracks were listed: {tracks}")
             }
-            Self::TrackStarted { track } => write!(out, "track {track} was started"),
+            Self::FolderCheckedForOverwrites { tracks } => write!(
+                out,
+                "the folder was checked for files a rip of {tracks} tracks would replace"
+            ),
+            Self::DiscLookedUp { releases } => {
+                write!(out, "the disc was looked up: {releases} releases came back")
+            }
+            Self::ArtworkLookedUp { found } => write!(
+                out,
+                "the album artwork was looked up: {}",
+                if *found { "found" } else { "none" }
+            ),
+            Self::ReadOffsetLookedUp { found } => write!(
+                out,
+                "the drive's read offset was looked up: {}",
+                if *found {
+                    "found"
+                } else {
+                    "the drive is not listed"
+                }
+            ),
+            Self::TrackRipStarted { track } => write!(out, "the rip of track {track} started"),
             Self::TrackReadAgain { track, read } => {
-                write!(out, "track {track} is being read again, read {read}")
+                write!(out, "track {track} was read again: read {read}")
             }
-            Self::TrackWritten { track } => write!(out, "track {track} was written"),
+            Self::TrackFileWritten { track } => {
+                write!(out, "the file for track {track} was written")
+            }
+            Self::RipCheckedAgainstAccurateRip { tracks } => write!(
+                out,
+                "the rip was checked against AccurateRip: {tracks} tracks"
+            ),
         }
     }
 }
 
 impl Happening {
-    // What the entry is filed under: the log file writes it beside the line,
-    // and Sentry offers it as a way through a long trail.
+    // What the breadcrumb is filed under: the log writes it beside the line,
+    // and Sentry offers it as a way through a long list of them.
     fn category(&self) -> &'static str {
         match self {
-            Self::RipRequested { .. }
-            | Self::DiscRead { .. }
-            | Self::TrackStarted { .. }
+            Self::AudioTracksListed { .. }
+            | Self::FolderCheckedForOverwrites { .. }
+            | Self::TrackRipStarted { .. }
             | Self::TrackReadAgain { .. }
-            | Self::TrackWritten { .. } => "ripping",
-            Self::LookedUp { .. } => "lookup",
+            | Self::TrackFileWritten { .. } => "ripping",
+            Self::DiscLookedUp { .. }
+            | Self::ArtworkLookedUp { .. }
+            | Self::ReadOffsetLookedUp { .. }
+            | Self::RipCheckedAgainstAccurateRip { .. } => "lookup",
         }
     }
 }
 
-// One entry of the trail, in the shape Sentry keeps a breadcrumb in. The
-// window puts these into an error report as they are handed over, so what it
-// shows before sending is what was recorded here.
+// The one part of this a test cannot have: where a line goes once it has left
+// the app. Written as little as it can be, so that what is behind it is free
+// to be a file, a console, or nothing at all.
+pub trait Log {
+    fn write(&self, category: &str, message: &str);
+}
+
+// What the app logs through. The line is handed to the log crate, which hands
+// it to whichever logger was installed at startup: in the app that is the
+// plugin that writes the file, and in a test or an example it is nobody.
+pub struct Plugin;
+
+impl Log for Plugin {
+    fn write(&self, category: &str, message: &str) {
+        log::info!(target: category, "{message}");
+    }
+}
+
+// One breadcrumb, in the shape Sentry keeps one in. The window puts these into
+// an error report as they are handed over, so what it shows before sending is
+// what was recorded here.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct Breadcrumb {
@@ -91,34 +123,37 @@ pub struct Breadcrumb {
     pub message: String,
 }
 
-static TRAIL: LazyLock<Mutex<VecDeque<Breadcrumb>>> =
+static BREADCRUMBS: LazyLock<Mutex<VecDeque<Breadcrumb>>> =
     LazyLock::new(|| Mutex::new(VecDeque::with_capacity(KEPT)));
 
-// The one way into the trail.
-pub fn record(happening: Happening) {
-    log::info!(target: happening.category(), "{happening}");
+// The one way in. What is written to the log and what an error report carries
+// are the same words: two accounts of one run would be worse than one.
+pub fn record(happening: Happening, log: &impl Log) {
+    let category = happening.category();
+    let message = happening.to_string();
 
-    let crumb = Breadcrumb {
-        timestamp: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
-        category: happening.category().to_owned(),
-        message: happening.to_string(),
-    };
-    let mut trail = kept();
+    log.write(category, &message);
 
-    if trail.len() == KEPT {
-        trail.pop_front();
+    let mut breadcrumbs = kept();
+
+    if breadcrumbs.len() == KEPT {
+        breadcrumbs.pop_front();
     }
 
-    trail.push_back(crumb);
+    breadcrumbs.push_back(Breadcrumb {
+        timestamp: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
+        category: category.to_owned(),
+        message,
+    });
 }
 
-pub fn trail() -> Vec<Breadcrumb> {
+pub fn breadcrumbs() -> Vec<Breadcrumb> {
     kept().iter().cloned().collect()
 }
 
-// A thread that panicked while holding the trail poisons it. That trail is
-// still the account of the run that panicked, and it is what the report about
-// that panic is owed, so it is taken as it stands.
+// A thread that panicked while holding these poisons them. They are still the
+// account of the run that panicked, and they are what the report about that
+// panic is owed, so they are taken as they stand.
 fn kept() -> MutexGuard<'static, VecDeque<Breadcrumb>> {
-    TRAIL.lock().unwrap_or_else(PoisonError::into_inner)
+    BREADCRUMBS.lock().unwrap_or_else(PoisonError::into_inner)
 }

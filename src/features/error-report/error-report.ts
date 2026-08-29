@@ -29,7 +29,7 @@ export function buildErrorReport({
 	environment,
 	occurredAt,
 	comment,
-	trail,
+	breadcrumbs,
 }: {
 	eventId: string;
 	thrown: unknown;
@@ -41,7 +41,7 @@ export function buildErrorReport({
 	comment: string;
 	// What the app was doing before this, as the backend recorded it. Empty
 	// where a failure arrived before anything was done.
-	trail: Breadcrumb[];
+	breadcrumbs: Breadcrumb[];
 }): ErrorReport {
 	const { type, value, stacktrace } = describe(thrown);
 
@@ -51,7 +51,7 @@ export function buildErrorReport({
 		platform: "javascript",
 		release: environment.release,
 		exception: { values: [{ type, value }] },
-		breadcrumbs: { values: trail },
+		breadcrumbs: { values: breadcrumbs },
 		contexts: {
 			os: { name: environment.osName, version: environment.osVersion },
 			device: { arch: environment.architecture },

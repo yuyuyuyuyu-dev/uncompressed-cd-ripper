@@ -2,7 +2,7 @@ use cdtoc::Toc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::logging::{self, Happening, Service};
+use crate::logging::{self, Happening, Log};
 use crate::ripping::TableOfContents;
 
 mod musicbrainz;
@@ -45,17 +45,23 @@ pub trait MetadataApi {
     fn get(&self, disc_id: &str) -> Result<Option<String>, String>;
 }
 
-pub fn look_up(toc: &TableOfContents, api: &impl MetadataApi) -> Result<Vec<Album>, String> {
+pub fn look_up(
+    toc: &TableOfContents,
+    api: &impl MetadataApi,
+    log: &impl Log,
+) -> Result<Vec<Album>, String> {
     let disc_id = disc_id(toc)?;
     let albums = match api.get(&disc_id)? {
         Some(answer) => albums(&answer, &disc_id)?,
         None => Vec::new(),
     };
 
-    logging::record(Happening::LookedUp {
-        service: Service::MusicBrainz,
-        found: albums.len() as u32,
-    });
+    logging::record(
+        Happening::DiscLookedUp {
+            releases: albums.len() as u32,
+        },
+        log,
+    );
 
     Ok(albums)
 }

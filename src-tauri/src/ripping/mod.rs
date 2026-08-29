@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::artwork::Artwork;
-use crate::logging::{self, Happening};
+use crate::logging::{self, Happening, Log};
 use crate::verification::{self, Checksums, Position};
 
 mod drive;
@@ -83,7 +83,7 @@ pub trait Disc {
 // the sector libcdio names.
 const LEAD_IN: u32 = 150;
 
-pub fn tracks(disc: &impl Disc) -> Vec<Track> {
+pub fn tracks(disc: &impl Disc, log: &impl Log) -> Vec<Track> {
     // A drive that will not say what is on the disc lists nothing rather than
     // failing, as it always has.
     let tracks = match disc.reported_tracks() {
@@ -91,9 +91,12 @@ pub fn tracks(disc: &impl Disc) -> Vec<Track> {
         Err(_) => Vec::new(),
     };
 
-    logging::record(Happening::DiscRead {
-        tracks: tracks.len() as u8,
-    });
+    logging::record(
+        Happening::AudioTracksListed {
+            tracks: tracks.len() as u8,
+        },
+        log,
+    );
 
     tracks
 }
@@ -192,11 +195,13 @@ pub fn file_name(number: u8, title: Option<&str>) -> String {
     }
 }
 
-pub fn already_there(destination: &Path, tracks: &[TrackFile]) -> Vec<String> {
-    // What a rip begins with, whether or not anything is found to overwrite.
-    logging::record(Happening::RipRequested {
-        tracks: tracks.len() as u8,
-    });
+pub fn already_there(destination: &Path, tracks: &[TrackFile], log: &impl Log) -> Vec<String> {
+    logging::record(
+        Happening::FolderCheckedForOverwrites {
+            tracks: tracks.len() as u8,
+        },
+        log,
+    );
 
     tracks
         .iter()
@@ -239,6 +244,11 @@ pub struct Ripped {
     pub checksums: Checksums,
 }
 
+// The disc, which track, where it is filed, how it is named, how far along
+// the disc to read, what writes it and where a line about it goes: seven
+// things the caller settles, and a struct to hold them would only move the
+// list somewhere else.
+#[allow(clippy::too_many_arguments)]
 pub fn rip(
     disc: &impl Disc,
     number: u8,
@@ -246,6 +256,7 @@ pub fn rip(
     tags: Option<&TrackTags>,
     offset: i32,
     encoder: &impl Encoder,
+    log: &impl Log,
     progress: impl FnMut(TrackProgress),
 ) -> Result<Ripped, String> {
     // Asked of the listing first, so that a number the disc answers to with
@@ -256,15 +267,15 @@ pub fn rip(
         return Err(format!("the disc has no audio track {number}"));
     };
 
-    logging::record(Happening::TrackStarted { track: number });
+    logging::record(Happening::TrackRipStarted { track: number }, log);
 
     // The encoder is handed a finished run of samples, so the whole track is
     // held first.
-    let samples = secure::samples(disc, number, offset, progress)?;
+    let samples = secure::samples(disc, number, offset, log, progress)?;
     let checksums = verification::checksums(&samples, position);
     let file = store(&samples, number, destination, tags, encoder)?;
 
-    logging::record(Happening::TrackWritten { track: number });
+    logging::record(Happening::TrackFileWritten { track: number }, log);
 
     Ok(Ripped {
         file: file.to_string_lossy().into_owned(),

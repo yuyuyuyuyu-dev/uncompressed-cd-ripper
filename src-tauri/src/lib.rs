@@ -2,7 +2,9 @@
 // TypeScript side does.
 pub mod artwork;
 mod error_report;
-mod logging;
+// Public so that the example beside it can say where a line about a rip goes,
+// as this side does.
+pub mod logging;
 mod metadata;
 // Public so that the example beside it can reach a rip without a window.
 pub mod ripping;
@@ -23,13 +25,16 @@ fn drives() -> Vec<String> {
 #[tauri::command]
 #[specta::specta]
 fn tracks(drive: String) -> Result<Vec<ripping::Track>, String> {
-    Ok(ripping::tracks(&ripping::Drive::open(&drive)?))
+    Ok(ripping::tracks(
+        &ripping::Drive::open(&drive)?,
+        &logging::Plugin,
+    ))
 }
 
 #[tauri::command]
 #[specta::specta]
 fn already_there(destination: String, tracks: Vec<ripping::TrackFile>) -> Vec<String> {
-    ripping::already_there(Path::new(&destination), &tracks)
+    ripping::already_there(Path::new(&destination), &tracks, &logging::Plugin)
 }
 
 // Reaching a server takes long enough to hold the window still, so this is
@@ -39,7 +44,7 @@ fn already_there(destination: String, tracks: Vec<ripping::TrackFile>) -> Vec<St
 fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
     let toc = ripping::table_of_contents(&ripping::Drive::open(&drive)?)?;
 
-    metadata::look_up(&toc, &metadata::MusicBrainz)
+    metadata::look_up(&toc, &metadata::MusicBrainz, &logging::Plugin)
 }
 
 // The album artwork comes from another server, and waiting on it holds the window
@@ -47,7 +52,7 @@ fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
 #[tauri::command(async)]
 #[specta::specta]
 fn look_up_artwork(release: String) -> Result<Option<artwork::Artwork>, String> {
-    artwork::look_up(&release, &artwork::Ureq)
+    artwork::look_up(&release, &artwork::Ureq, &logging::Plugin)
 }
 
 #[tauri::command]
@@ -72,7 +77,11 @@ fn drive_name(drive: String) -> Result<String, String> {
 fn read_offset(drive: String) -> Result<Option<i32>, String> {
     let drive = ripping::Drive::open(&drive)?;
 
-    verification::read_offset(&drive.hardware()?, &verification::AccurateRip)
+    verification::read_offset(
+        &drive.hardware()?,
+        &verification::AccurateRip,
+        &logging::Plugin,
+    )
 }
 
 // Asked once the whole disc is read rather than track by track, because one
@@ -85,7 +94,12 @@ fn check_rip(
 ) -> Result<Vec<verification::Verdict>, String> {
     let toc = ripping::table_of_contents(&ripping::Drive::open(&drive)?)?;
 
-    verification::verify(&toc, &checksums, &verification::AccurateRip)
+    verification::verify(
+        &toc,
+        &checksums,
+        &verification::AccurateRip,
+        &logging::Plugin,
+    )
 }
 
 // Reading a track blocks for minutes, so it is handed to a worker thread.
@@ -111,6 +125,7 @@ fn rip_track(
         tags.as_ref(),
         offset,
         &ripping::Flac,
+        &logging::Plugin,
         |so_far| {
             // Only fails once the window has gone, which the read does not care about.
             let _ = progress.send(so_far);
@@ -129,8 +144,8 @@ fn environment() -> error_report::Environment {
 // what it did while the notification sat on screen.
 #[tauri::command]
 #[specta::specta]
-fn trail() -> Vec<logging::Breadcrumb> {
-    logging::trail()
+fn breadcrumbs() -> Vec<logging::Breadcrumb> {
+    logging::breadcrumbs()
 }
 
 // Taking the whole report as an argument is what stops anything being added
@@ -151,7 +166,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         .commands(collect_commands![
             environment,
             send_error_report,
-            trail,
+            breadcrumbs,
             drives,
             tracks,
             already_there,

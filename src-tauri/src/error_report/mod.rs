@@ -33,8 +33,8 @@ pub struct Exceptions {
 }
 
 // What the app was doing before it failed, in the order it did it. Sentry
-// keeps a trail under this name, and the window fills it from what the backend
-// recorded, so the trail is shown on the way out like the rest of the report.
+// keeps these under this name, and the window fills them from what the backend
+// recorded, so they are shown on the way out like the rest of the report.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct Breadcrumbs {
