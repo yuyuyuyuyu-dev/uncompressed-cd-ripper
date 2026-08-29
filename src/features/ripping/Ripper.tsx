@@ -176,36 +176,34 @@ export function Ripper() {
 
 	return (
 		<section className="flex w-full max-w-xl flex-col gap-4 text-left">
-			<div className="flex flex-col gap-3">
-				<div className="flex items-center gap-2">
-					<h2 className="font-semibold">Drive</h2>
-					{/* Until something notices a disc arriving, this is how one put in
-					    after the window opened gets found. */}
-					<Button variant="outline" size="sm" onClick={look} disabled={busy}>
-						Scan for discs
-					</Button>
-				</div>
-
-				{drives.length === 0 ? (
-					<p className="text-muted-foreground text-sm">
-						No drive with an audio CD in it.
-					</p>
-				) : (
-					<div className="flex flex-wrap gap-2">
-						{drives.map((found) => (
-							<Button
-								key={found}
-								variant={found === drive ? "default" : "outline"}
-								size="sm"
-								onClick={() => setDrive(found)}
-								disabled={busy}
-							>
-								{found}
-							</Button>
-						))}
-					</div>
-				)}
+			<div className="flex items-center gap-2">
+				<h2 className="font-semibold">Disc</h2>
+				{/* Until something notices a disc arriving, this is how one put in
+				    after the window opened gets found. */}
+				<Button variant="outline" size="sm" onClick={look} disabled={busy}>
+					Scan for discs
+				</Button>
 			</div>
+
+			{drives.length === 0 ? (
+				<p className="text-muted-foreground text-sm">
+					No drive with an audio CD in it.
+				</p>
+			) : (
+				<div className="flex flex-wrap gap-2">
+					{drives.map((found) => (
+						<Button
+							key={found}
+							variant={found === drive ? "default" : "outline"}
+							size="sm"
+							onClick={() => setDrive(found)}
+							disabled={busy}
+						>
+							{found}
+						</Button>
+					))}
+				</div>
+			)}
 
 			<DiscMetadata
 				key={drive}

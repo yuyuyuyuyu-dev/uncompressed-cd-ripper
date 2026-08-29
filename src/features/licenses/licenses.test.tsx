@@ -58,6 +58,6 @@ test("should show dependency licenses and go back", async () => {
 
 	// Assert
 	await expect
-		.element(page.getByRole("heading", { name: "Drive" }))
+		.element(page.getByRole("heading", { name: "Disc" }))
 		.toBeVisible();
 });
