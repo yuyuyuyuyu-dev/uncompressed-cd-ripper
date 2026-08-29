@@ -90,11 +90,6 @@ function mockBackend({ matches }: { matches: Album[] }) {
 		if (command === "plugin:notification|notify") {
 			return null;
 		}
-		// What the window did, which is filed rather than answered: the trail
-		// itself is stated by the logging cases.
-		if (command === "record") {
-			return null;
-		}
 		throw new Error(`the test did not expect ${command}`);
 	});
 

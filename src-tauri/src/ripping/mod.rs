@@ -193,6 +193,11 @@ pub fn file_name(number: u8, title: Option<&str>) -> String {
 }
 
 pub fn already_there(destination: &Path, tracks: &[TrackFile]) -> Vec<String> {
+    // What a rip begins with, whether or not anything is found to overwrite.
+    logging::record(Happening::RipRequested {
+        tracks: tracks.len() as u8,
+    });
+
     tracks
         .iter()
         .map(|track| file_name(track.number, track.title.as_deref()))

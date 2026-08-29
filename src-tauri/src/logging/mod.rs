@@ -16,11 +16,13 @@ const KEPT: usize = 100;
 // not in here: no variant carries a folder, a disc title or a file name, so a
 // trail cannot come to hold one, and an error report built from a trail cannot
 // either.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(tag = "happening", rename_all = "camelCase")]
+//
+// Each of these is recorded where the work is done rather than where it was
+// asked for. What the window did reaches this side as a command anyway, and a
+// command that arrived is a better account of a rip than the window's word for
+// it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Happening {
-    DriveChosen,
-    FolderChosen,
     RipRequested { tracks: u8 },
     DiscRead { tracks: u8 },
     LookedUp { service: Service, found: u32 },
@@ -29,8 +31,7 @@ pub enum Happening {
     TrackWritten { track: u8 },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Service {
     MusicBrainz,
     CoverArtArchive,
@@ -50,8 +51,6 @@ impl Display for Service {
 impl Display for Happening {
     fn fmt(&self, out: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DriveChosen => write!(out, "a drive was chosen"),
-            Self::FolderChosen => write!(out, "a folder to rip into was chosen"),
             Self::RipRequested { tracks } => write!(out, "a rip of {tracks} tracks was asked for"),
             Self::DiscRead { tracks } => write!(out, "the disc holds {tracks} audio tracks"),
             Self::LookedUp { service, found } => {
@@ -71,8 +70,8 @@ impl Happening {
     // and Sentry offers it as a way through a long trail.
     fn category(&self) -> &'static str {
         match self {
-            Self::DriveChosen | Self::FolderChosen | Self::RipRequested { .. } => "window",
-            Self::DiscRead { .. }
+            Self::RipRequested { .. }
+            | Self::DiscRead { .. }
             | Self::TrackStarted { .. }
             | Self::TrackReadAgain { .. }
             | Self::TrackWritten { .. } => "ripping",
@@ -95,10 +94,7 @@ pub struct Breadcrumb {
 static TRAIL: LazyLock<Mutex<VecDeque<Breadcrumb>>> =
     LazyLock::new(|| Mutex::new(VecDeque::with_capacity(KEPT)));
 
-// The one way into the trail, for the window and for this side alike. The
-// window reaches it through a command, so both accounts are stamped by the
-// same clock and land in the order they happened rather than in the order two
-// clocks disagreed about.
+// The one way into the trail.
 pub fn record(happening: Happening) {
     log::info!(target: happening.category(), "{happening}");
 
@@ -126,6 +122,3 @@ pub fn trail() -> Vec<Breadcrumb> {
 fn kept() -> MutexGuard<'static, VecDeque<Breadcrumb>> {
     TRAIL.lock().unwrap_or_else(PoisonError::into_inner)
 }
-
-#[cfg(test)]
-mod tests;

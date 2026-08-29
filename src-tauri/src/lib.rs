@@ -124,14 +124,6 @@ fn environment() -> error_report::Environment {
     error_report::Environment::current()
 }
 
-// What the window did, put into the same trail the backend records its own
-// doings in, so that one account reads in the order things happened.
-#[tauri::command]
-#[specta::specta]
-fn record(happening: logging::Happening) {
-    logging::record(happening);
-}
-
 // Asked for the moment an error is caught rather than when the report is
 // built, so that a report says what the app was doing when it failed and not
 // what it did while the notification sat on screen.
@@ -159,7 +151,6 @@ pub fn builder() -> Builder<tauri::Wry> {
         .commands(collect_commands![
             environment,
             send_error_report,
-            record,
             trail,
             drives,
             tracks,
