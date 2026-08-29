@@ -37,12 +37,6 @@ impl Disc for FakeDisc {
     }
 }
 
-// Where AccurateRip keeps that disc's answer. Written out rather than worked
-// out from the table of contents above, so that a change to how the identifier
-// is put together fails here rather than quietly asking about another disc.
-const ANSWER_FOR_THE_DISC: &str = "https://www.accuraterip.com/accuraterip/a/9/8/\
-                                   dBAR-004-0002189a-00087f33-1f02e004.bin";
-
 // The thirteen bytes every block of an answer begins with: how many audio
 // tracks the disc has, and then the three numbers AccurateRip knows it by,
 // each of them little endian.
@@ -128,7 +122,16 @@ fn should_fetch_the_accuraterip_confidence_for_each_ripped_track() {
     let verdicts = verify(&toc, &ours, &accuraterip).expect("AccurateRip answered");
 
     // Assert
-    assert_eq!(accuraterip.asked.into_inner(), vec![ANSWER_FOR_THE_DISC]);
+    // The address is written out rather than worked out from the tracks above,
+    // so that a change to how the identifier is put together fails here rather
+    // than quietly asking about another disc.
+    assert_eq!(
+        accuraterip.asked.into_inner(),
+        vec![
+            "https://www.accuraterip.com/accuraterip/a/9/8/\
+             dBAR-004-0002189a-00087f33-1f02e004.bin"
+        ]
+    );
     assert_eq!(
         verdicts,
         vec![
