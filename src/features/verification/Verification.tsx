@@ -185,7 +185,9 @@ export function Verification({
 							{t("cancel")}
 						</Button>
 						<Button onClick={turnOn} disabled={looking}>
-							{looking && <LoaderCircle className="animate-spin" />}
+							<LoaderCircle
+								className={looking ? "animate-spin" : "invisible"}
+							/>
 							{t("verification.ask.confirm")}
 						</Button>
 					</DialogFooter>
