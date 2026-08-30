@@ -69,8 +69,7 @@ export const en = {
 	},
 	licenses: {
 		heading: "Licenses",
-		about:
-			"This app is built from the libraries below, and ships each of them under the license printed with it.",
+		about: "This app uses the libraries below.",
 	},
 	errorReport: {
 		details: "Details",

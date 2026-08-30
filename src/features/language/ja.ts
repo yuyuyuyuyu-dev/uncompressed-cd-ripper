@@ -71,8 +71,7 @@ export const ja: typeof en = {
 	},
 	licenses: {
 		heading: "ライセンス",
-		about:
-			"このアプリは以下のライブラリで作られており、それぞれを併記のライセンスのもとで同梱しています。",
+		about: "このアプリは以下のライブラリを使用しています。",
 	},
 	errorReport: {
 		details: "詳細",
