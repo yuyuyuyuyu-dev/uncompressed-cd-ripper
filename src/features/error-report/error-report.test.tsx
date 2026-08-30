@@ -248,10 +248,12 @@ test("should record an error on the TypeScript side as a log", async () => {
 		</ErrorReporter>,
 	);
 
-	await page.getByRole("button", { name: "Choose a folder" }).click();
+	await page.getByRole("button", { name: "Choose where to save" }).click();
 
 	// Act
-	await page.getByRole("button", { name: "Rip", exact: true }).click();
+	await page
+		.getByRole("button", { name: "Start ripping", exact: true })
+		.click();
 
 	// Assert
 	// What the window caught, in the words the log is given: what it arrived

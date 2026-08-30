@@ -1,11 +1,14 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "./components/ui/button";
+import "./features/language/i18n";
 import { Licenses } from "./features/licenses/Licenses";
 import { Ripper } from "./features/ripping/Ripper";
 import "./index.css";
 
 function App() {
 	const [screen, setScreen] = useState<"ripping" | "licenses">("ripping");
+	const { t } = useTranslation();
 
 	return (
 		<>
@@ -19,7 +22,7 @@ function App() {
 							size="sm"
 							onClick={() => setScreen("ripping")}
 						>
-							Back
+							{t("app.back")}
 						</Button>
 					)}
 				</div>
@@ -33,7 +36,7 @@ function App() {
 							size="sm"
 							onClick={() => setScreen("licenses")}
 						>
-							Licenses
+							{t("app.licenses")}
 						</Button>
 					)}
 				</div>

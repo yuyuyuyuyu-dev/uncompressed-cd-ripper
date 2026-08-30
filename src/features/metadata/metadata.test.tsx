@@ -99,7 +99,7 @@ function mockBackend({ matches }: { matches: Album[] }) {
 // Nothing is sent until this is pressed, and pressing it only brings up the
 // question. Both clicks are the act of looking a disc up.
 async function askToLookUp() {
-	await page.getByRole("button", { name: "Look this disc up" }).click();
+	await page.getByRole("button", { name: "Fetch CD details" }).click();
 }
 
 afterEach(() => {
@@ -113,7 +113,7 @@ test("should show the metadata fetched for the disc", async () => {
 
 	// Act
 	await askToLookUp();
-	await page.getByRole("button", { name: "Look it up" }).click();
+	await page.getByRole("button", { name: "Fetch", exact: true }).click();
 
 	// Assert
 	await expect
@@ -143,7 +143,7 @@ test("should show every set of metadata found for the disc and let one of them b
 
 	// Act
 	await askToLookUp();
-	await page.getByRole("button", { name: "Look it up" }).click();
+	await page.getByRole("button", { name: "Fetch", exact: true }).click();
 
 	// Assert
 	await expect
@@ -177,11 +177,11 @@ test("should let the metadata be typed in by hand", async () => {
 	await page.getByLabelText("Artist of track 1").fill("Marina Blue");
 	await page.getByLabelText("Title of track 2").fill("Low Tide");
 	await page.getByLabelText("Artist of track 2").fill("The Tide");
-	await page.getByRole("button", { name: "Choose a folder" }).click();
+	await page.getByRole("button", { name: "Choose where to save" }).click();
 	await expect.element(page.getByText(FOLDER)).toBeVisible();
-	// Exact, because the button offering to check the rip is named after
-	// AccurateRip and would otherwise answer to this too.
-	await page.getByRole("button", { name: "Rip", exact: true }).click();
+	await page
+		.getByRole("button", { name: "Start ripping", exact: true })
+		.click();
 
 	// Assert
 	await expect
@@ -214,7 +214,7 @@ test("should ask before sending anything about the disc to a server", async () =
 
 	// Assert
 	await expect
-		.element(page.getByRole("dialog", { name: "Look this disc up?" }))
+		.element(page.getByRole("dialog", { name: "Fetch this CD's details?" }))
 		.toBeVisible();
 	expect(askedAbout).toEqual([]);
 });
@@ -228,7 +228,7 @@ test("should send nothing about the disc when the lookup is cancelled", async ()
 	// Act
 	await page.getByRole("button", { name: "Cancel" }).click();
 	await expect
-		.element(page.getByRole("dialog", { name: "Look this disc up?" }))
+		.element(page.getByRole("dialog", { name: "Fetch this CD's details?" }))
 		.not.toBeInTheDocument();
 
 	// Assert

@@ -6,6 +6,7 @@ import {
 	sendNotification,
 } from "@tauri-apps/plugin-notification";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	AGREEMENTS_REQUIRED,
 	type Checksums,
@@ -30,6 +31,7 @@ import {
 	ProgressValue,
 } from "@/components/ui/progress";
 import { expectOk } from "../error-report/backend";
+import i18next from "../language/i18n";
 import { DiscMetadata } from "../metadata/DiscMetadata";
 import { fileTitle, NOTHING, tagsFor } from "../metadata/metadata";
 import { Verification } from "../verification/Verification";
@@ -49,8 +51,8 @@ async function announceTheEnd(tracks: number) {
 	}
 
 	sendNotification({
-		title: "Ripping finished",
-		body: `${tracks} ${tracks === 1 ? "track is" : "tracks are"} in the folder you chose.`,
+		title: i18next.t("ripping.notification.title"),
+		body: i18next.t("ripping.notification.body", { count: tracks }),
 	});
 }
 
@@ -68,6 +70,7 @@ export function Ripper() {
 	const [offset, setOffset] = useState<number>();
 	const [checking, setChecking] = useState(false);
 	const [verdicts, setVerdicts] = useState<Verdict[]>();
+	const { t } = useTranslation();
 
 	// Only drives holding a disc are listed, so an empty list is a machine with
 	// nothing loaded rather than a failure. Which one is selected when several
@@ -177,18 +180,16 @@ export function Ripper() {
 	return (
 		<section className="flex w-full max-w-xl flex-col gap-4 text-left">
 			<div className="flex items-center gap-2">
-				<h2 className="font-semibold">Disc</h2>
+				<h2 className="font-semibold">{t("ripping.heading")}</h2>
 				{/* Until something notices a disc arriving, this is how one put in
 				    after the window opened gets found. */}
 				<Button variant="outline" size="sm" onClick={look} disabled={busy}>
-					Scan for discs
+					{t("ripping.scan")}
 				</Button>
 			</div>
 
 			{drives.length === 0 ? (
-				<p className="text-muted-foreground text-sm">
-					No drive with an audio CD in it.
-				</p>
+				<p className="text-muted-foreground text-sm">{t("ripping.noDrive")}</p>
 			) : (
 				<div className="flex flex-wrap gap-2">
 					{drives.map((found) => (
@@ -228,11 +229,11 @@ export function Ripper() {
 					}}
 					disabled={busy}
 				>
-					Choose a folder
+					{t("ripping.chooseFolder")}
 				</Button>
 
 				<span className="truncate text-muted-foreground text-sm">
-					{destination ?? "No folder chosen"}
+					{destination ?? t("ripping.noFolder")}
 				</span>
 			</div>
 
@@ -255,7 +256,7 @@ export function Ripper() {
 						tracks.length === 0
 					}
 				>
-					Rip
+					{t("ripping.rip")}
 				</Button>
 			</div>
 
@@ -269,8 +270,11 @@ export function Ripper() {
 						)}
 					>
 						<ProgressLabel>
-							Ripping track {String(reading.track.number).padStart(2, "0")} ·
-							read {reading.read} (max {READS_ALLOWED})
+							{t("ripping.progress", {
+								number: String(reading.track.number).padStart(2, "0"),
+								read: reading.read,
+								max: READS_ALLOWED,
+							})}
 						</ProgressLabel>
 						<ProgressValue />
 					</Progress>
@@ -278,8 +282,10 @@ export function Ripper() {
 					{/* Otherwise the same track goes by several times with nothing on
 					    screen to say why. */}
 					<p className="text-muted-foreground text-sm">
-						The track is saved when {AGREEMENTS_REQUIRED} reads of it match.{" "}
-						{AGREEMENTS_REQUIRED - reading.matched} more needed.
+						{t("ripping.agreement", {
+							required: AGREEMENTS_REQUIRED,
+							remaining: AGREEMENTS_REQUIRED - reading.matched,
+						})}
 					</p>
 				</div>
 			)}
@@ -290,11 +296,11 @@ export function Ripper() {
 			>
 				<DialogContent className="flex max-h-[85vh] flex-col">
 					<DialogHeader>
-						<DialogTitle>Overwrite what is already there?</DialogTitle>
-						<DialogDescription>
-							{overwriting?.length === 1
-								? "This file is already in that folder and ripping would replace it."
-								: `These ${overwriting?.length} files are already in that folder and ripping would replace them.`}
+						<DialogTitle>{t("ripping.overwrite.title")}</DialogTitle>
+						<DialogDescription className="whitespace-pre-line">
+							{t("ripping.overwrite.body", {
+								count: overwriting?.length ?? 0,
+							})}
 						</DialogDescription>
 					</DialogHeader>
 
@@ -313,7 +319,7 @@ export function Ripper() {
 
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setOverwriting(undefined)}>
-							Cancel
+							{t("cancel")}
 						</Button>
 						<Button
 							onClick={async () => {
@@ -321,7 +327,7 @@ export function Ripper() {
 								await rip();
 							}}
 						>
-							Overwrite
+							{t("ripping.overwrite.confirm")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

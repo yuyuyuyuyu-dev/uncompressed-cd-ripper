@@ -1,5 +1,7 @@
 import { ImageOff, LoaderCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Artwork } from "@/bindings";
+import "../language/i18n";
 import { shown } from "./artwork";
 
 type Props = {
@@ -7,7 +9,9 @@ type Props = {
 	looking: boolean;
 };
 
-function inside(artwork: Artwork | null, looking: boolean) {
+function Inside({ artwork, looking }: Props) {
+	const { t } = useTranslation();
+
 	if (looking) {
 		return (
 			<LoaderCircle className="size-5 animate-spin text-muted-foreground" />
@@ -23,7 +27,7 @@ function inside(artwork: Artwork | null, looking: boolean) {
 	return (
 		<img
 			src={shown(artwork)}
-			alt="Album artwork"
+			alt={t("artwork.alt")}
 			className="size-full object-contain"
 		/>
 	);
@@ -34,7 +38,7 @@ function inside(artwork: Artwork | null, looking: boolean) {
 export function AlbumArtwork({ artwork, looking }: Props) {
 	return (
 		<div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
-			{inside(artwork, looking)}
+			<Inside artwork={artwork} looking={looking} />
 		</div>
 	);
 }
