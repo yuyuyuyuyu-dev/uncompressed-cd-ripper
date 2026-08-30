@@ -96,10 +96,10 @@ async function turnTheCheckOn() {
 }
 
 async function chooseAFolderAndRip() {
-	await page.getByRole("button", { name: "Choose a folder" }).click();
-	// Exact, because the switch is named after AccurateRip and would otherwise
-	// answer to this too.
-	await page.getByRole("button", { name: "Rip", exact: true }).click();
+	await page.getByRole("button", { name: "Choose where to save" }).click();
+	await page
+		.getByRole("button", { name: "Start ripping", exact: true })
+		.click();
 }
 
 afterEach(() => {
@@ -154,7 +154,7 @@ test("should send no disc id to AccurateRip when the check is off", async () => 
 	// as far as asking.
 	await expect.poll(() => ripped).toEqual(tracks);
 	await expect
-		.element(page.getByRole("button", { name: "Rip", exact: true }))
+		.element(page.getByRole("button", { name: "Start ripping", exact: true }))
 		.toBeEnabled();
 
 	// The disc's identifier only ever leaves in the address this command

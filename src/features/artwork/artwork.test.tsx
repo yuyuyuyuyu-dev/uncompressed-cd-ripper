@@ -110,8 +110,8 @@ test("should fetch the album artwork from the internet", async () => {
 	await render(<App />);
 
 	// Act
-	await page.getByRole("button", { name: "Look this disc up" }).click();
-	await page.getByRole("button", { name: "Look it up" }).click();
+	await page.getByRole("button", { name: "Fetch CD details" }).click();
+	await page.getByRole("button", { name: "Fetch", exact: true }).click();
 
 	// Assert
 	await expect.poll(() => called).toContain("look_up_artwork");
@@ -131,11 +131,11 @@ test("should let the album artwork be chosen from this computer", async () => {
 	await expect
 		.element(page.getByRole("img", { name: "Album artwork" }))
 		.toBeVisible();
-	await page.getByRole("button", { name: "Choose a folder" }).click();
+	await page.getByRole("button", { name: "Choose where to save" }).click();
 	await expect.element(page.getByText(FOLDER)).toBeVisible();
-	// Exact, because the button offering to check the rip is named after
-	// AccurateRip and would otherwise answer to this too.
-	await page.getByRole("button", { name: "Rip", exact: true }).click();
+	await page
+		.getByRole("button", { name: "Start ripping", exact: true })
+		.click();
 
 	// Assert
 	await expect.poll(() => read).toEqual([CHOSEN]);

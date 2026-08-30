@@ -61,7 +61,7 @@ function mockBackend({ alreadyThere }: { alreadyThere: string[] }) {
 }
 
 async function chooseAFolder() {
-	await page.getByRole("button", { name: "Choose a folder" }).click();
+	await page.getByRole("button", { name: "Choose where to save" }).click();
 	await expect.element(page.getByText(FOLDER)).toBeVisible();
 }
 
@@ -76,15 +76,13 @@ test("should ask whether to overwrite when the destination already holds a file 
 	await chooseAFolder();
 
 	// Act
-	// Exact, because the button offering to check the rip is named after
-	// AccurateRip and would otherwise answer to this too.
-	await page.getByRole("button", { name: "Rip", exact: true }).click();
+	await page
+		.getByRole("button", { name: "Start ripping", exact: true })
+		.click();
 
 	// Assert
 	await expect
-		.element(
-			page.getByRole("dialog", { name: "Overwrite what is already there?" }),
-		)
+		.element(page.getByRole("dialog", { name: "Overwrite?" }))
 		.toBeVisible();
 });
 
@@ -93,9 +91,9 @@ test("should not start ripping when the overwrite dialog is cancelled", async ()
 	const ripped = mockBackend({ alreadyThere: ["01.flac"] });
 	await render(<Ripper />);
 	await chooseAFolder();
-	// Exact, because the button offering to check the rip is named after
-	// AccurateRip and would otherwise answer to this too.
-	await page.getByRole("button", { name: "Rip", exact: true }).click();
+	await page
+		.getByRole("button", { name: "Start ripping", exact: true })
+		.click();
 
 	// Act
 	await page.getByRole("button", { name: "Cancel" }).click();
