@@ -297,7 +297,7 @@ export function Ripper() {
 				<DialogContent className="flex max-h-[85vh] flex-col">
 					<DialogHeader>
 						<DialogTitle>{t("ripping.overwrite.title")}</DialogTitle>
-						<DialogDescription>
+						<DialogDescription className="whitespace-pre-line">
 							{t("ripping.overwrite.body", {
 								count: overwriting?.length ?? 0,
 							})}

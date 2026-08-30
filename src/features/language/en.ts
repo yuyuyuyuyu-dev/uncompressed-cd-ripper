@@ -32,7 +32,6 @@ export const en = {
 		heading: "Metadata",
 		lookUp: "Look this disc up",
 		lookingUp: "Looking it up…",
-		waiting: "Waiting for an answer about this disc.",
 		unknown:
 			"This disc is not in the database. Its metadata can still be typed in.",
 		choose: "Choose which of these the disc is.",
@@ -55,7 +54,6 @@ export const en = {
 			"Check the ripped tracks against other people's submissions (AccurateRip)",
 		unlisted:
 			"AccurateRip has never been told about this drive, so tracks read from it cannot be checked against anybody else's rips.",
-		on: "This drive's read offset is set. Every track read from it is put right by that much.",
 		ask: {
 			title: "Check this rip against other people's submissions?",
 			body: "AccurateRip is a list of what other people's drives made of the same discs: one submission for every rip anybody has ever sent in. Turning this on does two things. Every drive reads a little ahead of or behind where the disc says, so AccurateRip's list of the drives it knows about is downloaded and searched on this machine to find how far out this one is; nothing about your drive is sent. Then, once a disc has been read, a fingerprint of it, worked out from where its tracks begin, is sent to AccurateRip, and everything AccurateRip holds about that disc comes back. Nothing of the rip itself goes out: what came off the disc is held against what came back here, on this machine. The address your machine reaches the internet from goes with both requests, as it does with any request. None of your music is sent, and nothing is sent while this is off.",

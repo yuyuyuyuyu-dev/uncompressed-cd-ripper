@@ -51,11 +51,7 @@ function pressing(album: Album) {
 // Only where the lookup has something to say. The fields below say the rest:
 // what is in them is what will be written, whether it was answered or typed.
 function status(looking: boolean, matches: Album[] | undefined) {
-	if (looking) {
-		return "metadata.waiting" as const;
-	}
-
-	if (matches === undefined) {
+	if (looking || matches === undefined) {
 		return undefined;
 	}
 
@@ -333,13 +329,15 @@ export function DiscMetadata({
 			)}
 
 			<Dialog open={asking} onOpenChange={(open) => !open && setAsking(false)}>
-				<DialogContent>
-					<DialogHeader>
+				<DialogContent className="flex max-h-[85vh] flex-col">
+					<DialogHeader className="min-h-0">
 						<DialogTitle>{t("metadata.ask.title")}</DialogTitle>
 						{/* Both halves are spelled out: what leaves the machine, and who
 						    receives it. Agreeing to send something unnamed to somebody
 						    unnamed is not agreeing. */}
-						<DialogDescription>{t("metadata.ask.body")}</DialogDescription>
+						<DialogDescription className="-mr-4 min-h-0 overflow-y-auto pr-4 whitespace-pre-line">
+							{t("metadata.ask.body")}
+						</DialogDescription>
 					</DialogHeader>
 
 					<DialogFooter>

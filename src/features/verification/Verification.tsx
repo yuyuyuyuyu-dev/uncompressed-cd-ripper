@@ -132,20 +132,6 @@ export function Verification({
 	// put in front of it.
 	const on = checking && offset !== undefined;
 
-	const said = () => {
-		if (unlisted) {
-			return "verification.unlisted" as const;
-		}
-
-		if (on) {
-			return "verification.on" as const;
-		}
-
-		return undefined;
-	};
-
-	const message = said();
-
 	return (
 		<div className="flex flex-col gap-1.5">
 			<div className="flex items-center gap-2">
@@ -163,8 +149,10 @@ export function Verification({
 				</label>
 			</div>
 
-			{message !== undefined && (
-				<p className="text-muted-foreground text-sm">{t(message)}</p>
+			{unlisted && (
+				<p className="text-muted-foreground text-sm">
+					{t("verification.unlisted")}
+				</p>
 			)}
 
 			<Dialog
@@ -173,8 +161,8 @@ export function Verification({
 				// request running with nothing on screen saying so.
 				onOpenChange={(open) => !open && !looking && setAsking(false)}
 			>
-				<DialogContent>
-					<DialogHeader>
+				<DialogContent className="flex max-h-[85vh] flex-col">
+					<DialogHeader className="min-h-0">
 						{/* Padded clear of the button that closes the dialog, which sits
 						    over the top right corner. */}
 						<DialogTitle className="pr-8">
@@ -183,7 +171,9 @@ export function Verification({
 						{/* Both halves are spelled out: what leaves the machine, and who
 						    receives it. Agreeing to send something unnamed to somebody
 						    unnamed is not agreeing. */}
-						<DialogDescription>{t("verification.ask.body")}</DialogDescription>
+						<DialogDescription className="-mr-4 min-h-0 overflow-y-auto pr-4 whitespace-pre-line">
+							{t("verification.ask.body")}
+						</DialogDescription>
 					</DialogHeader>
 
 					<DialogFooter>

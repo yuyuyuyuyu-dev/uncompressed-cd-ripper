@@ -175,7 +175,9 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 				<DialogContent className="flex max-h-[85vh] flex-col overflow-y-auto sm:max-w-2xl">
 					<DialogHeader>
 						<DialogTitle>{t("errorReport.title")}</DialogTitle>
-						<DialogDescription>{t("errorReport.body")}</DialogDescription>
+						<DialogDescription className="whitespace-pre-line">
+							{t("errorReport.body")}
+						</DialogDescription>
 					</DialogHeader>
 
 					{showing !== undefined &&
