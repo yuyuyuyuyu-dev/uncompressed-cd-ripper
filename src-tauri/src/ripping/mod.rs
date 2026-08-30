@@ -9,7 +9,11 @@ use crate::verification::{self, Checksums, Position};
 
 mod drive;
 mod flac;
+#[cfg(not(windows))]
+mod paranoia;
 mod secure;
+#[cfg(windows)]
+mod win32;
 
 pub use drive::{Drive, Hardware, ReportedTrack};
 pub use flac::Flac;

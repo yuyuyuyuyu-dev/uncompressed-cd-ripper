@@ -40,14 +40,6 @@ ureq = { version = "3.4.0", default-features = false, features = ["rustls"] }
 sentry-types = "0.49.1"
 os_info = "3.15.0"
 tauri-plugin-dialog = "2"
-# No pure Rust library reads audio off a CD as accurately: libcdio-paranoia is
-# what cdparanoia grew into, and re-reads until the samples agree. It is GPL,
-# which the whole app therefore is. Filesystem features off: this reads audio.
-libcdio-sys = { version = "2.0.0", default-features = false, features = [
-    "paranoia",
-] }
-# For SEEK_SET, which belongs to libc so the libcdio bindings do not carry it.
-libc = "0.2"
 flacenc = "0.5.1"
 tauri-plugin-notification = "2.3.3"
 # A drive's read offset belongs to the drive and is worth keeping between runs.
@@ -74,6 +66,26 @@ cdtoc = { version = "0.13", default-features = false, features = [
 ] }
 tauri-plugin-log = "2.9.0"
 log = "0.4.34"
+
+[target.'cfg(not(windows))'.dependencies]
+# No pure Rust library reads audio off a CD as accurately: libcdio-paranoia is
+# what cdparanoia grew into, and re-reads until the samples agree. It is GPL,
+# which the whole app therefore is. Filesystem features off: this reads audio.
+libcdio-sys = { version = "2.0.0", default-features = false, features = [
+    "paranoia",
+] }
+# For SEEK_SET, which belongs to libc so the libcdio bindings do not carry it.
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = [
+    "Win32_Devices_Cdrom",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_Ioctl",
+    "Win32_System_WindowsProgramming",
+] }
 
 [profile.release]
 # Line tables leave file and line in a backtrace without carrying types or
