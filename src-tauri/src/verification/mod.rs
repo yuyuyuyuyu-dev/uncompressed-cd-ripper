@@ -4,6 +4,7 @@ use cdtoc::Toc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::logging::{self, Happening, Log};
 use crate::ripping::{Hardware, TableOfContents};
 
 mod accuraterip;
@@ -120,6 +121,7 @@ pub fn verify(
     toc: &TableOfContents,
     ours: &[Checksums],
     api: &impl VerificationApi,
+    log: &impl Log,
 ) -> Result<Vec<Verdict>, String> {
     let disc = disc_id(toc)?;
 
@@ -134,11 +136,20 @@ pub fn verify(
         .parse_checksums(&answer)
         .map_err(|error| format!("what AccurateRip sent back could not be read: {error}"))?;
 
-    Ok(ours
+    let verdicts: Vec<Verdict> = ours
         .iter()
         .enumerate()
         .map(|(index, ours)| verdict(ours, theirs.get(index)))
-        .collect())
+        .collect();
+
+    logging::record(
+        Happening::RipCheckedAgainstAccurateRip {
+            tracks: verdicts.len() as u32,
+        },
+        log,
+    );
+
+    Ok(verdicts)
 }
 
 fn verdict(ours: &Checksums, theirs: Option<&BTreeMap<u32, u8>>) -> Verdict {
@@ -168,7 +179,11 @@ fn disc_id(toc: &TableOfContents) -> Result<cdtoc::AccurateRip, String> {
 // Every checksum in the database was worked out from samples with the drive's
 // own head start taken off. A rip that leaves it on is shifted against all of
 // them and matches nothing, however faultlessly it was read.
-pub fn read_offset(hardware: &Hardware, api: &impl VerificationApi) -> Result<Option<i32>, String> {
+pub fn read_offset(
+    hardware: &Hardware,
+    api: &impl VerificationApi,
+    log: &impl Log,
+) -> Result<Option<i32>, String> {
     let Some(list) = api.get(cdtoc::AccurateRip::DRIVE_OFFSET_URL)? else {
         return Err("AccurateRip no longer keeps a list of drive read offsets".to_owned());
     };
@@ -181,6 +196,13 @@ pub fn read_offset(hardware: &Hardware, api: &impl VerificationApi) -> Result<Op
         .into_iter()
         .find(|((vendor, model), _)| same(vendor, &hardware.vendor) && same(model, &hardware.model))
         .map(|(_, offset)| i32::from(offset));
+
+    logging::record(
+        Happening::ReadOffsetLookedUp {
+            found: offset.is_some(),
+        },
+        log,
+    );
 
     Ok(offset)
 }

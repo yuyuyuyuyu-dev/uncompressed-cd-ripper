@@ -2,6 +2,9 @@
 // TypeScript side does.
 pub mod artwork;
 mod error_report;
+// Public so that the example beside it can say where a line about a rip goes,
+// as this side does.
+pub mod logging;
 mod metadata;
 // Public so that the example beside it can reach a rip without a window.
 pub mod ripping;
@@ -22,13 +25,16 @@ fn drives() -> Vec<String> {
 #[tauri::command]
 #[specta::specta]
 fn tracks(drive: String) -> Result<Vec<ripping::Track>, String> {
-    Ok(ripping::tracks(&ripping::Drive::open(&drive)?))
+    Ok(ripping::tracks(
+        &ripping::Drive::open(&drive)?,
+        &logging::Logger,
+    ))
 }
 
 #[tauri::command]
 #[specta::specta]
 fn already_there(destination: String, tracks: Vec<ripping::TrackFile>) -> Vec<String> {
-    ripping::already_there(Path::new(&destination), &tracks)
+    ripping::already_there(Path::new(&destination), &tracks, &logging::Logger)
 }
 
 // Reaching a server takes long enough to hold the window still, so this is
@@ -38,7 +44,7 @@ fn already_there(destination: String, tracks: Vec<ripping::TrackFile>) -> Vec<St
 fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
     let toc = ripping::table_of_contents(&ripping::Drive::open(&drive)?)?;
 
-    metadata::look_up(&toc, &metadata::MusicBrainz)
+    metadata::look_up(&toc, &metadata::MusicBrainz, &logging::Logger)
 }
 
 // The album artwork comes from another server, and waiting on it holds the window
@@ -46,7 +52,7 @@ fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
 #[tauri::command(async)]
 #[specta::specta]
 fn look_up_artwork(release: String) -> Result<Option<artwork::Artwork>, String> {
-    artwork::look_up(&release, &artwork::Ureq)
+    artwork::look_up(&release, &artwork::Ureq, &logging::Logger)
 }
 
 #[tauri::command]
@@ -71,7 +77,11 @@ fn drive_name(drive: String) -> Result<String, String> {
 fn read_offset(drive: String) -> Result<Option<i32>, String> {
     let drive = ripping::Drive::open(&drive)?;
 
-    verification::read_offset(&drive.hardware()?, &verification::AccurateRip)
+    verification::read_offset(
+        &drive.hardware()?,
+        &verification::AccurateRip,
+        &logging::Logger,
+    )
 }
 
 // Asked once the whole disc is read rather than track by track, because one
@@ -84,7 +94,12 @@ fn check_rip(
 ) -> Result<Vec<verification::Verdict>, String> {
     let toc = ripping::table_of_contents(&ripping::Drive::open(&drive)?)?;
 
-    verification::verify(&toc, &checksums, &verification::AccurateRip)
+    verification::verify(
+        &toc,
+        &checksums,
+        &verification::AccurateRip,
+        &logging::Logger,
+    )
 }
 
 // Reading a track blocks for minutes, so it is handed to a worker thread.
@@ -110,6 +125,7 @@ fn rip_track(
         tags.as_ref(),
         offset,
         &ripping::Flac,
+        &logging::Logger,
         |so_far| {
             // Only fails once the window has gone, which the read does not care about.
             let _ = progress.send(so_far);
@@ -121,6 +137,24 @@ fn rip_track(
 #[specta::specta]
 fn environment() -> error_report::Environment {
     error_report::Environment::current()
+}
+
+// What the window caught, for the log alone. The window sends this as well as
+// putting a notification on screen, because a machine nobody can reach leaves
+// nothing else behind about a failure nobody reported.
+#[tauri::command]
+#[specta::specta]
+fn log_error(error: String) {
+    logging::failed(&error, &logging::Logger);
+}
+
+// Asked for the moment an error is caught rather than when the report is
+// built, so that a report says what the app was doing when it failed and not
+// what it did while the notification sat on screen.
+#[tauri::command]
+#[specta::specta]
+fn breadcrumbs() -> Vec<logging::Breadcrumb> {
+    logging::breadcrumbs()
 }
 
 // Taking the whole report as an argument is what stops anything being added
@@ -141,6 +175,8 @@ pub fn builder() -> Builder<tauri::Wry> {
         .commands(collect_commands![
             environment,
             send_error_report,
+            log_error,
+            breadcrumbs,
             drives,
             tracks,
             already_there,
@@ -157,6 +193,11 @@ pub fn builder() -> Builder<tauri::Wry> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Left at its defaults, which write to the log directory each of the
+        // three platforms keeps one at and hold the file to a size by rotating
+        // it. Where that directory is on each platform is exactly the part
+        // that would be got wrong by hand.
+        .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())

@@ -2,6 +2,8 @@ use sentry_types::{Dsn, ParseDsnError};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::logging::Breadcrumb;
+
 // The shape below is Sentry's event payload rather than a shape of our own.
 // The frontend assembles it, shows it to the user and hands it over, and the
 // only reason it is declared here is that Tauri Specta derives the frontend's
@@ -18,6 +20,7 @@ pub struct ErrorReport {
     pub platform: String,
     pub release: String,
     pub exception: Exceptions,
+    pub breadcrumbs: Breadcrumbs,
     pub contexts: Contexts,
     pub tags: Tags,
     pub extra: Extra,
@@ -27,6 +30,15 @@ pub struct ErrorReport {
 #[serde(deny_unknown_fields)]
 pub struct Exceptions {
     pub values: Vec<ThrownError>,
+}
+
+// What the app was doing before it failed, in the order it did it. Sentry
+// keeps these under this name, and the window fills them from what the backend
+// recorded, so they are shown on the way out like the rest of the report.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields)]
+pub struct Breadcrumbs {
+    pub values: Vec<Breadcrumb>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]

@@ -1,5 +1,6 @@
 use super::drive::SAMPLES_PER_SECTOR;
 use super::{Disc, TrackProgress};
+use crate::logging::{self, Happening, Log};
 
 // A sector is a seventy-fifth of a second and no bar moves that finely, so
 // seventy-five times fewer messages cross for a bar that looks the same.
@@ -77,6 +78,7 @@ pub fn samples(
     disc: &impl Disc,
     number: u8,
     offset: i32,
+    log: &impl Log,
     mut progress: impl FnMut(TrackProgress),
 ) -> Result<Vec<i32>, String> {
     let mut sectors: Vec<Votes> = Vec::new();
@@ -87,6 +89,18 @@ pub fn samples(
     let mut matched = 0;
 
     for read in 1..=READS_ALLOWED {
+        // The first read is the rip; every one after it is the disc failing to
+        // agree with itself, which is the whole reason breadcrumbs exist.
+        if read > 1 {
+            logging::record(
+                Happening::TrackReadAgain {
+                    track: number,
+                    read,
+                },
+                log,
+            );
+        }
+
         let mut so_far = 0;
 
         disc.read_track(number, offset, |samples| {

@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { commands, type Environment } from "@/bindings";
+import { type Breadcrumb, commands, type Environment } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -20,6 +20,7 @@ type Caught = {
 	componentStack: string;
 	occurredAt: Date;
 	comment: string;
+	breadcrumbs: Breadcrumb[];
 	failedToSend?: string;
 };
 
@@ -39,6 +40,14 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 	const catchThrown = useCallback((thrown: unknown, componentStack = "") => {
 		const { type, value } = describe(thrown);
 		const occurredAt = new Date();
+
+		// The log is what a machine nobody can reach leaves behind, and a
+		// failure nobody sent a report about is the one thing worth having in
+		// it from this side. Nothing waits on it.
+		commands.logError(`${type}: ${value}`).catch(() => {
+			// Nothing to do about it, and nothing worth telling the user.
+		});
+
 		const id = toast.add({
 			type: "error",
 			title: type,
@@ -56,6 +65,20 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 				componentStack,
 				occurredAt,
 				comment: "",
+				breadcrumbs: [],
+			}),
+		);
+
+		// Asked for here rather than when the report is built, so that a report
+		// says what the app was doing when it failed rather than what it went
+		// on to do while the notification sat on screen.
+		commands.breadcrumbs().then((breadcrumbs) =>
+			setCaught((caught) => {
+				const one = caught.get(id);
+
+				return one === undefined
+					? caught
+					: new Map(caught).set(id, { ...one, breadcrumbs });
 			}),
 		);
 	}, []);
@@ -122,6 +145,7 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 					environment,
 					occurredAt: showing.occurredAt,
 					comment: showing.comment,
+					breadcrumbs: showing.breadcrumbs,
 				});
 
 	return (

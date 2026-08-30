@@ -119,7 +119,8 @@ fn should_fetch_the_accuraterip_confidence_for_each_ripped_track() {
     // identifier worked out from the wrong sectors would ask about the wrong
     // disc, and nothing further along would notice.
     let toc = crate::ripping::table_of_contents(&FakeDisc).expect("the fake disc answers");
-    let verdicts = verify(&toc, &ours, &accuraterip).expect("AccurateRip answered");
+    let verdicts =
+        verify(&toc, &ours, &accuraterip, &crate::logging::Logger).expect("AccurateRip answered");
 
     // Assert
     // The address is written out rather than worked out from the tracks above,

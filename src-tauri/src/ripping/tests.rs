@@ -138,7 +138,17 @@ fn should_write_the_samples_that_three_reads_of_the_disc_agreed_on() {
     // Act
     // Nothing of this reaches the filesystem, so the folder is only something
     // for a name to be built against.
-    rip(&disc, 1, Path::new("wherever"), None, 0, &encoder, |_| {}).expect("the fake disc answers");
+    rip(
+        &disc,
+        1,
+        Path::new("wherever"),
+        None,
+        0,
+        &encoder,
+        &crate::logging::Logger,
+        |_| {},
+    )
+    .expect("the fake disc answers");
 
     // Assert
     assert_eq!(encoder.written.into_inner(), written(&agreed));
@@ -171,7 +181,16 @@ fn should_fail_when_ten_reads_of_the_disc_never_agree_three_times() {
     // Act
     // The real encoder, because nothing here would pass that should not: a
     // rip that failed writes no file, and an empty folder says so plainly.
-    let file = rip(&disc, 1, &destination, None, 0, &Flac, |_| {});
+    let file = rip(
+        &disc,
+        1,
+        &destination,
+        None,
+        0,
+        &Flac,
+        &crate::logging::Logger,
+        |_| {},
+    );
 
     // Assert
     assert!(

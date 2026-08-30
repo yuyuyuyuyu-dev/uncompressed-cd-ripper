@@ -2,6 +2,7 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use uncompressed_cd_ripper_lib::artwork;
+use uncompressed_cd_ripper_lib::logging;
 use uncompressed_cd_ripper_lib::ripping::{self, TrackTags};
 
 const USAGE: &str = "usage: rip --disc <device or disc image> -o <folder> \
@@ -102,7 +103,10 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
     // there is a window between one track and the next and there is none here.
     let disc = ripping::Drive::open(disc)?;
 
-    for (index, track) in ripping::tracks(&disc).into_iter().enumerate() {
+    for (index, track) in ripping::tracks(&disc, &logging::Logger)
+        .into_iter()
+        .enumerate()
+    {
         let title = given.titles.get(index).cloned();
 
         // Nothing where nothing was given, as the TypeScript side leaves a disc nobody
@@ -125,6 +129,7 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
             tags.as_ref(),
             given.offset,
             &ripping::Flac,
+            &logging::Logger,
             |_| {},
         )?;
 
