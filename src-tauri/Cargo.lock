@@ -4704,6 +4704,7 @@ dependencies = [
  "tauri-plugin-store",
  "tauri-specta",
  "ureq",
+ "windows",
 ]
 
 [[package]]
