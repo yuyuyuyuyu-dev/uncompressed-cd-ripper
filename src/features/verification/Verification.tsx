@@ -1,5 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 import { useEffect, useId, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { expectOk } from "../error-report/backend";
+import "../language/i18n";
 import {
 	saveChecking,
 	savedChecking,
@@ -45,6 +47,7 @@ export function Verification({
 	// the user with nothing they can do.
 	const [unlisted, setUnlisted] = useState(false);
 	const label = useId();
+	const { t } = useTranslation();
 
 	// What the app was left set to. Read once rather than per drive: this is a
 	// decision about what leaves the machine, and the answer to it does not
@@ -131,15 +134,17 @@ export function Verification({
 
 	const said = () => {
 		if (unlisted) {
-			return "AccurateRip has never been told about this drive, so tracks read from it cannot be checked against anybody else's rips.";
+			return "verification.unlisted" as const;
 		}
 
 		if (on) {
-			return "This drive's read offset is set. Every track read from it is put right by that much.";
+			return "verification.on" as const;
 		}
 
 		return undefined;
 	};
+
+	const message = said();
 
 	return (
 		<div className="flex flex-col gap-1.5">
@@ -154,13 +159,12 @@ export function Verification({
 				    what this switch turns on and what turns up in that column are
 				    plainly the same thing. */}
 				<label className="text-sm" htmlFor={label}>
-					Check the ripped tracks against other people's submissions
-					(AccurateRip)
+					{t("verification.label")}
 				</label>
 			</div>
 
-			{said() !== undefined && (
-				<p className="text-muted-foreground text-sm">{said()}</p>
+			{message !== undefined && (
+				<p className="text-muted-foreground text-sm">{t(message)}</p>
 			)}
 
 			<Dialog
@@ -174,27 +178,12 @@ export function Verification({
 						{/* Padded clear of the button that closes the dialog, which sits
 						    over the top right corner. */}
 						<DialogTitle className="pr-8">
-							Check this rip against other people's submissions?
+							{t("verification.ask.title")}
 						</DialogTitle>
 						{/* Both halves are spelled out: what leaves the machine, and who
 						    receives it. Agreeing to send something unnamed to somebody
 						    unnamed is not agreeing. */}
-						<DialogDescription>
-							AccurateRip is a list of what other people's drives made of the
-							same discs: one submission for every rip anybody has ever sent in.
-							Turning this on does two things. Every drive reads a little ahead
-							of or behind where the disc says, so AccurateRip's list of the
-							drives it knows about is downloaded and searched on this machine
-							to find how far out this one is; nothing about your drive is sent.
-							Then, once a disc has been read, a fingerprint of it, worked out
-							from where its tracks begin, is sent to AccurateRip, and
-							everything AccurateRip holds about that disc comes back. Nothing
-							of the rip itself goes out: what came off the disc is held against
-							what came back here, on this machine. The address your machine
-							reaches the internet from goes with both requests, as it does with
-							any request. None of your music is sent, and nothing is sent while
-							this is off.
-						</DialogDescription>
+						<DialogDescription>{t("verification.ask.body")}</DialogDescription>
 					</DialogHeader>
 
 					<DialogFooter>
@@ -203,11 +192,11 @@ export function Verification({
 							onClick={() => setAsking(false)}
 							disabled={looking}
 						>
-							Cancel
+							{t("cancel")}
 						</Button>
 						<Button onClick={turnOn} disabled={looking}>
 							{looking && <LoaderCircle className="animate-spin" />}
-							Turn it on
+							{t("verification.ask.confirm")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

@@ -6,6 +6,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	type Album,
 	type Artwork,
@@ -26,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { AlbumArtwork } from "../artwork/AlbumArtwork";
 import { ChooseArtwork } from "../artwork/ChooseArtwork";
 import { expectOk } from "../error-report/backend";
+import "../language/i18n";
 import { length } from "../ripping/track";
 import { matching } from "../verification/verdicts";
 import {
@@ -50,7 +52,7 @@ function pressing(album: Album) {
 // what is in them is what will be written, whether it was answered or typed.
 function status(looking: boolean, matches: Album[] | undefined) {
 	if (looking) {
-		return "Waiting for an answer about this disc.";
+		return "metadata.waiting" as const;
 	}
 
 	if (matches === undefined) {
@@ -58,10 +60,10 @@ function status(looking: boolean, matches: Album[] | undefined) {
 	}
 
 	if (matches.length === 0) {
-		return "This disc is not in the database. Its metadata can still be typed in.";
+		return "metadata.unknown" as const;
 	}
 
-	return matches.length > 1 ? "Choose which of these the disc is." : undefined;
+	return matches.length > 1 ? ("metadata.choose" as const) : undefined;
 }
 
 type Props = {
@@ -100,6 +102,7 @@ export function DiscMetadata({
 	const [chosen, setChosen] = useState<string>();
 	const [looking, setLooking] = useState(false);
 	const [fetchingArtwork, setFetchingArtwork] = useState(false);
+	const { t } = useTranslation();
 
 	// Which request the artwork on its way belongs to. Clicking through the
 	// matches starts one for each, and an earlier answer arriving late would
@@ -175,7 +178,7 @@ export function DiscMetadata({
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex items-center gap-2">
-				<h2 className="font-semibold">Metadata</h2>
+				<h2 className="font-semibold">{t("metadata.heading")}</h2>
 				<Button
 					variant="outline"
 					size="sm"
@@ -187,12 +190,12 @@ export function DiscMetadata({
 					    turning is what carries across the gap: a button that only goes
 					    grey is a still picture, and a still picture is missed. */}
 					{looking && <LoaderCircle className="animate-spin" />}
-					{looking ? "Looking it up…" : "Look this disc up"}
+					{looking ? t("metadata.lookingUp") : t("metadata.lookUp")}
 				</Button>
 			</div>
 
 			{said !== undefined && (
-				<p className="text-muted-foreground text-sm">{said}</p>
+				<p className="text-muted-foreground text-sm">{t(said)}</p>
 			)}
 
 			{/* Every one of them, and what tells them apart. Picking for the user
@@ -236,7 +239,7 @@ export function DiscMetadata({
 
 				<div className="grid flex-1 grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
 					<label className="text-sm" htmlFor={albumField}>
-						Album
+						{t("metadata.album")}
 					</label>
 					<Input
 						id={albumField}
@@ -248,7 +251,7 @@ export function DiscMetadata({
 					/>
 
 					<label className="text-sm" htmlFor={albumArtistField}>
-						Album artist
+						{t("metadata.albumArtist")}
 					</label>
 					<Input
 						id={albumArtistField}
@@ -270,12 +273,16 @@ export function DiscMetadata({
 						<tr className="border-b text-muted-foreground text-sm">
 							<th className="w-8 pb-1.5 text-left font-medium">#</th>
 							<th className="w-[44%] px-2 pb-1.5 text-left font-medium">
-								Title
+								{t("metadata.title")}
 							</th>
-							<th className="px-2 pb-1.5 text-left font-medium">Artist</th>
-							<th className="pb-1.5 text-right font-medium">Length</th>
+							<th className="px-2 pb-1.5 text-left font-medium">
+								{t("metadata.artist")}
+							</th>
+							<th className="pb-1.5 text-right font-medium">
+								{t("metadata.length")}
+							</th>
 							<th className="pb-1.5 pl-2 text-right font-medium">
-								Matching submissions
+								{t("metadata.matching")}
 							</th>
 						</tr>
 					</thead>
@@ -287,7 +294,9 @@ export function DiscMetadata({
 								</td>
 								<td className="px-2 py-1.5">
 									<Input
-										aria-label={`Title of track ${track.number}`}
+										aria-label={t("metadata.trackTitle", {
+											number: track.number,
+										})}
 										value={titleOf(metadata, track.number)}
 										onChange={(event) =>
 											onChange(
@@ -299,7 +308,9 @@ export function DiscMetadata({
 								</td>
 								<td className="px-2 py-1.5">
 									<Input
-										aria-label={`Artist of track ${track.number}`}
+										aria-label={t("metadata.trackArtist", {
+											number: track.number,
+										})}
 										value={artistOf(metadata, track.number)}
 										onChange={(event) =>
 											onChange(
@@ -324,27 +335,18 @@ export function DiscMetadata({
 			<Dialog open={asking} onOpenChange={(open) => !open && setAsking(false)}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Look this disc up?</DialogTitle>
+						<DialogTitle>{t("metadata.ask.title")}</DialogTitle>
 						{/* Both halves are spelled out: what leaves the machine, and who
 						    receives it. Agreeing to send something unnamed to somebody
 						    unnamed is not agreeing. */}
-						<DialogDescription>
-							Finding the album and the track titles means sending a fingerprint
-							of this disc, worked out from where its tracks begin, to
-							MusicBrainz. The album artwork is then asked for from the Artwork
-							Art Archive, which is sent the identifier of whichever release
-							matched and serves the picture from the Internet Archive. The
-							address your machine reaches the internet from goes with both, as
-							it does with any request. Nothing else about you is sent, and
-							nothing is sent at all unless you say so.
-						</DialogDescription>
+						<DialogDescription>{t("metadata.ask.body")}</DialogDescription>
 					</DialogHeader>
 
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setAsking(false)}>
-							Cancel
+							{t("cancel")}
 						</Button>
-						<Button onClick={look}>Look it up</Button>
+						<Button onClick={look}>{t("metadata.ask.confirm")}</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

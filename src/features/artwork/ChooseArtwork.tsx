@@ -1,5 +1,7 @@
+import { useTranslation } from "react-i18next";
 import type { Artwork } from "@/bindings";
 import { Button } from "@/components/ui/button";
+import "../language/i18n";
 import { chosen } from "./artwork";
 
 type Props = {
@@ -8,6 +10,8 @@ type Props = {
 };
 
 export function ChooseArtwork({ onChoose, disabled }: Props) {
+	const { t } = useTranslation();
+
 	const choose = async () => {
 		const artwork = await chosen();
 
@@ -18,7 +22,7 @@ export function ChooseArtwork({ onChoose, disabled }: Props) {
 
 	return (
 		<Button variant="outline" size="sm" onClick={choose} disabled={disabled}>
-			Choose artwork
+			{t("artwork.choose")}
 		</Button>
 	);
 }

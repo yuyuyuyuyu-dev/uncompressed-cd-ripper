@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { type Breadcrumb, commands, type Environment } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster, toast } from "@/components/ui/toast";
+import i18next from "../language/i18n";
 import { buildErrorReport, describe, newEventId } from "./error-report";
 import { RenderErrorBoundary } from "./RenderErrorBoundary";
 
@@ -30,6 +32,7 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 	const [caught, setCaught] = useState(new Map<string, Caught>());
 	const [environment, setEnvironment] = useState<Environment>();
 	const [showingDetailOf, setShowingDetailOf] = useState<string>();
+	const { t } = useTranslation();
 
 	useEffect(() => {
 		commands.environment().then(setEnvironment);
@@ -53,7 +56,7 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 			title: type,
 			description: value,
 			actionProps: {
-				children: "Details",
+				children: i18next.t("errorReport.details"),
 				onClick: () => setShowingDetailOf(id),
 			},
 		});
@@ -171,11 +174,8 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 				    scrolls rather than pushing the send button off screen. */}
 				<DialogContent className="flex max-h-[85vh] flex-col overflow-y-auto sm:max-w-2xl">
 					<DialogHeader>
-						<DialogTitle>Send this error report?</DialogTitle>
-						<DialogDescription>
-							Nothing leaves this machine unless you send it. Below is the
-							report exactly as it would be sent.
-						</DialogDescription>
+						<DialogTitle>{t("errorReport.title")}</DialogTitle>
+						<DialogDescription>{t("errorReport.body")}</DialogDescription>
 					</DialogHeader>
 
 					{showing !== undefined &&
@@ -183,8 +183,8 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 						report !== undefined && (
 							<>
 								<Textarea
-									aria-label="What were you doing?"
-									placeholder="What were you doing when this happened?"
+									aria-label={t("errorReport.commentLabel")}
+									placeholder={t("errorReport.commentPlaceholder")}
 									value={showing.comment}
 									onChange={(event) =>
 										update(showingDetailOf, {
@@ -194,7 +194,7 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 								/>
 
 								<section
-									aria-label="The error report"
+									aria-label={t("errorReport.reportLabel")}
 									className="max-h-72 overflow-auto rounded-lg border bg-muted p-3"
 								>
 									{/* Wrapped rather than scrolled sideways: a consent screen
@@ -232,13 +232,13 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
 											// out.
 											toast.add({
 												type: "success",
-												title: "Report sent",
-												description: "Thank you.",
+												title: t("errorReport.sentTitle"),
+												description: t("errorReport.sentBody"),
 												timeout: 5000,
 											});
 										}}
 									>
-										Send
+										{t("errorReport.send")}
 									</Button>
 								</DialogFooter>
 							</>

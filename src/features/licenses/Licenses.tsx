@@ -1,14 +1,15 @@
+import { useTranslation } from "react-i18next";
+import "../language/i18n";
 import { dependencyLicenses } from "./dependency-licenses";
 
 export function Licenses() {
+	const { t } = useTranslation();
+
 	return (
 		<section className="flex w-full max-w-xl flex-col gap-4 text-left">
-			<h2 className="font-semibold">Licenses</h2>
+			<h2 className="font-semibold">{t("licenses.heading")}</h2>
 
-			<p className="text-muted-foreground text-sm">
-				This app is built from the libraries below, and ships each of them under
-				the license printed with it.
-			</p>
+			<p className="text-muted-foreground text-sm">{t("licenses.about")}</p>
 
 			<ol className="flex flex-col gap-3">
 				{dependencyLicenses.map((dependency) => (
