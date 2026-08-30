@@ -52,7 +52,7 @@ fn should_look_up_the_metadata_for_a_disc() {
     let toc = toc();
 
     // Act
-    let albums = look_up(&toc, &FakeApi, &crate::logging::Plugin).expect("the fake answers");
+    let albums = look_up(&toc, &FakeApi, &crate::logging::Logger).expect("the fake answers");
 
     // Assert
     assert_eq!(

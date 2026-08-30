@@ -120,7 +120,7 @@ fn should_fetch_the_accuraterip_confidence_for_each_ripped_track() {
     // disc, and nothing further along would notice.
     let toc = crate::ripping::table_of_contents(&FakeDisc).expect("the fake disc answers");
     let verdicts =
-        verify(&toc, &ours, &accuraterip, &crate::logging::Plugin).expect("AccurateRip answered");
+        verify(&toc, &ours, &accuraterip, &crate::logging::Logger).expect("AccurateRip answered");
 
     // Assert
     // The address is written out rather than worked out from the tracks above,

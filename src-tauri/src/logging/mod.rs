@@ -109,9 +109,9 @@ pub trait Log {
 // What the app logs through. The line is handed to the log crate, which hands
 // it to whichever logger was installed at startup: in the app that is the
 // plugin that writes the file, and in a test or an example it is nobody.
-pub struct Plugin;
+pub struct Logger;
 
-impl Log for Plugin {
+impl Log for Logger {
     fn write(&self, category: &str, message: &str) {
         log::info!(target: category, "{message}");
     }

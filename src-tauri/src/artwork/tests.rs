@@ -47,7 +47,7 @@ fn should_fetch_the_album_artwork_from_the_internet() {
     let artwork = look_up(
         "d3dc4be9-9749-4959-99e5-133d0cb467fe",
         &archive,
-        &crate::logging::Plugin,
+        &crate::logging::Logger,
     )
     .expect("the fake answers");
 

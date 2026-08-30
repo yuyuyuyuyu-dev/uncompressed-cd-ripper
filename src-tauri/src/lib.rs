@@ -27,14 +27,14 @@ fn drives() -> Vec<String> {
 fn tracks(drive: String) -> Result<Vec<ripping::Track>, String> {
     Ok(ripping::tracks(
         &ripping::Drive::open(&drive)?,
-        &logging::Plugin,
+        &logging::Logger,
     ))
 }
 
 #[tauri::command]
 #[specta::specta]
 fn already_there(destination: String, tracks: Vec<ripping::TrackFile>) -> Vec<String> {
-    ripping::already_there(Path::new(&destination), &tracks, &logging::Plugin)
+    ripping::already_there(Path::new(&destination), &tracks, &logging::Logger)
 }
 
 // Reaching a server takes long enough to hold the window still, so this is
@@ -44,7 +44,7 @@ fn already_there(destination: String, tracks: Vec<ripping::TrackFile>) -> Vec<St
 fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
     let toc = ripping::table_of_contents(&ripping::Drive::open(&drive)?)?;
 
-    metadata::look_up(&toc, &metadata::MusicBrainz, &logging::Plugin)
+    metadata::look_up(&toc, &metadata::MusicBrainz, &logging::Logger)
 }
 
 // The album artwork comes from another server, and waiting on it holds the window
@@ -52,7 +52,7 @@ fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
 #[tauri::command(async)]
 #[specta::specta]
 fn look_up_artwork(release: String) -> Result<Option<artwork::Artwork>, String> {
-    artwork::look_up(&release, &artwork::Ureq, &logging::Plugin)
+    artwork::look_up(&release, &artwork::Ureq, &logging::Logger)
 }
 
 #[tauri::command]
@@ -80,7 +80,7 @@ fn read_offset(drive: String) -> Result<Option<i32>, String> {
     verification::read_offset(
         &drive.hardware()?,
         &verification::AccurateRip,
-        &logging::Plugin,
+        &logging::Logger,
     )
 }
 
@@ -98,7 +98,7 @@ fn check_rip(
         &toc,
         &checksums,
         &verification::AccurateRip,
-        &logging::Plugin,
+        &logging::Logger,
     )
 }
 
@@ -125,7 +125,7 @@ fn rip_track(
         tags.as_ref(),
         offset,
         &ripping::Flac,
-        &logging::Plugin,
+        &logging::Logger,
         |so_far| {
             // Only fails once the window has gone, which the read does not care about.
             let _ = progress.send(so_far);
@@ -145,7 +145,7 @@ fn environment() -> error_report::Environment {
 #[tauri::command]
 #[specta::specta]
 fn log_error(error: String) {
-    logging::failed(&error, &logging::Plugin);
+    logging::failed(&error, &logging::Logger);
 }
 
 // Asked for the moment an error is caught rather than when the report is

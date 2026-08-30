@@ -238,7 +238,7 @@ test("should keep a notification until it is dismissed", async () => {
 	await expect.poll(() => notifications().all()).toHaveLength(1);
 });
 
-test("should record an error in the window as a log", async () => {
+test("should record an error on the TypeScript side as a log", async () => {
 	// Arrange
 	const logged = mockBackendFailingToRip();
 

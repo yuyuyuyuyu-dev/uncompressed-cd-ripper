@@ -145,7 +145,7 @@ fn should_write_the_samples_that_three_reads_of_the_disc_agreed_on() {
         None,
         0,
         &encoder,
-        &crate::logging::Plugin,
+        &crate::logging::Logger,
         |_| {},
     )
     .expect("the fake disc answers");
@@ -188,7 +188,7 @@ fn should_fail_when_ten_reads_of_the_disc_never_agree_three_times() {
         None,
         0,
         &Flac,
-        &crate::logging::Plugin,
+        &crate::logging::Logger,
         |_| {},
     );
 

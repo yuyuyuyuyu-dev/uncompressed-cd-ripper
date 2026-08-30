@@ -103,7 +103,7 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
     // there is a window between one track and the next and there is none here.
     let disc = ripping::Drive::open(disc)?;
 
-    for (index, track) in ripping::tracks(&disc, &logging::Plugin)
+    for (index, track) in ripping::tracks(&disc, &logging::Logger)
         .into_iter()
         .enumerate()
     {
@@ -129,7 +129,7 @@ fn rip(given: &Given, disc: &str, destination: &Path) -> Result<(), String> {
             tags.as_ref(),
             given.offset,
             &ripping::Flac,
-            &logging::Plugin,
+            &logging::Logger,
             |_| {},
         )?;
 
