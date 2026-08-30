@@ -21,7 +21,7 @@ export const ja: typeof en = {
 		progress:
 			"トラック {{number}} を取り込み中 · {{read}} 回目の読み取り（最大 {{max}} 回）",
 		agreement:
-			"このトラックを {{required}} 回読んで内容が一致したら保存します。あと {{remaining}} 回必要です。",
+			"このトラックを読み取って内容が {{required}} 回一致したら保存します。あと {{remaining}} 回一致する必要があります。",
 		overwrite: {
 			title: "上書きしますか？",
 			body_one:
