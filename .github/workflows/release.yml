@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  installer:
+    name: Installer (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macOS
+            runner: macos-latest
+            args: ""
+          - platform: Linux
+            runner: ubuntu-22.04
+            args: "--bundles appimage"
+          - platform: Windows
+            runner: windows-latest
+            args: "--bundles nsis"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - uses: ./.github/actions/setup-tauri-linux
+        if: runner.os == 'Linux'
+      - uses: ./.github/actions/setup-libcdio
+        if: runner.os == 'Linux'
+      - uses: ./.github/actions/setup-udev
+        if: runner.os == 'Linux'
+      - name: Carry the CD libraries inside the app rather than pointing at Homebrew
+        if: runner.os == 'macOS'
+        run: |
+          brew install libcdio libcdio-paranoia
+          echo "SYSTEM_DEPS_LINK=static" >> "$GITHUB_ENV"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
+      - run: pnpm install --frozen-lockfile
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        with:
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          releaseName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          releaseDraft: true
+          uploadWorkflowArtifacts: true
+          args: ${{ matrix.args }}
