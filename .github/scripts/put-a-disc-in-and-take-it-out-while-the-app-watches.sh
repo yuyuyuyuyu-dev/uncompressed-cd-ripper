@@ -15,7 +15,8 @@ dbus-run-session -- bash -euxo pipefail -c '
     for _ in $(seq 1 60); do cdemu status > /dev/null 2>&1 && break; sleep 1; done
 
     sudo "$HOME/app/src-tauri/target/debug/examples/watch" \
-        > /tmp/watched.txt 2> /tmp/watching-errors.txt &
+        < /dev/null > /tmp/watched.txt 2> /tmp/watching-errors.txt &
+    watcher=$!
     for _ in $(seq 1 60); do grep -qx watching /tmp/watched.txt && break; sleep 1; done
     sleep 1
 
@@ -33,7 +34,7 @@ dbus-run-session -- bash -euxo pipefail -c '
         sleep 1
     done
 
-    sudo pkill -f target/debug/examples/watch || true
+    sudo kill "$watcher" || true
 '
 WATCH_THE_DRIVE
 
