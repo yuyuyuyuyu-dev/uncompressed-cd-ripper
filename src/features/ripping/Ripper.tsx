@@ -195,8 +195,6 @@ export function Ripper() {
 		<section className="flex w-full max-w-xl flex-col gap-4 text-left">
 			<div className="flex items-center gap-2">
 				<h2 className="font-semibold">{t("ripping.heading")}</h2>
-				{/* Until something notices a disc arriving, this is how one put in
-				    after the window opened gets found. */}
 				<Button variant="outline" size="sm" onClick={look} disabled={busy}>
 					{t("ripping.scan")}
 				</Button>
