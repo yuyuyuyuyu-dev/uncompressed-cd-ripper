@@ -451,6 +451,76 @@ jobs:
             trace.txt
             vm-console.log
 
+  disc-insertion:
+    name: should detect disc insertion automatically
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The runner can run a machine inside itself
+        run: test -e /dev/kvm
+
+      - run: |
+          sudo apt-get update
+          sudo apt-get install --yes qemu-system-x86 qemu-utils cloud-image-utils
+          sudo chmod 666 /dev/kvm
+
+      - name: Put a disc in while the app watches the drive
+        run: .github/scripts/put-a-disc-in-and-take-it-out-while-the-app-watches.sh
+
+      - name: It was watching before the disc went in
+        run: |
+          cat watched.txt
+          test "$(head -1 watched.txt)" = watching
+
+      - name: The drive the disc went into turned up
+        run: grep -qE '^holding /dev/' watched.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: what-the-app-noticed-a-disc-going-in
+          path: |
+            watched.txt
+            watching-errors.txt
+            vm-console.log
+
+  disc-removal:
+    name: should detect disc removal automatically
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The runner can run a machine inside itself
+        run: test -e /dev/kvm
+
+      - run: |
+          sudo apt-get update
+          sudo apt-get install --yes qemu-system-x86 qemu-utils cloud-image-utils
+          sudo chmod 666 /dev/kvm
+
+      - name: Take the disc out again while the app watches the drive
+        run: .github/scripts/put-a-disc-in-and-take-it-out-while-the-app-watches.sh
+
+      - name: It had the drive while the disc was in
+        run: |
+          cat watched.txt
+          grep -qE '^holding /dev/' watched.txt
+
+      - name: Nothing was left holding a disc once it came out
+        run: test "$(grep '^holding ' watched.txt | tail -1)" = 'holding none'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: what-the-app-noticed-a-disc-coming-out
+          path: |
+            watched.txt
+            watching-errors.txt
+            vm-console.log
+
   file-side-effects:
     name: should not create, modify or delete unrelated files or directories
     runs-on: ubuntu-latest
