@@ -93,6 +93,7 @@ apt-get install --yes --no-install-recommends \
     libclang-dev \
     librsvg2-dev \
     libssl-dev \
+    libudev-dev \
     libwebkit2gtk-4.1-dev \
     libxdo-dev \
     pkg-config \

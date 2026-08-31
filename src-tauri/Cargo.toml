@@ -77,14 +77,23 @@ libcdio-sys = { version = "2.0.0", default-features = false, features = [
 # For SEEK_SET, which belongs to libc so the libcdio bindings do not carry it.
 libc = "0.2"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation-sys = "0.8.7"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+udev = "0.9.3"
+
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [
     "Win32_Devices_Cdrom",
+    "Win32_Graphics_Gdi",
     "Win32_Security",
     "Win32_Storage_FileSystem",
     "Win32_System_IO",
     "Win32_System_Ioctl",
+    "Win32_System_LibraryLoader",
     "Win32_System_WindowsProgramming",
+    "Win32_UI_WindowsAndMessaging",
 ] }
 
 [profile.release]

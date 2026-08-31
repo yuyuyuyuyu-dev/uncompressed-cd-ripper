@@ -11,6 +11,7 @@ import {
 	AGREEMENTS_REQUIRED,
 	type Checksums,
 	commands,
+	events,
 	READS_ALLOWED,
 	type Track,
 	type TrackProgress,
@@ -85,6 +86,19 @@ export function Ripper() {
 	useEffect(() => {
 		look();
 	}, [look]);
+
+	useEffect(() => {
+		const listening = events.drivesChanged.listen(({ payload }) => {
+			setDrives(payload);
+			setDrive((chosen) =>
+				chosen !== undefined && payload.includes(chosen) ? chosen : payload[0],
+			);
+		});
+
+		return () => {
+			listening.then((stop) => stop());
+		};
+	}, []);
 
 	useEffect(() => {
 		// What the last disc was called says nothing about this one, and neither

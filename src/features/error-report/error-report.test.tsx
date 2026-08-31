@@ -1,7 +1,7 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
-import { render } from "vitest-browser-react";
+import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 import type { Breadcrumb, Environment, ErrorReport } from "@/bindings";
 import { ErrorReporter } from "./ErrorReporter";
@@ -69,47 +69,50 @@ const GAVE_UP = "the drive stopped responding";
 function mockBackendFailingToRip() {
 	const logged: string[] = [];
 
-	mockIPC((command, payload) => {
-		if (command === "log_error") {
-			logged.push((payload as { error: string }).error);
+	mockIPC(
+		(command, payload) => {
+			if (command === "log_error") {
+				logged.push((payload as { error: string }).error);
 
-			return null;
-		}
-		if (command === "environment") {
-			return environment;
-		}
-		if (command === "breadcrumbs") {
-			return BREADCRUMBS;
-		}
-		if (command === "drives") {
-			return [DRIVE];
-		}
-		if (command === "tracks") {
-			return TRACKS.map((number) => ({ number, sectors: 7500 }));
-		}
-		if (command === "drive_name") {
-			return "MARINA BLUE  CD-RW MB-1";
-		}
-		if (command === "plugin:store|load") {
-			return 1;
-		}
-		if (command === "plugin:store|get") {
-			return [null, false];
-		}
-		if (command === "plugin:store|set" || command === "plugin:store|save") {
-			return null;
-		}
-		if (command === "plugin:dialog|open") {
-			return FOLDER;
-		}
-		if (command === "already_there") {
-			return [];
-		}
-		if (command === "rip_track") {
-			throw GAVE_UP;
-		}
-		throw new Error(`the test did not expect ${command}`);
-	});
+				return null;
+			}
+			if (command === "environment") {
+				return environment;
+			}
+			if (command === "breadcrumbs") {
+				return BREADCRUMBS;
+			}
+			if (command === "drives") {
+				return [DRIVE];
+			}
+			if (command === "tracks") {
+				return TRACKS.map((number) => ({ number, sectors: 7500 }));
+			}
+			if (command === "drive_name") {
+				return "MARINA BLUE  CD-RW MB-1";
+			}
+			if (command === "plugin:store|load") {
+				return 1;
+			}
+			if (command === "plugin:store|get") {
+				return [null, false];
+			}
+			if (command === "plugin:store|set" || command === "plugin:store|save") {
+				return null;
+			}
+			if (command === "plugin:dialog|open") {
+				return FOLDER;
+			}
+			if (command === "already_there") {
+				return [];
+			}
+			if (command === "rip_track") {
+				throw GAVE_UP;
+			}
+			throw new Error(`the test did not expect ${command}`);
+		},
+		{ shouldMockEvents: true },
+	);
 
 	return logged;
 }
@@ -126,7 +129,8 @@ function throwInTheApp(message: string) {
 	);
 }
 
-afterEach(() => {
+afterEach(async () => {
+	await cleanup();
 	clearMocks();
 });
 
