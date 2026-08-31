@@ -1,7 +1,7 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
-import { render } from "vitest-browser-react";
+import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 import type { Album, TrackTags } from "@/bindings";
 
@@ -45,53 +45,56 @@ function mockBackend({ matches }: { matches: Album[] }) {
 	const askedAbout: string[] = [];
 	const ripped: (TrackTags | null)[] = [];
 
-	mockIPC((command, payload) => {
-		if (command === "drives") {
-			return [DRIVE];
-		}
-		if (command === "drive_name") {
-			return DRIVE_NAME;
-		}
-		// The settings file with nothing in it: no read offset has ever been
-		// kept for this drive, which is a machine the app has not been set up on.
-		if (command === "plugin:store|load") {
-			return SETTINGS;
-		}
-		if (command === "plugin:store|get") {
-			return [null, false];
-		}
-		if (command === "tracks") {
-			return [
-				{ number: 1, sectors: 7500 },
-				{ number: 2, sectors: 9000 },
-			];
-		}
-		if (command === "look_up_disc") {
-			askedAbout.push((payload as { drive: string }).drive);
-			return matches;
-		}
-		if (command === "look_up_artwork") {
-			return null;
-		}
-		if (command === "plugin:dialog|open") {
-			return FOLDER;
-		}
-		if (command === "already_there") {
-			return [];
-		}
-		if (command === "rip_track") {
-			ripped.push((payload as { tags: TrackTags | null }).tags);
+	mockIPC(
+		(command, payload) => {
+			if (command === "drives") {
+				return [DRIVE];
+			}
+			if (command === "drive_name") {
+				return DRIVE_NAME;
+			}
+			// The settings file with nothing in it: no read offset has ever been
+			// kept for this drive, which is a machine the app has not been set up on.
+			if (command === "plugin:store|load") {
+				return SETTINGS;
+			}
+			if (command === "plugin:store|get") {
+				return [null, false];
+			}
+			if (command === "tracks") {
+				return [
+					{ number: 1, sectors: 7500 },
+					{ number: 2, sectors: 9000 },
+				];
+			}
+			if (command === "look_up_disc") {
+				askedAbout.push((payload as { drive: string }).drive);
+				return matches;
+			}
+			if (command === "look_up_artwork") {
+				return null;
+			}
+			if (command === "plugin:dialog|open") {
+				return FOLDER;
+			}
+			if (command === "already_there") {
+				return [];
+			}
+			if (command === "rip_track") {
+				ripped.push((payload as { tags: TrackTags | null }).tags);
 
-			return { file: "", checksums: { v1: 0, v2: 0 } };
-		}
-		if (command === "plugin:notification|is_permission_granted") {
-			return true;
-		}
-		if (command === "plugin:notification|notify") {
-			return null;
-		}
-		throw new Error(`the test did not expect ${command}`);
-	});
+				return { file: "", checksums: { v1: 0, v2: 0 } };
+			}
+			if (command === "plugin:notification|is_permission_granted") {
+				return true;
+			}
+			if (command === "plugin:notification|notify") {
+				return null;
+			}
+			throw new Error(`the test did not expect ${command}`);
+		},
+		{ shouldMockEvents: true },
+	);
 
 	return { askedAbout, ripped };
 }
@@ -102,7 +105,8 @@ async function askToLookUp() {
 	await page.getByRole("button", { name: "Fetch CD details" }).click();
 }
 
-afterEach(() => {
+afterEach(async () => {
+	await cleanup();
 	clearMocks();
 });
 

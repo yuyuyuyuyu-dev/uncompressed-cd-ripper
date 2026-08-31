@@ -11,6 +11,7 @@ import {
 	AGREEMENTS_REQUIRED,
 	type Checksums,
 	commands,
+	events,
 	READS_ALLOWED,
 	type Track,
 	type TrackProgress,
@@ -85,6 +86,19 @@ export function Ripper() {
 	useEffect(() => {
 		look();
 	}, [look]);
+
+	useEffect(() => {
+		const listening = events.drivesChanged.listen(({ payload }) => {
+			setDrives(payload);
+			setDrive((chosen) =>
+				chosen !== undefined && payload.includes(chosen) ? chosen : payload[0],
+			);
+		});
+
+		return () => {
+			listening.then((stop) => stop());
+		};
+	}, []);
 
 	useEffect(() => {
 		// What the last disc was called says nothing about this one, and neither
@@ -181,8 +195,6 @@ export function Ripper() {
 		<section className="flex w-full max-w-xl flex-col gap-4 text-left">
 			<div className="flex items-center gap-2">
 				<h2 className="font-semibold">{t("ripping.heading")}</h2>
-				{/* Until something notices a disc arriving, this is how one put in
-				    after the window opened gets found. */}
 				<Button variant="outline" size="sm" onClick={look} disabled={busy}>
 					{t("ripping.scan")}
 				</Button>

@@ -1,7 +1,7 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
-import { render } from "vitest-browser-react";
+import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 import type { Verdict } from "@/bindings";
 
@@ -34,54 +34,57 @@ function mockBackend({
 	const called: string[] = [];
 	const ripped: number[] = [];
 
-	mockIPC((command, payload) => {
-		called.push(command);
+	mockIPC(
+		(command, payload) => {
+			called.push(command);
 
-		if (command === "drives") {
-			return [DRIVE];
-		}
-		if (command === "tracks") {
-			return tracks.map((number) => ({ number, sectors: 7500 }));
-		}
-		if (command === "drive_name") {
-			return DRIVE_NAME;
-		}
-		if (command === "plugin:store|load") {
-			return SETTINGS;
-		}
-		if (command === "plugin:store|get") {
-			return [null, false];
-		}
-		if (command === "plugin:store|set" || command === "plugin:store|save") {
-			return null;
-		}
-		if (command === "read_offset") {
-			return READ_OFFSET;
-		}
-		if (command === "plugin:dialog|open") {
-			return FOLDER;
-		}
-		if (command === "already_there") {
-			return [];
-		}
-		if (command === "rip_track") {
-			ripped.push((payload as { track: number }).track);
+			if (command === "drives") {
+				return [DRIVE];
+			}
+			if (command === "tracks") {
+				return tracks.map((number) => ({ number, sectors: 7500 }));
+			}
+			if (command === "drive_name") {
+				return DRIVE_NAME;
+			}
+			if (command === "plugin:store|load") {
+				return SETTINGS;
+			}
+			if (command === "plugin:store|get") {
+				return [null, false];
+			}
+			if (command === "plugin:store|set" || command === "plugin:store|save") {
+				return null;
+			}
+			if (command === "read_offset") {
+				return READ_OFFSET;
+			}
+			if (command === "plugin:dialog|open") {
+				return FOLDER;
+			}
+			if (command === "already_there") {
+				return [];
+			}
+			if (command === "rip_track") {
+				ripped.push((payload as { track: number }).track);
 
-			return { file: "", checksums: { v1: 0, v2: 0 } };
-		}
-		if (command === "check_rip") {
-			return confidences.map(
-				(others): Verdict => ({ outcome: "matched", others }),
-			);
-		}
-		if (command === "plugin:notification|is_permission_granted") {
-			return true;
-		}
-		if (command === "plugin:notification|notify") {
-			return null;
-		}
-		throw new Error(`the test did not expect ${command}`);
-	});
+				return { file: "", checksums: { v1: 0, v2: 0 } };
+			}
+			if (command === "check_rip") {
+				return confidences.map(
+					(others): Verdict => ({ outcome: "matched", others }),
+				);
+			}
+			if (command === "plugin:notification|is_permission_granted") {
+				return true;
+			}
+			if (command === "plugin:notification|notify") {
+				return null;
+			}
+			throw new Error(`the test did not expect ${command}`);
+		},
+		{ shouldMockEvents: true },
+	);
 
 	return { called, ripped };
 }
@@ -102,7 +105,8 @@ async function chooseAFolderAndRip() {
 		.click();
 }
 
-afterEach(() => {
+afterEach(async () => {
+	await cleanup();
 	clearMocks();
 });
 

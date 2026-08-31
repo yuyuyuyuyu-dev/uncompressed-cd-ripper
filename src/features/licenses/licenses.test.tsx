@@ -1,7 +1,7 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
-import { render } from "vitest-browser-react";
+import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 
 // What the store plugin hands back for an opened settings file, which nothing
@@ -17,23 +17,27 @@ function entryFor(library: RegExp) {
 // Drawing the whole app asks which drives hold a disc. This case is about the
 // licenses, so the answer is none.
 function mockBackend() {
-	mockIPC((command) => {
-		if (command === "drives") {
-			return [];
-		}
-		// It also reads what it was left set to. Nothing has ever set it, so the
-		// settings file is empty.
-		if (command === "plugin:store|load") {
-			return SETTINGS;
-		}
-		if (command === "plugin:store|get") {
-			return [null, false];
-		}
-		throw new Error(`the test did not expect ${command}`);
-	});
+	mockIPC(
+		(command) => {
+			if (command === "drives") {
+				return [];
+			}
+			// It also reads what it was left set to. Nothing has ever set it, so the
+			// settings file is empty.
+			if (command === "plugin:store|load") {
+				return SETTINGS;
+			}
+			if (command === "plugin:store|get") {
+				return [null, false];
+			}
+			throw new Error(`the test did not expect ${command}`);
+		},
+		{ shouldMockEvents: true },
+	);
 }
 
-afterEach(() => {
+afterEach(async () => {
+	await cleanup();
 	clearMocks();
 });
 

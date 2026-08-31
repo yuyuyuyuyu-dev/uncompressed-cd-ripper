@@ -11,10 +11,12 @@ pub mod ripping;
 // Public so that the example beside it can read what a track came to, as the
 // TypeScript side does.
 pub mod verification;
+pub mod watching;
 
 use std::path::Path;
+use std::thread;
 
-use tauri_specta::{collect_commands, Builder};
+use tauri_specta::{collect_commands, collect_events, Builder, Event};
 
 #[tauri::command]
 #[specta::specta]
@@ -172,6 +174,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         // about a read and what the read does cannot drift apart.
         .constant("AGREEMENTS_REQUIRED", ripping::AGREEMENTS_REQUIRED)
         .constant("READS_ALLOWED", ripping::READS_ALLOWED)
+        .events(collect_events![watching::DrivesChanged])
         .commands(collect_commands![
             environment,
             send_error_report,
@@ -192,6 +195,8 @@ pub fn builder() -> Builder<tauri::Wry> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let builder = builder();
+
     tauri::Builder::default()
         // Left at its defaults, which write to the log directory each of the
         // three platforms keeps one at and hold the file to a size by rotating
@@ -202,7 +207,24 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_store::Builder::new().build())
-        .invoke_handler(builder().invoke_handler())
+        .invoke_handler(builder.invoke_handler())
+        .setup(move |app| {
+            builder.mount_events(app);
+
+            let window = app.handle().clone();
+
+            thread::spawn(move || {
+                if let Err(failure) =
+                    watching::watch(&watching::Drives, ripping::drives, |drives| {
+                        let _ = watching::DrivesChanged(drives).emit(&window);
+                    })
+                {
+                    logging::failed(&failure, &logging::Logger);
+                }
+            });
+
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

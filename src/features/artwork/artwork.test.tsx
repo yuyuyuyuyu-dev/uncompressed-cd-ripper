@@ -1,7 +1,7 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
-import { render } from "vitest-browser-react";
+import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 import type { Album, Artwork, TrackTags } from "@/bindings";
 
@@ -40,67 +40,71 @@ function mockBackend() {
 	const read: string[] = [];
 	const ripped: (TrackTags | null)[] = [];
 
-	mockIPC((command, payload) => {
-		called.push(command);
+	mockIPC(
+		(command, payload) => {
+			called.push(command);
 
-		if (command === "drives") {
-			return [DRIVE];
-		}
-		if (command === "drive_name") {
-			return DRIVE_NAME;
-		}
-		// The settings file with nothing in it: no read offset has ever been
-		// kept for this drive, which is a machine the app has not been set up on.
-		if (command === "plugin:store|load") {
-			return SETTINGS;
-		}
-		if (command === "plugin:store|get") {
-			return [null, false];
-		}
-		if (command === "tracks") {
-			return [{ number: 1, sectors: 7500 }];
-		}
-		if (command === "look_up_disc") {
-			return [ALBUM];
-		}
-		if (command === "look_up_artwork") {
-			askedFor.push((payload as { release: string }).release);
+			if (command === "drives") {
+				return [DRIVE];
+			}
+			if (command === "drive_name") {
+				return DRIVE_NAME;
+			}
+			// The settings file with nothing in it: no read offset has ever been
+			// kept for this drive, which is a machine the app has not been set up on.
+			if (command === "plugin:store|load") {
+				return SETTINGS;
+			}
+			if (command === "plugin:store|get") {
+				return [null, false];
+			}
+			if (command === "tracks") {
+				return [{ number: 1, sectors: 7500 }];
+			}
+			if (command === "look_up_disc") {
+				return [ALBUM];
+			}
+			if (command === "look_up_artwork") {
+				askedFor.push((payload as { release: string }).release);
 
-			return ARTWORK;
-		}
-		if (command === "plugin:dialog|open") {
-			// One picker serves both buttons, and only what it was opened with
-			// tells them apart.
-			const { options } = payload as { options: { directory?: boolean } };
+				return ARTWORK;
+			}
+			if (command === "plugin:dialog|open") {
+				// One picker serves both buttons, and only what it was opened with
+				// tells them apart.
+				const { options } = payload as { options: { directory?: boolean } };
 
-			return options.directory === true ? FOLDER : CHOSEN;
-		}
-		if (command === "read_artwork") {
-			read.push((payload as { path: string }).path);
+				return options.directory === true ? FOLDER : CHOSEN;
+			}
+			if (command === "read_artwork") {
+				read.push((payload as { path: string }).path);
 
-			return ARTWORK;
-		}
-		if (command === "already_there") {
-			return [];
-		}
-		if (command === "rip_track") {
-			ripped.push((payload as { tags: TrackTags | null }).tags);
+				return ARTWORK;
+			}
+			if (command === "already_there") {
+				return [];
+			}
+			if (command === "rip_track") {
+				ripped.push((payload as { tags: TrackTags | null }).tags);
 
-			return { file: "", checksums: { v1: 0, v2: 0 } };
-		}
-		if (command === "plugin:notification|is_permission_granted") {
-			return true;
-		}
-		if (command === "plugin:notification|notify") {
-			return null;
-		}
-		throw new Error(`the test did not expect ${command}`);
-	});
+				return { file: "", checksums: { v1: 0, v2: 0 } };
+			}
+			if (command === "plugin:notification|is_permission_granted") {
+				return true;
+			}
+			if (command === "plugin:notification|notify") {
+				return null;
+			}
+			throw new Error(`the test did not expect ${command}`);
+		},
+		{ shouldMockEvents: true },
+	);
 
 	return { called, askedFor, read, ripped };
 }
 
-afterEach(() => {
+afterEach(async () => {
+	await cleanup();
 	clearMocks();
 });
 

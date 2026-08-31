@@ -1,0 +1,10 @@
+name: Setup udev
+description: Installs the library the drives are watched through on Ubuntu runners.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev
