@@ -37,11 +37,9 @@ jobs:
         if: runner.os == 'Linux'
       - uses: ./.github/actions/setup-udev
         if: runner.os == 'Linux'
-      - name: Carry the CD libraries inside the app rather than pointing at Homebrew
+      - name: Install the CD libraries the app is built against
         if: runner.os == 'macOS'
-        run: |
-          brew install libcdio libcdio-paranoia
-          echo "SYSTEM_DEPS_LINK=static" >> "$GITHUB_ENV"
+        run: brew install libcdio libcdio-paranoia
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
