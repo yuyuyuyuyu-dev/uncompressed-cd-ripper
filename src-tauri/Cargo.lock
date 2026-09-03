@@ -4719,7 +4719,7 @@ dependencies = [
 
 [[package]]
 name = "uncompressed-cd-ripper"
-version = "0.0.1"
+version = "0.0.0-SNAPSHOT"
 dependencies = [
  "base64 0.23.1",
  "cdtoc",

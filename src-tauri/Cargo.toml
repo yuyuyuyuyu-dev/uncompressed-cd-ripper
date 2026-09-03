@@ -1,6 +1,6 @@
 [package]
 name = "uncompressed-cd-ripper"
-version = "0.0.1"
+version = "0.0.0-SNAPSHOT"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
