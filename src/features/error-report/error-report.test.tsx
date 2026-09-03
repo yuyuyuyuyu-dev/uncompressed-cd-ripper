@@ -90,6 +90,9 @@ function mockBackendFailingToRip() {
 			if (command === "plugin:store|set" || command === "plugin:store|save") {
 				return null;
 			}
+			if (command === "plugin:updater|check") {
+				return null;
+			}
 			if (command === "plugin:dialog|open") {
 				return FOLDER;
 			}

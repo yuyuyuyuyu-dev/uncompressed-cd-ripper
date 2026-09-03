@@ -80,4 +80,12 @@ export const en = {
 		sentTitle: "Report sent",
 		sentBody: "Thank you.",
 	},
+	selfUpdate: {
+		title: "Update this app?",
+		body: "Version {{version}} has been released, and this app is version {{current}}.\nUpdating downloads it from GitHub and restarts the app.",
+		notes: "What changed",
+		downloading: "Downloading the update",
+		later: "Later",
+		update: "Update",
+	},
 };

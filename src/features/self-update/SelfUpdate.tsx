@@ -1,0 +1,128 @@
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check, type Update } from "@tauri-apps/plugin-updater";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { commands } from "@/bindings";
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import {
+	Progress,
+	ProgressLabel,
+	ProgressValue,
+} from "@/components/ui/progress";
+import { describe } from "../error-report/error-report";
+
+type Downloading = {
+	received: number;
+	total?: number;
+};
+
+export function SelfUpdate() {
+	const [update, setUpdate] = useState<Update>();
+	const [downloading, setDownloading] = useState<Downloading>();
+	const { t } = useTranslation();
+
+	useEffect(() => {
+		check()
+			.then((found) => setUpdate(found ?? undefined))
+			.catch((failure) => {
+				const { type, value } = describe(failure);
+
+				commands.logError(`${type}: ${value}`).catch(() => {});
+			});
+	}, []);
+
+	const install = async () => {
+		if (update === undefined) {
+			return;
+		}
+
+		setDownloading({ received: 0 });
+
+		await update.downloadAndInstall((step) => {
+			if (step.event === "Started") {
+				setDownloading({ received: 0, total: step.data.contentLength });
+			}
+
+			if (step.event === "Progress") {
+				setDownloading((soFar) =>
+					soFar === undefined
+						? soFar
+						: { ...soFar, received: soFar.received + step.data.chunkLength },
+				);
+			}
+		});
+
+		await relaunch();
+	};
+
+	const notes = update?.body ?? "";
+
+	return (
+		<Dialog
+			open={update !== undefined}
+			onOpenChange={(open) => {
+				if (!open && downloading === undefined) {
+					setUpdate(undefined);
+				}
+			}}
+		>
+			<DialogContent
+				className="flex max-h-[85vh] flex-col"
+				showCloseButton={downloading === undefined}
+			>
+				<DialogHeader>
+					<DialogTitle>{t("selfUpdate.title")}</DialogTitle>
+					<DialogDescription className="whitespace-pre-line">
+						{t("selfUpdate.body", {
+							version: update?.version,
+							current: update?.currentVersion,
+						})}
+					</DialogDescription>
+				</DialogHeader>
+
+				{notes !== "" && (
+					<section
+						aria-label={t("selfUpdate.notes")}
+						className="min-h-0 overflow-y-auto rounded-lg border bg-muted p-3"
+					>
+						<p className="whitespace-pre-line text-sm">{notes}</p>
+					</section>
+				)}
+
+				{downloading !== undefined && (
+					<Progress
+						value={
+							downloading.total === undefined
+								? null
+								: (downloading.received / downloading.total) * 100
+						}
+					>
+						<ProgressLabel>{t("selfUpdate.downloading")}</ProgressLabel>
+						<ProgressValue />
+					</Progress>
+				)}
+
+				<DialogFooter>
+					<Button
+						variant="outline"
+						onClick={() => setUpdate(undefined)}
+						disabled={downloading !== undefined}
+					>
+						{t("selfUpdate.later")}
+					</Button>
+					<Button onClick={install} disabled={downloading !== undefined}>
+						{t("selfUpdate.update")}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}

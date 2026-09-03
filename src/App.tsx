@@ -4,6 +4,7 @@ import { Button } from "./components/ui/button";
 import "./features/language/i18n";
 import { Licenses } from "./features/licenses/Licenses";
 import { Ripper } from "./features/ripping/Ripper";
+import { SelfUpdate } from "./features/self-update/SelfUpdate";
 import "./index.css";
 
 function App() {
@@ -43,6 +44,8 @@ function App() {
 			<main className="flex flex-col items-center gap-4 py-[10vh] text-center">
 				{screen === "ripping" ? <Ripper /> : <Licenses />}
 			</main>
+
+			<SelfUpdate />
 		</>
 	);
 }
