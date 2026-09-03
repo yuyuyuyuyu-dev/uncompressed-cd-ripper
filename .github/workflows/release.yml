@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  installer:
+    name: Installer (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macOS
+            runner: macos-latest
+            args: ""
+          - platform: Linux
+            runner: ubuntu-22.04
+            args: "--bundles appimage"
+          - platform: Windows
+            runner: windows-latest
+            args: "--bundles nsis"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - uses: ./.github/actions/setup-tauri-linux
+        if: runner.os == 'Linux'
+      - uses: ./.github/actions/setup-libcdio
+        if: runner.os == 'Linux'
+      - uses: ./.github/actions/setup-udev
+        if: runner.os == 'Linux'
+      - name: Install the CD libraries the app is built against
+        if: runner.os == 'macOS'
+        run: brew install libcdio libcdio-paranoia
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
+      - run: pnpm install --frozen-lockfile
+
+      - name: Take the version from the tag
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          node --eval '
+            const fs = require("node:fs");
+            const path = "src-tauri/Cargo.toml";
+            const placeholder = "0.0.0-SNAPSHOT";
+            const manifest = fs.readFileSync(path, "utf8");
+            if (!manifest.includes(placeholder)) {
+              throw new Error(path + " holds no " + placeholder + " to replace");
+            }
+            const version = process.env.GITHUB_REF_NAME.replace(/^v/, "");
+            fs.writeFileSync(path, manifest.replaceAll(placeholder, version));
+          '
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        with:
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || null }}
+          releaseName: __VERSION__
+          releaseDraft: true
+          uploadWorkflowArtifacts: true
+          args: ${{ matrix.args }}
