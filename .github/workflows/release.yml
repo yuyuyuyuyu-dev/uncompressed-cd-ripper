@@ -53,8 +53,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         with:
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-          releaseName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || null }}
+          releaseName: ${{ github.ref_type == 'tag' && '__VERSION__' || null }}
           releaseDraft: true
           uploadWorkflowArtifacts: true
           args: ${{ matrix.args }}
