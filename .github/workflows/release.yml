@@ -54,7 +54,7 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         with:
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || null }}
-          releaseName: ${{ github.ref_type == 'tag' && '__VERSION__' || null }}
+          releaseName: __VERSION__
           releaseDraft: true
           uploadWorkflowArtifacts: true
           args: ${{ matrix.args }}
