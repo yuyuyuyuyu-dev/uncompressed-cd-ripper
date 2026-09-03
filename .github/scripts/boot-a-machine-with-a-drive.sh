@@ -74,6 +74,7 @@ git archive HEAD | ssh "${ssh_options[@]}" "${ssh_target[@]}" 'mkdir -p app && t
 # window is ever opened.
 ssh "${ssh_options[@]}" "${ssh_target[@]}" 'sudo bash -euxo pipefail -s' <<'PROVISION'
 export DEBIAN_FRONTEND=noninteractive
+printf 'Acquire::Retries "10";\n' > /etc/apt/apt.conf.d/99-retries
 apt-get update
 # Before the module, and for the running kernel rather than the newest, or
 # dkms builds it for a kernel this machine is not on.
