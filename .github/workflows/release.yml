@@ -48,6 +48,18 @@ jobs:
           tool: cargo-about
       - run: pnpm install --frozen-lockfile
 
+      - name: Take the version from the tag
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          node --eval '
+            const fs = require("node:fs");
+            const path = "src-tauri/Cargo.toml";
+            const version = process.env.GITHUB_REF_NAME.replace(/^v/, "");
+            const manifest = fs.readFileSync(path, "utf8");
+            fs.writeFileSync(path, manifest.replace(/^version = ".*"$/m, "version = \"" + version + "\""));
+          '
+
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

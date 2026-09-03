@@ -1,7 +1,6 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
 	"productName": "Uncompressed CD Ripper",
-	"version": "0.0.1",
 	"identifier": "dev.yuyuyuyuyu.uncompressed-cd-ripper",
 	"build": {
 		"beforeDevCommand": "pnpm dev",
