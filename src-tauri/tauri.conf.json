@@ -20,9 +20,18 @@
 			"csp": null
 		}
 	},
+	"plugins": {
+		"updater": {
+			"endpoints": [
+				"https://github.com/yuyuyuyuyu-dev/uncompressed-cd-ripper/releases/latest/download/latest.json"
+			],
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYxQUQ1MjBEMDZGMzE3NEYKUldSUEYvTUdEVkt0OGVHVUJMbHVQRldwZml0WCtBT0lDU0xaN0tPbjNtNjdZdFFrVHdKY05ETDEK"
+		}
+	},
 	"bundle": {
 		"active": true,
 		"targets": "all",
+		"createUpdaterArtifacts": true,
 		"macOS": {
 			"signingIdentity": "-"
 		},
