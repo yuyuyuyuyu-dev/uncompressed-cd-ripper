@@ -86,7 +86,7 @@ export const ja: typeof en = {
 	selfUpdate: {
 		title: "アプリを更新しますか？",
 		body: "バージョン {{version}} が公開されています。このアプリのバージョンは {{current}} です。\n更新するとGitHubからダウンロードし、アプリを再起動します。",
-		notes: "変更点",
+		changes: "変更点を見る",
 		downloading: "更新をダウンロード中",
 		later: "後で",
 		update: "更新する",

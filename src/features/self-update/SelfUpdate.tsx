@@ -1,6 +1,7 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,9 @@ import {
 } from "@/components/ui/progress";
 import { describe } from "../error-report/error-report";
 
+const RELEASES =
+	"https://github.com/yuyuyuyuyu-dev/uncompressed-cd-ripper/releases";
+
 type Downloading = {
 	received: number;
 	total?: number;
@@ -27,6 +31,7 @@ type Downloading = {
 export function SelfUpdate() {
 	const [update, setUpdate] = useState<Update>();
 	const [downloading, setDownloading] = useState<Downloading>();
+	const later = useRef<HTMLButtonElement>(null);
 	const { t } = useTranslation();
 
 	useEffect(() => {
@@ -63,8 +68,6 @@ export function SelfUpdate() {
 		await relaunch();
 	};
 
-	const notes = update?.body ?? "";
-
 	return (
 		<Dialog
 			open={update !== undefined}
@@ -76,6 +79,7 @@ export function SelfUpdate() {
 		>
 			<DialogContent
 				className="flex max-h-[85vh] flex-col"
+				initialFocus={later}
 				showCloseButton={downloading === undefined}
 			>
 				<DialogHeader>
@@ -87,15 +91,6 @@ export function SelfUpdate() {
 						})}
 					</DialogDescription>
 				</DialogHeader>
-
-				{notes !== "" && (
-					<section
-						aria-label={t("selfUpdate.notes")}
-						className="min-h-0 overflow-y-auto rounded-lg border bg-muted p-3"
-					>
-						<p className="whitespace-pre-line text-sm">{notes}</p>
-					</section>
-				)}
 
 				{downloading !== undefined && (
 					<Progress
@@ -110,8 +105,17 @@ export function SelfUpdate() {
 					</Progress>
 				)}
 
-				<DialogFooter>
+				<DialogFooter className="items-center">
 					<Button
+						variant="ghost"
+						size="sm"
+						className="mr-auto"
+						onClick={() => openUrl(RELEASES)}
+					>
+						{t("selfUpdate.changes")}
+					</Button>
+					<Button
+						ref={later}
 						variant="outline"
 						onClick={() => setUpdate(undefined)}
 						disabled={downloading !== undefined}
