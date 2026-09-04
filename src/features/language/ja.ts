@@ -85,10 +85,10 @@ export const ja: typeof en = {
 	},
 	selfUpdate: {
 		title: "アプリを更新しますか？",
-		body: "バージョン {{version}} が公開されています。このアプリのバージョンは {{current}} です。\n更新するとGitHubからダウンロードし、アプリを再起動します。",
+		body: "新しいバージョンが公開されています。\nアプリを再起動して更新しますか？",
 		changes: "変更点を見る",
 		downloading: "更新をダウンロード中",
 		later: "後で",
-		update: "更新する",
+		update: "更新",
 	},
 };

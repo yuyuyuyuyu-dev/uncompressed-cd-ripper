@@ -82,7 +82,7 @@ export const en = {
 	},
 	selfUpdate: {
 		title: "Update this app?",
-		body: "Version {{version}} has been released, and this app is version {{current}}.\nUpdating downloads it from GitHub and restarts the app.",
+		body: "A new version has been released.\nRestart the app to update?",
 		changes: "See what changed",
 		downloading: "Downloading the update",
 		later: "Later",

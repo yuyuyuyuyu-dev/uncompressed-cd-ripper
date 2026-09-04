@@ -1,6 +1,7 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
+import { ExternalLink } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
@@ -85,10 +86,7 @@ export function SelfUpdate() {
 				<DialogHeader>
 					<DialogTitle>{t("selfUpdate.title")}</DialogTitle>
 					<DialogDescription className="whitespace-pre-line">
-						{t("selfUpdate.body", {
-							version: update?.version,
-							current: update?.currentVersion,
-						})}
+						{t("selfUpdate.body")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -113,6 +111,7 @@ export function SelfUpdate() {
 						onClick={() => openUrl(RELEASES)}
 					>
 						{t("selfUpdate.changes")}
+						<ExternalLink />
 					</Button>
 					<Button
 						ref={later}
