@@ -1,19 +1,12 @@
 use super::PNG;
 
-// What a picture block states about the image beside carrying the image
-// itself. A player draws the artwork from the image; these are what a tag
-// editor can show without opening it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Dimensions {
     pub width: u32,
     pub height: u32,
-    // Every channel counted, so a colour photograph is twenty-four.
     pub depth: u32,
 }
 
-// Zero throughout for anything else, which is what the fields hold for an
-// image that was not measured. Only the two the archive serves are read: a
-// JPEG for every copy it makes itself, and a PNG for a scan uploaded as one.
 pub fn measured(media_type: &str, image: &[u8]) -> Dimensions {
     match media_type {
         "image/jpeg" => jpeg(image),
@@ -22,8 +15,6 @@ pub fn measured(media_type: &str, image: &[u8]) -> Dimensions {
     }
 }
 
-// A PNG says it is one, and its first chunk is the header: the size, how many
-// bits a channel holds, and which channels there are.
 fn png(image: &[u8]) -> Dimensions {
     if !image.starts_with(&PNG) || image.get(12..16) != Some(b"IHDR") {
         return Dimensions::default();
@@ -38,10 +29,6 @@ fn png(image: &[u8]) -> Dimensions {
         return Dimensions::default();
     };
 
-    // Grey, grey with an alpha channel, three colours, or three with an alpha
-    // channel. An image drawn from a palette is left unmeasured instead: the
-    // block would have to state how large the palette is as well, and the
-    // archive serves no such image.
     let channels = match colour {
         0 => 1,
         2 => 3,
@@ -57,25 +44,14 @@ fn png(image: &[u8]) -> Dimensions {
     }
 }
 
-// The marks that begin a frame. Three numbers in the run are missing because
-// they mark something else: a table of Huffman codes, one the format reserved,
-// and a table for arithmetic coding.
 const FRAMES: [u8; 13] = [
     0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF,
 ];
 
-// The mark that ends the segments and begins the compressed image, which is
-// not laid out in segments and is not searched.
 const SCAN: u8 = 0xDA;
 
-// The marks that carry nothing after them: the start and the end of the image,
-// and the ones that break the compressed part into pieces.
 const ALONE: std::ops::RangeInclusive<u8> = 0xD0..=0xD9;
 
-// A JPEG is a run of segments, each marked and most of them measured, and the
-// one that describes the frame carries the size. Which mark that segment
-// begins with depends on how the image is coded, and all of them lay the frame
-// out the same way, so any of them will do.
 fn jpeg(image: &[u8]) -> Dimensions {
     if !image.starts_with(&[0xFF, 0xD8]) {
         return Dimensions::default();
@@ -84,7 +60,6 @@ fn jpeg(image: &[u8]) -> Dimensions {
     let mut at = 2;
 
     loop {
-        // A mark is one or more 0xFF and then the byte that names it.
         while image.get(at) == Some(&0xFF) {
             at += 1;
         }

@@ -3,11 +3,6 @@ use std::cell::RefCell;
 use super::*;
 use crate::ripping::{Disc, ReportedTrack};
 
-// A real disc, and the one cdtoc's own documentation works through: four
-// tracks, and AccurateRip has an answer for it. Where each of them begins and
-// ends is given as libcdio gives it, counting from the first track, so that
-// working the table of contents out from a disc is part of what is stated
-// here rather than something written down already done.
 const TRACKS: [(i32, i32); 4] = [(0, 11412), (11413, 25023), (25024, 45712), (45713, 55219)];
 
 struct FakeDisc;
@@ -26,7 +21,6 @@ impl Disc for FakeDisc {
             .collect())
     }
 
-    // Never reached: nothing here reads a track.
     fn read_track<R: FnMut(&[i16])>(
         &self,
         _number: u8,
@@ -37,17 +31,10 @@ impl Disc for FakeDisc {
     }
 }
 
-// The thirteen bytes every block of an answer begins with: how many audio
-// tracks the disc has, and then the three numbers AccurateRip knows it by,
-// each of them little endian.
 const DISC: [u8; 13] = [
     4, 0x9a, 0x18, 0x02, 0x00, 0x33, 0x7f, 0x08, 0x00, 0x04, 0xe0, 0x02, 0x1f,
 ];
 
-// One block of an answer, which is one set of submissions that agreed with
-// each other. Nine bytes a track: how many submissions came out this way, the
-// checksum they came out with, and the checksum AccurateRip finds pressing
-// offsets with, which nothing here reads.
 fn block(confidence: u8, checksums: [u32; 4]) -> Vec<u8> {
     let mut block = DISC.to_vec();
 
@@ -60,9 +47,6 @@ fn block(confidence: u8, checksums: [u32; 4]) -> Vec<u8> {
     block
 }
 
-// The one part of asking AccurateRip that a test cannot have, and therefore as
-// little as it can be. It writes down every address it is asked for, so that
-// which disc was asked about is stated alongside what came back.
 struct FakeAccurateRip {
     answer: Vec<u8>,
     asked: RefCell<Vec<String>>,
@@ -79,8 +63,6 @@ impl VerificationApi for FakeAccurateRip {
 #[test]
 fn should_fetch_the_accuraterip_confidence_for_each_ripped_track() {
     // Arrange
-    // Two blocks, as a disc that has been pressed more than once comes back:
-    // five submissions arrived at one set of checksums and three at another.
     let mut answer = block(5, [0xf32b_60a7, 0xa993_ca05, 0x4f15_db9a, 0x830a_143a]);
     answer.extend(block(
         3,
@@ -92,11 +74,6 @@ fn should_fetch_the_accuraterip_confidence_for_each_ripped_track() {
         asked: RefCell::default(),
     };
 
-    // One track out of each block, one out of neither, and one out of the
-    // second again, so that a confidence landing on the wrong track shows up.
-    // The second track is only in the block of five, and only under the older
-    // of the two ways a track is counted: a rip that asked about the newer way
-    // alone would come back with nothing for it.
     let ours = vec![
         Checksums {
             v1: 0,
@@ -114,18 +91,11 @@ fn should_fetch_the_accuraterip_confidence_for_each_ripped_track() {
     ];
 
     // Act
-    // From the disc rather than from a table of contents written out by hand,
-    // because that is where the command behind the window starts: an
-    // identifier worked out from the wrong sectors would ask about the wrong
-    // disc, and nothing further along would notice.
     let toc = crate::ripping::table_of_contents(&FakeDisc).expect("the fake disc answers");
     let verdicts =
         verify(&toc, &ours, &accuraterip, &crate::logging::Logger).expect("AccurateRip answered");
 
     // Assert
-    // The address is written out rather than worked out from the tracks above,
-    // so that a change to how the identifier is put together fails here rather
-    // than quietly asking about another disc.
     assert_eq!(
         accuraterip.asked.into_inner(),
         vec![

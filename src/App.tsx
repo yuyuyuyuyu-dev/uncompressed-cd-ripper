@@ -12,8 +12,6 @@ function App() {
 
 	return (
 		<>
-			{/* Stuck to the top, because the license screen runs to thousands of
-			    lines and the way out of it has to stay in reach from all of them. */}
 			<header className="sticky top-0 z-10 flex items-center gap-2 border-b bg-background px-3 py-2">
 				<div className="flex flex-1 justify-start">
 					{screen === "licenses" && (

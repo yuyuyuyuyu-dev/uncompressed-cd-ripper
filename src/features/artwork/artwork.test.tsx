@@ -8,8 +8,6 @@ import type { Album, Artwork, TrackTags } from "@/bindings";
 const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
 const DRIVE_NAME = "MARINA BLUE  CD-RW MB-1";
-// What the store plugin hands back for an opened settings file, which nothing
-// here looks at beyond passing it back.
 const SETTINGS = 1;
 const CHOSEN = "/Users/someone/Pictures/artwork.png";
 
@@ -22,18 +20,11 @@ const ALBUM: Album = {
 	tracks: [{ number: 1, title: "Harbour Lights", artist: "Marina Blue" }],
 };
 
-// A picture rather than something standing in for one: one red pixel, which is
-// about the smallest a PNG comes.
 const ARTWORK: Artwork = {
 	mediaType: "image/png",
 	data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
 };
 
-// The drive, the disc, the archive, the picker and the folder are all across
-// the IPC. Every command that crosses it is collected, and with them every
-// release the archive was asked about, every file the backend was asked to
-// read, and the tags each track was ripped with, so that the test can say what
-// was asked for and what ended up in the files.
 function mockBackend() {
 	const called: string[] = [];
 	const askedFor: string[] = [];
@@ -50,8 +41,6 @@ function mockBackend() {
 			if (command === "drive_name") {
 				return DRIVE_NAME;
 			}
-			// The settings file with nothing in it: no read offset has ever been
-			// kept for this drive, which is a machine the app has not been set up on.
 			if (command === "plugin:store|load") {
 				return SETTINGS;
 			}
@@ -70,8 +59,6 @@ function mockBackend() {
 				return ARTWORK;
 			}
 			if (command === "plugin:dialog|open") {
-				// One picker serves both buttons, and only what it was opened with
-				// tells them apart.
 				const { options } = payload as { options: { directory?: boolean } };
 
 				return options.directory === true ? FOLDER : CHOSEN;

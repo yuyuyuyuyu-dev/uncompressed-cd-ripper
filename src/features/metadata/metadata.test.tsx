@@ -8,13 +8,8 @@ import type { Album, TrackTags } from "@/bindings";
 const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
 const DRIVE_NAME = "MARINA BLUE  CD-RW MB-1";
-// What the store plugin hands back for an opened settings file, which nothing
-// here looks at beyond passing it back.
 const SETTINGS = 1;
 
-// Two pressings of one record, which is what a disc matching more than once
-// usually means. They agree on everything the artwork shows, so the year and the
-// country are all there is to tell them apart.
 const BRITISH: Album = {
 	id: "8f468b26-4d5f-4c2d-9e5d-3f1c2b7a9e01",
 	title: "Sea Change",
@@ -38,9 +33,6 @@ const JAPANESE: Album = {
 	],
 };
 
-// The drive, the disc, the folder and the server are all across the IPC. What
-// crosses it is collected, so that a test can say what was sent and what was
-// not.
 function mockBackend({ matches }: { matches: Album[] }) {
 	const askedAbout: string[] = [];
 	const ripped: (TrackTags | null)[] = [];
@@ -53,8 +45,6 @@ function mockBackend({ matches }: { matches: Album[] }) {
 			if (command === "drive_name") {
 				return DRIVE_NAME;
 			}
-			// The settings file with nothing in it: no read offset has ever been
-			// kept for this drive, which is a machine the app has not been set up on.
 			if (command === "plugin:store|load") {
 				return SETTINGS;
 			}
@@ -99,8 +89,6 @@ function mockBackend({ matches }: { matches: Album[] }) {
 	return { askedAbout, ripped };
 }
 
-// Nothing is sent until this is pressed, and pressing it only brings up the
-// question. Both clicks are the act of looking a disc up.
 async function askToLookUp() {
 	await page.getByRole("button", { name: "Fetch CD details" }).click();
 }

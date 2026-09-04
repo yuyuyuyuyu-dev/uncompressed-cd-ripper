@@ -2,8 +2,6 @@ use super::{Answer, Failed, Http};
 
 pub struct Ureq;
 
-// MusicBrainz and the archive it runs both ask every program using them to say
-// what it is, and turn away the ones that will not.
 const AGENT: &str = concat!(
     env!("CARGO_PKG_NAME"),
     "/",
@@ -16,8 +14,6 @@ impl Http for Ureq {
         let mut response = ureq::get(url)
             .header("User-Agent", AGENT)
             .config()
-            // A status is something to be handed on rather than something to
-            // fail on: one of them is an answer.
             .http_status_as_error(false)
             .build()
             .call()

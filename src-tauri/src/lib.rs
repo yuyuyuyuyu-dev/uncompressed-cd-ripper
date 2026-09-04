@@ -1,15 +1,8 @@
-// Public so that the example beside it can put artwork into a rip, as the
-// TypeScript side does.
 pub mod artwork;
 mod error_report;
-// Public so that the example beside it can say where a line about a rip goes,
-// as this side does.
 pub mod logging;
 mod metadata;
-// Public so that the example beside it can reach a rip without a window.
 pub mod ripping;
-// Public so that the example beside it can read what a track came to, as the
-// TypeScript side does.
 pub mod verification;
 pub mod watching;
 
@@ -39,8 +32,6 @@ fn already_there(destination: String, tracks: Vec<ripping::TrackFile>) -> Vec<St
     ripping::already_there(Path::new(&destination), &tracks, &logging::Logger)
 }
 
-// Reaching a server takes long enough to hold the window still, so this is
-// handed to a worker thread as well.
 #[tauri::command(async)]
 #[specta::specta]
 fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
@@ -49,8 +40,6 @@ fn look_up_disc(drive: String) -> Result<Vec<metadata::Album>, String> {
     metadata::look_up(&toc, &metadata::MusicBrainz, &logging::Logger)
 }
 
-// The album artwork comes from another server, and waiting on it holds the window
-// still just as the lookup does.
 #[tauri::command(async)]
 #[specta::specta]
 fn look_up_artwork(release: String) -> Result<Option<artwork::Artwork>, String> {
@@ -63,17 +52,12 @@ fn read_artwork(path: String) -> Result<artwork::Artwork, String> {
     artwork::chosen(Path::new(&path))
 }
 
-// What the drive calls itself, which is what a read offset is kept under: a
-// device path is whatever the operating system handed out this time, and the
-// offset belongs to the drive.
 #[tauri::command]
 #[specta::specta]
 fn drive_name(drive: String) -> Result<String, String> {
     Ok(ripping::Drive::open(&drive)?.hardware()?.to_string())
 }
 
-// AccurateRip's list of drive read offsets is a third of a megabyte, so this
-// waits on the network as the lookups do.
 #[tauri::command(async)]
 #[specta::specta]
 fn read_offset(drive: String) -> Result<Option<i32>, String> {
@@ -86,8 +70,6 @@ fn read_offset(drive: String) -> Result<Option<i32>, String> {
     )
 }
 
-// Asked once the whole disc is read rather than track by track, because one
-// answer covers the disc and asking per track would fetch it again each time.
 #[tauri::command(async)]
 #[specta::specta]
 fn check_rip(
@@ -104,19 +86,13 @@ fn check_rip(
     )
 }
 
-// Reading a track blocks for minutes, so it is handed to a worker thread.
 #[tauri::command(async)]
 #[specta::specta]
 fn rip_track(
     drive: String,
     track: u8,
     destination: String,
-    // Nothing where the disc was never named, by a lookup or by hand. The file
-    // is then written as it always was.
     tags: Option<ripping::TrackTags>,
-    // The drive's own read offset, which the window looked up before it began.
-    // Zero where AccurateRip has never been told about this drive, which reads
-    // the track exactly as the drive hands it over.
     offset: i32,
     progress: tauri::ipc::Channel<ripping::TrackProgress>,
 ) -> Result<ripping::Ripped, String> {
@@ -129,7 +105,6 @@ fn rip_track(
         &ripping::Flac,
         &logging::Logger,
         |so_far| {
-            // Only fails once the window has gone, which the read does not care about.
             let _ = progress.send(so_far);
         },
     )
@@ -141,27 +116,18 @@ fn environment() -> error_report::Environment {
     error_report::Environment::current()
 }
 
-// What the window caught, for the log alone. The window sends this as well as
-// putting a notification on screen, because a machine nobody can reach leaves
-// nothing else behind about a failure nobody reported.
 #[tauri::command]
 #[specta::specta]
 fn log_error(error: String) {
     logging::failed(&error, &logging::Logger);
 }
 
-// Asked for the moment an error is caught rather than when the report is
-// built, so that a report says what the app was doing when it failed and not
-// what it did while the notification sat on screen.
 #[tauri::command]
 #[specta::specta]
 fn breadcrumbs() -> Vec<logging::Breadcrumb> {
     logging::breadcrumbs()
 }
 
-// Taking the whole report as an argument is what stops anything being added
-// to it here: there is no field to add without changing the type the frontend
-// was generated from.
 #[tauri::command]
 #[specta::specta]
 fn send_error_report(report: error_report::ErrorReport) -> Result<(), String> {
@@ -170,8 +136,6 @@ fn send_error_report(report: error_report::ErrorReport) -> Result<(), String> {
 
 pub fn builder() -> Builder<tauri::Wry> {
     Builder::new()
-        // Said on this side alone, so that what the window tells the user
-        // about a read and what the read does cannot drift apart.
         .constant("AGREEMENTS_REQUIRED", ripping::AGREEMENTS_REQUIRED)
         .constant("READS_ALLOWED", ripping::READS_ALLOWED)
         .events(collect_events![watching::DrivesChanged])
@@ -198,10 +162,6 @@ pub fn run() {
     let builder = builder();
 
     tauri::Builder::default()
-        // Left at its defaults, which write to the log directory each of the
-        // three platforms keeps one at and hold the file to a size by rotating
-        // it. Where that directory is on each platform is exactly the part
-        // that would be got wrong by hand.
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())

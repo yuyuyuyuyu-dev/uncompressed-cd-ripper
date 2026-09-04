@@ -2,8 +2,6 @@ use std::cell::RefCell;
 
 use super::*;
 
-// A picture rather than something standing in for one: one red pixel, which is
-// about the smallest a PNG comes.
 const ARTWORK: [u8; 69] = [
     0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
     0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
@@ -12,15 +10,11 @@ const ARTWORK: [u8; 69] = [
     0x44, 0xAE, 0x42, 0x60, 0x82,
 ];
 
-// The same artwork written the way it crosses to the TypeScript side.
 const WRITTEN: &str =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
 
 const OK: u16 = 200;
 
-// The archive is across the internet, so the address it was reached at is
-// kept: a picture is only the right one for having been asked for under the
-// release the disc turned out to be.
 #[derive(Default)]
 struct FakeArchive {
     asked: RefCell<String>,

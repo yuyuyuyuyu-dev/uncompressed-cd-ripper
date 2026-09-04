@@ -1,8 +1,5 @@
 use super::*;
 
-// The table of contents MusicBrainz works through on its own page about how a
-// disc is identified, and the identifier it arrives at. Taking their example
-// rather than inventing one means the answer this is held against is theirs.
 const DISC_ID: &str = "49HHV7Eb8UKF3aQiNmu1GR8vKTY-";
 
 fn toc() -> TableOfContents {
@@ -25,8 +22,6 @@ impl MetadataApi for FakeApi {
     }
 }
 
-// One track credited away from the rest, which is what a disc has to be able
-// to say: the album is one artist's and a track on it is not.
 fn tracks() -> Vec<TitledTrack> {
     [
         ("Harbour Lights", "Marina Blue"),

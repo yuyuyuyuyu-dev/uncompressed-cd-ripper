@@ -22,16 +22,9 @@ const _: () = assert!(SAMPLES_PER_SECTOR == CDIO_CD_FRAMESIZE_RAW as usize / siz
 pub fn holding_an_audio_disc() -> Vec<String> {
     let mut devices = Vec::new();
 
-    // SAFETY: a null search list asks libcdio to scan for itself, and the list
-    // it returns is owned by libcdio until it is handed back below.
     unsafe {
-        let list = cdio_get_devices_with_cap(
-            ptr::null_mut(),
-            cdio_fs_t_CDIO_FS_AUDIO as c_int,
-            // All of the capabilities asked for rather than any, so an empty
-            // drive is not a match.
-            false,
-        );
+        let list =
+            cdio_get_devices_with_cap(ptr::null_mut(), cdio_fs_t_CDIO_FS_AUDIO as c_int, false);
 
         if list.is_null() {
             return devices;
@@ -58,8 +51,6 @@ impl Drive {
         let device = CString::new(device)
             .map_err(|_| "a device path cannot contain a zero byte".to_owned())?;
 
-        // SAFETY: libcdio is told to discard its messages, so the buffer the
-        // third argument would name is never written to.
         let handle = unsafe {
             cdio_cddap_identify(
                 device.as_ptr(),
@@ -75,7 +66,6 @@ impl Drive {
             ));
         }
 
-        // Wrapped before the call that can fail, so a failure still closes it.
         let drive = Self { handle };
 
         if unsafe { cdio_cddap_open(drive.handle) } != 0 {
@@ -88,9 +78,6 @@ impl Drive {
         Ok(drive)
     }
 
-    // What the drive says it is. AccurateRip keeps a read offset for every
-    // drive it has been told about, under the maker and the model exactly as
-    // the drive answers with them.
     pub fn hardware(&self) -> Result<Hardware, String> {
         let mut reported = cdio_hwinfo_t {
             psz_vendor: [0; 9],
@@ -98,9 +85,6 @@ impl Drive {
             psz_revision: [0; 5],
         };
 
-        // SAFETY: the handle was opened above and carries the device this asks
-        // about, the struct is filled in place, and libcdio closes each field
-        // it fills with a zero byte inside the array it was given.
         unsafe {
             if !cdio_get_hwinfo((*self.handle).p_cdio, &mut reported) {
                 return Err("the drive will not say what it is".to_owned());
@@ -116,8 +100,6 @@ impl Drive {
     pub(super) fn tracks(&self) -> Result<Vec<ReportedTrack>, String> {
         let count = unsafe { cdio_cddap_tracks(self.handle) };
 
-        // A drive that will not say how many tracks there are answers with the
-        // value standing for no track, which counting would walk straight into.
         if u32::from(count) == cdio_track_enums_CDIO_INVALID_TRACK {
             return Err("the drive will not say what is on the disc".to_owned());
         }
@@ -145,9 +127,6 @@ impl Drive {
             return Err("the drive could not be set up for careful reading".to_owned());
         }
 
-        // Everything the library can do, including never giving up on a sector
-        // it cannot agree with itself about. Being quietly handed a filled-in
-        // read is the outcome this app exists to avoid.
         unsafe { cdio_paranoia_modeset(handle, paranoia_mode_t_PARANOIA_MODE_FULL as c_int) };
 
         Ok(Reading {
@@ -166,15 +145,11 @@ impl Drop for Drive {
 
 pub(super) struct Reading<'drive> {
     handle: *mut cdrom_paranoia_t,
-    // Where the reader stands, so that a seek happens where the reading jumps
-    // rather than before every sector.
     standing: Option<i32>,
-    // Borrowed so that the drive cannot be closed while this still reads it.
     drive: PhantomData<&'drive Drive>,
 }
 
 impl Reading<'_> {
-    // Takes &mut self because the next read overwrites the buffer returned here.
     pub(super) fn read(&mut self, sector: i32) -> Result<&[i16], String> {
         if self.standing != Some(sector)
             && unsafe { cdio_paranoia_seek(self.handle, sector, libc::SEEK_SET) } < 0
@@ -190,8 +165,6 @@ impl Reading<'_> {
 
         self.standing = Some(sector + 1);
 
-        // SAFETY: a successful read fills a whole sector in a buffer the reader
-        // owns, and the borrow above holds it still while the slice lives.
         Ok(unsafe { std::slice::from_raw_parts(samples, SAMPLES_PER_SECTOR) })
     }
 }

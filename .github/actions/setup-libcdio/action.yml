@@ -4,10 +4,6 @@ description: Installs the CD reading libraries the ripping links against on Ubun
 runs:
   using: composite
   steps:
-    # libcdio-sys links against the system libcdio and generates bindings from
-    # its headers, so both it and clang must be here before anything compiles
-    # the crate. cdda is listed because paranoia is built on it and pkg-config
-    # is asked for both.
     - shell: bash
       run: |
         sudo apt-get update

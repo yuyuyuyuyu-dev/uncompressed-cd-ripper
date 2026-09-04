@@ -1,4 +1,3 @@
-// A CD is addressed in sectors, 75 of which make a second.
 const SECTORS_PER_SECOND = 75;
 
 export function length(sectors: number) {

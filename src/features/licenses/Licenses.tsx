@@ -25,8 +25,6 @@ export function Licenses() {
 							{dependency.license}
 						</p>
 
-						{/* Scrolls rather than stretches, so that one long license does
-						    not bury the library after it. */}
 						<pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs">
 							{dependency.texts.join("\n\n")}
 						</pre>

@@ -39,8 +39,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      # The generate-licenses script the pre scripts run reads the crate
-      # licenses through this.
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-about
@@ -63,8 +61,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      # The generate-licenses script the pre scripts run reads the crate
-      # licenses through this.
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-about
@@ -72,9 +68,6 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm run vitest run
 
-  # The Rust jobs install no toolchain: rustup ships on the runner and honours
-  # src-tauri/rust-toolchain.toml, installing the pinned version and the
-  # components listed there on the first cargo invocation.
   rustfmt:
     name: rustfmt
     runs-on: ubuntu-latest
@@ -111,8 +104,6 @@ jobs:
       - run: cargo test --all-features
         working-directory: src-tauri
 
-  # On macOS for the last assertion: Apple's decoder refused a file every other
-  # decoder accepted, and it exists nowhere else.
   rip:
     name: should rip as FLAC Uncompressed
     runs-on: macos-latest
@@ -121,10 +112,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      # So the file is judged by something other than what wrote it.
       - run: brew install libcdio libcdio-paranoia flac
 
-      # libcdio reads an image through the interface it reads a drive through.
       - name: Put a disc in the drive
         run: |
           .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
@@ -141,8 +130,6 @@ jobs:
             --output-name=decoded.raw ripped/01.flac
           cmp decoded.raw disc.bin
 
-      # A verbatim subframe holds samples as they arrived, and independent
-      # channels store a channel rather than a difference against the other.
       - name: Every sample in it is stored as it arrived
         run: |
           flac --analyze ripped/01.flac
@@ -153,19 +140,14 @@ jobs:
       - name: The reference implementation accepts it
         run: flac --test ripped/01.flac
 
-      # Stated twice for a fixed block size, since the smallest excludes the
-      # last. Wrong, it decodes everywhere but on Apple.
       - name: Its blocks are the fixed size it says they are
         run: |
           test "$(metaflac --show-min-blocksize ripped/01.flac)" \
              = "$(metaflac --show-max-blocksize ripped/01.flac)"
 
-      # The same decoder as afplay, without needing a speaker the runner has
-      # not got.
       - name: Apple's decoder plays it
         run: afconvert -f WAVE -d LEI16 ripped/01.flac played.wav
 
-      # A disagreement is worth having in hand, not just in a log.
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -174,10 +156,6 @@ jobs:
             disc.bin
             ripped/01.flac
 
-  # The job above rips a disc nobody looked one thing up about. This one hands
-  # the rip what a lookup would have answered and asks a tool from the other
-  # side of the format what came out. Ubuntu rather than macOS: nothing here
-  # turns on how a decoder behaves, so the cheaper runner will do.
   metadata:
     name: should write the fetched metadata into the file a track is ripped to
     runs-on: ubuntu-latest
@@ -189,7 +167,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      # So the tags are read by something other than what wrote them.
       - run: sudo apt-get install --yes flac
 
       - name: Put a disc in the drive
@@ -205,8 +182,6 @@ jobs:
             --track-title "Harbour Lights"
         working-directory: src-tauri
 
-      # Reached by the name the title had to have got into, so a title that
-      # never left the lookup fails here rather than passing quietly.
       - name: A player reads back what the lookup answered
         run: |
           ls -la ripped
@@ -217,9 +192,6 @@ jobs:
           grep -qxF 'ALBUMARTIST=Marina Blue' tags.txt
           grep -qxF 'TRACKNUMBER=1' tags.txt
 
-  # The jobs above rip discs whose files carry nothing but audio and tags. This
-  # one hands the rip album artwork off this computer and asks a tool from the
-  # other side of the format what came out.
   artwork:
     name: should write the chosen album artwork into the file a track is ripped to
     runs-on: ubuntu-latest
@@ -231,7 +203,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      # So the artwork is read back by something other than what wrote it.
       - run: sudo apt-get install --yes flac
 
       - name: Put a disc in the drive
@@ -239,16 +210,12 @@ jobs:
           .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
           chmod 444 disc.bin disc.cue
 
-      # Artwork rather than something standing in for it: one red pixel, which
-      # is about the smallest a PNG comes, and the same one the test cases use.
       - name: Put artwork on this computer
         run: |
           base64 --decode > artwork.png <<'PNG'
           iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC
           PNG
 
-      # Nothing else is given, so the artwork is all the rip is told: a disc
-      # nobody looked up can still be given its artwork.
       - name: Rip it with artwork chosen from this computer
         run: |
           cargo run --example rip -- \
@@ -256,9 +223,6 @@ jobs:
             --album-artwork "$GITHUB_WORKSPACE/artwork.png"
         working-directory: src-tauri
 
-      # What the block says it holds, and then the artwork itself: a block that
-      # named the wrong kind is artwork no player draws, and one that held the
-      # wrong bytes is somebody else's.
       - name: A player finds the artwork that was chosen
         run: |
           metaflac --list --block-type=PICTURE ripped/01.flac | tee block.txt
@@ -266,31 +230,12 @@ jobs:
           metaflac --export-picture-to=exported.png ripped/01.flac
           cmp artwork.png exported.png
 
-  # Every drive hands over samples a little further along the disc than the
-  # sectors it was asked for, or a little further back, and putting that right
-  # happens below the seam a Rust case can drive: it is in the code that talks
-  # to libcdio. A job reaches it, because a disc can be cut that stands in for
-  # one such a drive read — the audio sitting that much further along it than
-  # it should — and correcting for the offset has to hand back what was
-  # recorded.
-  #
-  # Both ways round, because what such a drive cannot reach is at the end of
-  # the disc one way and at its start the other, and silence has to stand in at
-  # whichever end that is. Everything else about the two is the same.
-  #
-  # The one thing no disc can stand in for is which way round a real drive is
-  # out, because the shift is put in here by hand. Nothing available to a job
-  # reaches that; a real disc matching in the database is what says it.
   read-offset:
     name: should correct for the drive's read offset (reading ${{ matrix.reads }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          # 667 is a real drive's offset, and is not a whole number of the 588
-          # frames a sector holds: the samples wanted begin part way into one
-          # sector and end part way into another, so the reading has to be cut
-          # up again against the track rather than against the disc.
           - reads: late
             frames: 667
           - reads: early
@@ -303,8 +248,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      # So what came off the disc is read back by something other than what
-      # wrote it.
       - run: sudo apt-get install --yes flac
 
       - name: Record the audio a disc is meant to hold
@@ -326,10 +269,6 @@ jobs:
             --read-offset ${{ matrix.frames }}
         working-directory: src-tauri
 
-      # Everything the drive could reach comes back as it was recorded, and
-      # silence stands where it could not: past whichever edge of the disc the
-      # offset runs off there is nothing recorded to hand over, and there is
-      # nothing for any ripper either.
       - name: What was recorded comes back
         run: |
           flac --decode --force-raw-format --endian=little --sign=signed \
@@ -337,9 +276,6 @@ jobs:
           .github/scripts/compare-what-came-off-the-disc.py \
             came-off.raw recorded.bin ${{ matrix.frames }}
 
-      # A disagreement is worth having in hand, not just in a log. Named after
-      # which way round the drive was, since the two runs would otherwise be
-      # handing in the same name.
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -349,12 +285,6 @@ jobs:
             disc.bin
             came-off.raw
 
-  # The numbers this app works out have to be the numbers everybody else's rips
-  # were counted with, or a rip would match nothing however well it was read.
-  # Nothing written here can state that: a case that made up its own expected
-  # numbers would only say that the code does what the code does. So they come
-  # from somebody else's implementation of the same algorithm, the way the jobs
-  # above hold a written file against tools from the other side of the format.
   checksums:
     name: should work out the same AccurateRip checksums as another implementation
     runs-on: ubuntu-latest
@@ -367,11 +297,6 @@ jobs:
         with:
           workspaces: src-tauri
 
-      # ARver verifies rips against AccurateRip for a living. Only what it
-      # needs to work a checksum out is installed: the rest of it reaches for a
-      # drive and a network this job has neither of, and asks for libraries
-      # that would have to be built against libcdio. The wheel it ships is
-      # built already and carries the libraries that read a file with it.
       - name: Fetch the other implementation
         run: |
           python3 -m venv theirs
@@ -382,10 +307,6 @@ jobs:
           .github/scripts/make-a-test-disc.py "$GITHUB_WORKSPACE"
           chmod 444 disc.bin disc.cue
 
-      # One track, which is both the first on the disc and the last, so both
-      # of the stretches AccurateRip leaves out of a checksum are left out of
-      # this one. Cargo's own chatter goes to the error stream, so what lands
-      # in the file is the line the rip prints and nothing else.
       - name: Rip it, and take down what it made of the track
         run: |
           cargo run --example rip -- \
@@ -393,9 +314,6 @@ jobs:
             > "$GITHUB_WORKSPACE/ours.txt"
         working-directory: src-tauri
 
-      # Track one of one, so both of the stretches AccurateRip leaves out are
-      # left out on their side as well as on ours. Their interpreter rather
-      # than the runner's, because that is the one they were installed into.
       - name: The other implementation works out the same two numbers
         run: |
           theirs/bin/python \
@@ -407,18 +325,13 @@ jobs:
           echo "theirs: $theirs"
           test "$ours" = "$theirs"
 
-  # Pinned to a release: this depends on the runner being able to run a machine
-  # inside itself, which should not move underfoot.
   disc-writes:
     name: should not write to a disc
     runs-on: ubuntu-24.04
-    # It waits on a machine coming up, and one that never does would otherwise
-    # sit here for six hours. A run takes six minutes.
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
-      # A job that quietly does nothing keeps claiming what it stopped checking.
       - name: The runner can run a machine inside itself
         run: test -e /dev/kvm
 
@@ -430,9 +343,6 @@ jobs:
       - name: Use the drive while the kernel writes down what it is asked
         run: .github/scripts/collect-the-commands-the-drive-is-sent.sh
 
-      # The audio, by its opcode, rather than any command with READ in its
-      # name. The table of contents is read by the kernel on its own, so
-      # asking only for that passed on a run where the app never read a note.
       - name: The drive was asked for the audio
         run: grep -qE 'raw=(be|28) ' drive.txt
 
@@ -440,8 +350,6 @@ jobs:
         run: |
           ! grep -qE 'cmnd=\((WRITE|ERASE|BLANK|FORMAT_UNIT|CLOSE_TRACK|RESERVE_TRACK)' drive.txt
 
-      # The evidence, so the claim can be checked rather than believed. The
-      # console comes too: when the machine fails, it is the only account.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -528,13 +436,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: yuyuyuyuyu-dev/assert-no-unexpected-changes@v1
         with:
-          # Installing the toolchain here rather than in `act` keeps it out of
-          # the diff, which then covers running the tests and nothing else.
           arrange: |
             apt-get update
-            # Verbatim from the Tauri Linux prerequisites. Unlike the list in
-            # .github/actions/setup-tauri-linux, which only tops up a runner
-            # image, this one targets a bare system.
             apt-get install --yes \
               libwebkit2gtk-4.1-dev \
               build-essential \
@@ -545,8 +448,6 @@ jobs:
               libssl-dev \
               libayatana-appindicator3-dev \
               librsvg2-dev
-            # Separate from the list above so the Tauri prerequisites stay
-            # quotable against their own page.
             apt-get install --yes \
               libcdio-dev \
               libcdio-cdda-dev \
@@ -554,39 +455,22 @@ jobs:
               libudev-dev \
               libclang-dev \
               pkg-config
-            # A bare Ubuntu image ships no CA bundle, which every download
-            # below needs.
             apt-get install --yes ca-certificates
             rm -rf /var/lib/apt/lists/*
             export VOLTA_HOME=/usr/local/volta
             export PATH="$VOLTA_HOME/bin:$PATH"
             curl --proto '=https' --tlsv1.2 --silent --show-error --fail https://get.volta.sh \
               | bash -s -- --skip-setup
-            # Volta fetches the Node pinned in package.json on the first call,
-            # so the version stays declared in one place.
             node --version
-            # Volta shims node but not corepack, and corepack is what keeps
-            # pnpm on the version pinned by the packageManager field. Enabling
-            # it into Volta's bin directory is what puts pnpm on PATH for the
-            # test run; corepack itself never gets a shim, hence the full paths.
             node_bin="$(dirname "$(volta which node)")"
             "$node_bin/corepack" enable --install-directory "$VOLTA_HOME/bin"
             "$node_bin/corepack" install
             pnpm install --frozen-lockfile
-            # The browser Vitest drives. Downloading it here rather than in
-            # `act` keeps the download itself out of the diff.
             pnpm exec playwright install --with-deps chromium
             curl --proto '=https' --tlsv1.2 --silent --show-error --fail https://sh.rustup.rs \
               | sh -s -- -y --no-modify-path --default-toolchain none
             export PATH="$HOME/.cargo/bin:$PATH"
-            # What reads the crate licenses. Compiled rather than fetched as a
-            # release binary, and that binary only comes with the cli feature.
-            # From src-tauri, because the toolchain file rustup reads lives
-            # there and the install above pinned no toolchain.
             (cd src-tauri && cargo install --locked --features cli cargo-about)
-            # The bindings the frontend imports and the list of licenses, built
-            # here rather than left to the pre scripts in `act`, which would pull
-            # a whole Rust build into what the diff is meant to be measuring.
             pnpm run generate-bindings
             pnpm run generate-licenses
             cd src-tauri
@@ -597,11 +481,6 @@ jobs:
             pnpm run vitest run
             cd src-tauri
             cargo test --all-features
-          # Measured against a real run: the two suites write below the working
-          # directory apart from these three. The browser and fontconfig fill
-          # the first two in the first time the browser starts. The third is
-          # where Cargo notes down what of the registry it has used, which it
-          # does while the licenses are being read.
           allowlist: |
             /root/.cache/ms-playwright/*
             /var/cache/fontconfig/*
