@@ -81,8 +81,8 @@ export const en = {
 		sentBody: "Thank you.",
 	},
 	selfUpdate: {
-		title: "Update this app?",
-		body: "A new version has been released.\nRestart the app to update?",
+		title: "A new version is available.",
+		body: "Restart the app to update?",
 		changes: "See what changed",
 		downloading: "Downloading the update",
 		later: "Later",

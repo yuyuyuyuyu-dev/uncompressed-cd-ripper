@@ -84,8 +84,8 @@ export const ja: typeof en = {
 		sentBody: "ありがとうございます。",
 	},
 	selfUpdate: {
-		title: "アプリを更新しますか？",
-		body: "新しいバージョンが公開されています。\nアプリを再起動して更新しますか？",
+		title: "新しいバージョンが公開されています。",
+		body: "アプリを再起動して更新しますか？",
 		changes: "変更点を見る",
 		downloading: "更新をダウンロード中",
 		later: "後で",
