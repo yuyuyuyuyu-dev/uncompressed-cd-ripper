@@ -1,18 +1,10 @@
 import type { Album, Artwork, TrackTags } from "@/bindings";
 
-// What will be written, as it is being typed. Not an Album, which is one
-// answer a server gave about the disc: an answer is somewhere to start from,
-// and what ends up in the files is whatever is on screen when the rip does.
-//
-// The album has one artist and so does every track, because a compilation is
-// a disc where those are not the same.
 export type Metadata = {
 	album: string;
 	albumArtist: string;
 	titles: Map<number, string>;
 	artists: Map<number, string>;
-	// One for the disc rather than one per track, and nothing where none was
-	// found or none was asked for.
 	artwork: Artwork | null;
 };
 
@@ -30,8 +22,6 @@ export function fromAlbum(album: Album): Metadata {
 		albumArtist: album.artist,
 		titles: new Map(album.tracks.map((track) => [track.number, track.title])),
 		artists: new Map(album.tracks.map((track) => [track.number, track.artist])),
-		// The artwork is asked for after the album is, from somewhere else, so
-		// this is what there is until that answer arrives.
 		artwork: null,
 	};
 }
@@ -81,22 +71,16 @@ export function withArtist(
 	};
 }
 
-// Trimmed, because a file name is trimmed whatever is typed, and a tag holding
-// the spaces would disagree with the name of the file it sits in.
 function written(text: string) {
 	const trimmed = text.trim();
 
 	return trimmed === "" ? null : trimmed;
 }
 
-// Both the tags and the file name come from here, so a file cannot end up
-// named after a title it was not tagged with.
 export function fileTitle(metadata: Metadata, number: number) {
 	return written(titleOf(metadata, number));
 }
 
-// A file is better untagged than tagged wrongly: a field left blank is left
-// out, and a disc nothing was said about at all is tagged with nothing.
 export function tagsFor(metadata: Metadata, number: number): TrackTags | null {
 	const tags = {
 		album: written(metadata.album),

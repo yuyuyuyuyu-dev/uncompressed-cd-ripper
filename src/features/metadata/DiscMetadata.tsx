@@ -42,14 +42,10 @@ import {
 	withTitle,
 } from "./metadata";
 
-// What tells one pressing from another when the record is the same: two of
-// them can agree on the title and the artist and differ only here.
 function pressing(album: Album) {
 	return [album.released, album.country].filter(Boolean).join(" · ");
 }
 
-// Only where the lookup has something to say. The fields below say the rest:
-// what is in them is what will be written, whether it was answered or typed.
 function status(looking: boolean, matches: Album[] | undefined) {
 	if (looking || matches === undefined) {
 		return undefined;
@@ -66,18 +62,7 @@ type Props = {
 	drive: string | undefined;
 	tracks: Track[];
 	metadata: Metadata;
-	// What AccurateRip said about each track once they were ripped, in the
-	// order they play, and nothing until they have been. It belongs in this
-	// table rather than in one of its own: it is one more thing to know about
-	// a track, beside its title and how long it is.
-	//
-	// The column stands there from the start, holding nothing. A column that
-	// appears once the reading is done moves every other column as it arrives,
-	// and says nothing beforehand about what is coming.
 	verdicts: Verdict[] | undefined;
-	// Taking what to change it into rather than what to change it to, because
-	// the artwork lands after the fields it arrives beside are already there to
-	// be typed in.
 	onChange: Dispatch<SetStateAction<Metadata>>;
 	disabled: boolean;
 };
@@ -90,9 +75,6 @@ export function DiscMetadata({
 	onChange,
 	disabled,
 }: Props) {
-	// A different disc is a different question. None of this survives one being
-	// put in, which is arranged by the drive being this component's key rather
-	// than by anything here.
 	const [asking, setAsking] = useState(false);
 	const [matches, setMatches] = useState<Album[]>();
 	const [chosen, setChosen] = useState<string>();
@@ -100,9 +82,6 @@ export function DiscMetadata({
 	const [fetchingArtwork, setFetchingArtwork] = useState(false);
 	const { t } = useTranslation();
 
-	// Which request the artwork on its way belongs to. Clicking through the
-	// matches starts one for each, and an earlier answer arriving late would
-	// otherwise settle on the album that was clicked after it.
 	const asked = useRef(0);
 
 	const albumField = useId();
@@ -127,16 +106,12 @@ export function DiscMetadata({
 		}
 	};
 
-	// Artwork chosen by hand settles it: the request it stops waiting for is one
-	// whose answer would otherwise land on top of it.
 	const takeChosen = (artwork: Artwork) => {
 		asked.current += 1;
 		setFetchingArtwork(false);
 		onChange((current) => withArtwork(current, artwork));
 	};
 
-	// Not waited for: the album and the track titles are there to be read and
-	// corrected while the artwork is still coming.
 	const take = (album: Album) => {
 		setChosen(album.id);
 		onChange(fromAlbum(album));
@@ -156,7 +131,6 @@ export function DiscMetadata({
 
 			setMatches(found);
 
-			// Choosing between one thing is not a choice.
 			if (found.length === 1) {
 				take(found[0]);
 			}
@@ -167,8 +141,6 @@ export function DiscMetadata({
 
 	const said = status(looking, matches);
 
-	// An answer on its way overwrites every one of these, so typing into them
-	// now is typing into something that is about to be taken away.
 	const frozen = disabled || looking;
 
 	return (
@@ -181,10 +153,6 @@ export function DiscMetadata({
 					onClick={() => setAsking(true)}
 					disabled={frozen || drive === undefined}
 				>
-					{/* The dialog closes as the lookup starts, so the eye is on the
-					    button that has just gone rather than on this one. Something
-					    turning is what carries across the gap: a button that only goes
-					    grey is a still picture, and a still picture is missed. */}
 					{looking && <LoaderCircle className="animate-spin" />}
 					{looking ? t("metadata.lookingUp") : t("metadata.lookUp")}
 				</Button>
@@ -194,10 +162,6 @@ export function DiscMetadata({
 				<p className="text-muted-foreground text-sm">{t(said)}</p>
 			)}
 
-			{/* Every one of them, and what tells them apart. Picking for the user
-			    would mean writing somebody else's track titles into their files.
-			    It stays on screen after one is picked, because the wrong one is
-			    only obvious once its track titles are against the disc. */}
 			{matches !== undefined && matches.length > 1 && (
 				<ul className="flex flex-col gap-1">
 					{matches.map((match) => (
@@ -211,9 +175,6 @@ export function DiscMetadata({
 							>
 								<span className="truncate">
 									{match.title} — {match.artist}
-									{/* Faded rather than a colour of its own, because the one
-									    that is picked is a dark button and a muted colour goes
-									    unreadable on it. */}
 									{pressing(match) !== "" && (
 										<span className="opacity-70"> ({pressing(match)})</span>
 									)}
@@ -260,9 +221,6 @@ export function DiscMetadata({
 				</div>
 			</div>
 
-			{/* A field with nothing in it says nothing about itself, and there are
-			    two of them on every row. The heading above the column is what
-			    names them, which is why this is a table rather than a list. */}
 			{tracks.length > 0 && (
 				<table className="w-full">
 					<thead>
@@ -332,9 +290,6 @@ export function DiscMetadata({
 				<DialogContent className="flex max-h-[85vh] flex-col">
 					<DialogHeader className="min-h-0">
 						<DialogTitle>{t("metadata.ask.title")}</DialogTitle>
-						{/* Both halves are spelled out: what leaves the machine, and who
-						    receives it. Agreeing to send something unnamed to somebody
-						    unnamed is not agreeing. */}
 						<DialogDescription className="-mr-4 min-h-0 overflow-y-auto pr-4 whitespace-pre-line">
 							{t("metadata.ask.body")}
 						</DialogDescription>

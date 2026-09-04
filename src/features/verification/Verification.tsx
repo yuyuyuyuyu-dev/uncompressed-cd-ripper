@@ -23,9 +23,6 @@ import {
 
 type Props = {
 	drive: string | undefined;
-	// How far along the drive reads, once AccurateRip has been asked about it,
-	// and nothing until then. Held above rather than here, because ripping
-	// needs it too.
 	offset: number | undefined;
 	onOffset: (offset: number | undefined) => void;
 	checking: boolean;
@@ -43,21 +40,14 @@ export function Verification({
 }: Props) {
 	const [asking, setAsking] = useState(false);
 	const [looking, setLooking] = useState(false);
-	// Told apart from never having asked, because only one of the two leaves
-	// the user with nothing they can do.
 	const [unlisted, setUnlisted] = useState(false);
 	const label = useId();
 	const { t } = useTranslation();
 
-	// What the app was left set to. Read once rather than per drive: this is a
-	// decision about what leaves the machine, and the answer to it does not
-	// change with which drive the disc went into.
 	useEffect(() => {
 		savedChecking().then(onChecking);
 	}, [onChecking]);
 
-	// What was found for this drive the last time the app ran. A read offset
-	// belongs to the drive, so this follows whichever one is chosen.
 	useEffect(() => {
 		setUnlisted(false);
 
@@ -71,8 +61,6 @@ export function Verification({
 			const name = await expectOk(commands.driveName(drive));
 			const frames = await savedOffset(name);
 
-			// A different drive was picked while this was on its way, and what it
-			// found belongs to the drive that has gone.
 			if (wanted && frames !== undefined) {
 				onOffset(frames);
 			}
@@ -83,15 +71,6 @@ export function Verification({
 		};
 	}, [drive, onOffset]);
 
-	// Both halves of what was agreed to, in the order they happen. The drive's
-	// read offset comes first because nothing can be compared without it, and
-	// it is looked up here rather than somewhere else on the screen: it is
-	// what turning this on needs, not a thing anybody would go and do.
-	//
-	// The dialog stays open while this runs, with the button that started it
-	// turning: what is being waited for is a list coming over the network, and
-	// a dialog that shut first would leave the wait with nothing to show for
-	// itself.
 	const turnOn = async () => {
 		if (drive === undefined) {
 			return;
@@ -105,9 +84,6 @@ export function Verification({
 
 			setUnlisted(frames === null);
 
-			// Left off rather than on and useless. A rip read without the offset
-			// matches nothing, and saying it was checked would be saying it
-			// failed.
 			if (frames === null) {
 				return;
 			}
@@ -127,9 +103,6 @@ export function Verification({
 		saveChecking(false);
 	};
 
-	// On only where there is also something to compare with. The app can be
-	// left switched on and then have a drive AccurateRip knows nothing about
-	// put in front of it.
 	const on = checking && offset !== undefined;
 
 	return (
@@ -141,9 +114,6 @@ export function Verification({
 					onCheckedChange={(wanted) => (wanted ? setAsking(true) : turnOff())}
 					disabled={disabled || looking || drive === undefined}
 				/>
-				{/* The same word the column of numbers is headed with, so that
-				    what this switch turns on and what turns up in that column are
-				    plainly the same thing. */}
 				<label className="text-sm" htmlFor={label}>
 					{t("verification.label")}
 				</label>
@@ -157,20 +127,13 @@ export function Verification({
 
 			<Dialog
 				open={asking}
-				// Not while the list is on its way. Closing it would leave the
-				// request running with nothing on screen saying so.
 				onOpenChange={(open) => !open && !looking && setAsking(false)}
 			>
 				<DialogContent className="flex max-h-[85vh] flex-col">
 					<DialogHeader className="min-h-0">
-						{/* Padded clear of the button that closes the dialog, which sits
-						    over the top right corner. */}
 						<DialogTitle className="pr-8">
 							{t("verification.ask.title")}
 						</DialogTitle>
-						{/* Both halves are spelled out: what leaves the machine, and who
-						    receives it. Agreeing to send something unnamed to somebody
-						    unnamed is not agreeing. */}
 						<DialogDescription className="-mr-4 min-h-0 overflow-y-auto pr-4 whitespace-pre-line">
 							{t("verification.ask.body")}
 						</DialogDescription>

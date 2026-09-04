@@ -4,14 +4,6 @@ use specta::Type;
 
 use crate::logging::Breadcrumb;
 
-// The shape below is Sentry's event payload rather than a shape of our own.
-// The frontend assembles it, shows it to the user and hands it over, and the
-// only reason it is declared here is that Tauri Specta derives the frontend's
-// type from it: one declaration, so the two cannot drift apart.
-//
-// Every field is spelled out and unknown ones are refused, which is what makes
-// "the report holds nothing the user did not see" something the compiler
-// enforces rather than something a test case hopes for.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct ErrorReport {
@@ -32,9 +24,6 @@ pub struct Exceptions {
     pub values: Vec<ThrownError>,
 }
 
-// What the app was doing before it failed, in the order it did it. Sentry
-// keeps these under this name, and the window fills them from what the backend
-// recorded, so they are shown on the way out like the rest of the report.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct Breadcrumbs {
@@ -69,22 +58,12 @@ pub struct Device {
     pub arch: String,
 }
 
-// Sentry indexes tags and offers them as filters, which contexts and extra do
-// not get. The operating system needs no entry here: Sentry builds an `os` tag
-// out of the context by itself, and repeating it only widens the report.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct Tags {
     pub architecture: String,
 }
 
-// Sentry's stacktrace field takes parsed frames rather than the string a
-// JavaScript error carries, so the raw text goes here instead. Frames can
-// replace it later without the rest of the payload moving.
-//
-// The component stack is React's own account of which tree was being drawn,
-// which for a failure while rendering says more than the stack trace does.
-// Only failures while rendering have one.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct Extra {
@@ -93,11 +72,6 @@ pub struct Extra {
     pub comment: String,
 }
 
-// What the frontend cannot find out for itself. A WebView reports the OS
-// through its user agent, which on macOS has been frozen at 10_15_7 for years
-// and calls Apple Silicon machines Intel, so the answers have to come from
-// this side. Answering a question is not the same as adding to the report:
-// the frontend decides what of this ends up in one.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Environment {
@@ -130,11 +104,6 @@ pub fn send(report: &ErrorReport, api: &impl ReportApi) -> Result<(), String> {
     api.post(&body)
 }
 
-// A release build with no destination cannot report anything, and nothing
-// about it would say so. The failure would arrive as a message in a dialog on
-// somebody else's machine, long after the build that caused it. Refusing to
-// compile is the last moment at which it is still cheap, and it does not rely
-// on whoever writes the release pipeline knowing that Sentry is involved.
 #[cfg(not(debug_assertions))]
 const _: () = {
     if option_env!("SENTRY_DSN").is_none() {
@@ -147,9 +116,6 @@ pub struct Sentry {
 }
 
 impl Sentry {
-    // The DSN arrives at compile time from the release workflow, so a build
-    // nobody published, a fork's included, carries no destination and cannot
-    // reach the project.
     pub fn configured() -> Result<Self, String> {
         let dsn = option_env!("SENTRY_DSN")
             .ok_or_else(|| "this build carries no error reporting destination".to_owned())?;
@@ -164,12 +130,6 @@ impl Sentry {
 
 impl ReportApi for Sentry {
     fn post(&self, body: &str) -> Result<(), String> {
-        // The store endpoint takes the event as the whole request body, which
-        // is what lets the bytes the user agreed to travel without a wrapper
-        // built around them here.
-        // A refusal is read rather than turned into a bare status. Sentry says
-        // why in the body, and a status on its own leaves the person looking at
-        // it no better off than before they pressed send.
         let mut response = ureq::post(self.dsn.store_api_url().as_str())
             .header("X-Sentry-Auth", self.dsn.to_auth(None).to_string())
             .header("Content-Type", "application/json")

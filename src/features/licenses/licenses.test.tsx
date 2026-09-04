@@ -4,8 +4,6 @@ import { page } from "vitest/browser";
 import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 
-// What the store plugin hands back for an opened settings file, which nothing
-// here looks at beyond passing it back.
 const SETTINGS = 1;
 
 function entryFor(library: RegExp) {
@@ -14,16 +12,12 @@ function entryFor(library: RegExp) {
 		.filter({ has: page.getByRole("heading", { name: library }) });
 }
 
-// Drawing the whole app asks which drives hold a disc. This case is about the
-// licenses, so the answer is none.
 function mockBackend() {
 	mockIPC(
 		(command) => {
 			if (command === "drives") {
 				return [];
 			}
-			// It also reads what it was left set to. Nothing has ever set it, so the
-			// settings file is empty.
 			if (command === "plugin:store|load") {
 				return SETTINGS;
 			}
@@ -50,8 +44,6 @@ test("should show dependency licenses and go back", async () => {
 	await page.getByRole("button", { name: "Licenses" }).click();
 
 	// Assert
-	// One library from each side of the app: React draws the window, libcdio
-	// reads the disc.
 	await expect.element(entryFor(/^react \d/)).toHaveTextContent("MIT License");
 	await expect
 		.element(entryFor(/^libcdio-sys \d/))

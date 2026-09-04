@@ -7,5 +7,4 @@ export type DependencyLicense = {
 	texts: string[];
 };
 
-// Written by the generate-licenses script, which the pnpm pre scripts run.
 export const dependencyLicenses: DependencyLicense[] = generated;

@@ -6,8 +6,6 @@ import App from "@/App";
 import type { Breadcrumb, Environment, ErrorReport } from "@/bindings";
 import { ErrorReporter } from "./ErrorReporter";
 import { buildErrorReport } from "./error-report";
-// The component is only ever on screen inside the app, which is where the
-// stylesheet comes from; without it the dialog has no layout to click through.
 import "@/index.css";
 
 const environment: Environment = {
@@ -17,8 +15,6 @@ const environment: Environment = {
 	architecture: "aarch64",
 };
 
-// What the backend answers with when it is asked what the app was doing. Two
-// of them, so that a report which dropped one or turned them round fails.
 const BREADCRUMBS: Breadcrumb[] = [
 	{
 		timestamp: "2026-08-29T09:00:00.000Z",
@@ -32,8 +28,6 @@ const BREADCRUMBS: Breadcrumb[] = [
 	},
 ];
 
-// The backend is a separate process reached over IPC, which is the sort of
-// thing the conventions allow standing in for.
 function mockBackend() {
 	const sent: ErrorReport[] = [];
 
@@ -62,10 +56,6 @@ const FOLDER = "/Users/someone/Music";
 const TRACKS = [1, 2, 3];
 const GAVE_UP = "the drive stopped responding";
 
-// A whole app in front of the reporter, and behind it a drive that gives up as
-// soon as a track is asked for. What is thrown is a string rather than an
-// Error, because that is how a command that failed comes back: as a refusal
-// the window turns into something thrown, rather than as a rejection.
 function mockBackendFailingToRip() {
 	const logged: string[] = [];
 
@@ -117,8 +107,6 @@ function mockBackendFailingToRip() {
 	return logged;
 }
 
-// Base UI puts the toasts in a region it labels, and gives each one the dialog
-// role, so this is what "a notification" looks like from the outside.
 function notifications() {
 	return page.getByLabelText("Notifications").getByRole("dialog");
 }
@@ -175,11 +163,6 @@ test("should send the error report from the detail screen", async () => {
 	await page.getByRole("button", { name: "Send" }).click();
 
 	// Assert
-	// Spelled out from where each part of it came from: the two answers the
-	// backend gave, the error that was thrown, and the identifier, the time and
-	// the stack that only the screen can say. A report that never asked the
-	// backend for one of its answers, or lost it on the way, fails here, and so
-	// does one that sent something other than what was shown.
 	await expect
 		.poll(() => sent)
 		.toEqual([
@@ -233,8 +216,6 @@ test("should keep a notification until it is dismissed", async () => {
 	await expect.poll(() => notifications().all()).toHaveLength(2);
 
 	// Act
-	// The stack collapses until it is hovered, and a toast behind the front one
-	// takes no clicks while it is folded away.
 	await notifications().first().hover();
 	await page.getByRole("button", { name: "Close toast" }).first().click();
 
@@ -260,8 +241,6 @@ test("should record an error on the TypeScript side as a log", async () => {
 		.click();
 
 	// Assert
-	// What the window caught, in the words the log is given: what it arrived
-	// as, and what it said.
 	await expect.poll(() => logged).toEqual([`BackendError: ${GAVE_UP}`]);
 });
 
@@ -289,8 +268,6 @@ test("should build the error report from nothing but event ID, timestamp, platfo
 	});
 
 	// Assert
-	// Spelling the whole report out is what states the "nothing but": a field
-	// nobody agreed to would have to appear here to pass.
 	expect(report).toEqual({
 		event_id: "fc6d8c0c43fc4630ad850ee518f1b9d0",
 		timestamp: "2026-08-13T09:00:00.000Z",

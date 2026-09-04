@@ -4,20 +4,14 @@ import { cdp } from "vitest/browser";
 import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 
-// What the store plugin hands back for an opened settings file, which nothing
-// here looks at beyond passing it back.
 const SETTINGS = 1;
 
-// Drawing the app asks which drives hold a disc. These cases are about the
-// stylesheet, so the answer is none.
 function mockBackend() {
 	mockIPC(
 		(command) => {
 			if (command === "drives") {
 				return [];
 			}
-			// It also reads what it was left set to. Nothing has ever set it, so the
-			// settings file is empty.
 			if (command === "plugin:store|load") {
 				return SETTINGS;
 			}
@@ -41,9 +35,6 @@ async function emulateOperatingSystemColorScheme(value: "light" | "dark") {
 	});
 }
 
-// The palette is written in oklch, whose first component is the lightness.
-// Comparing lightnesses states "this theme is the dark one" without pinning
-// the test cases to the exact colours.
 function lightnessOf(color: string) {
 	const lightness = /^oklch\(([\d.]+)/.exec(color)?.[1];
 	if (lightness === undefined) {
@@ -60,10 +51,6 @@ function pageLightness() {
 	};
 }
 
-// Rendering App is what puts the app in the running state these test cases
-// describe. The colours below come from the stylesheet App pulls in rather
-// than from anything it renders, which is the point: dropping that import
-// leaves the page unthemed and every case here failing.
 test("should use the light theme when the operating system prefers a light color scheme", async () => {
 	// Arrange
 	mockBackend();

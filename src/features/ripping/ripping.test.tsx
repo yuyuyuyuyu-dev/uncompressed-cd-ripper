@@ -4,17 +4,13 @@ import { page } from "vitest/browser";
 import { cleanup, render } from "vitest-browser-react";
 import { events } from "@/bindings";
 import { Ripper } from "./Ripper";
-// The dialog has no layout to click through without the app's stylesheet.
 import "@/index.css";
 
 const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
 const DRIVE_NAME = "MARINA BLUE  CD-RW MB-1";
-// What the store plugin hands back for an opened settings file, which nothing
-// here looks at beyond passing it back.
 const SETTINGS = 1;
 
-// The drive, the disc and the filesystem are all across the IPC.
 function mockBackend({
 	drives = [DRIVE],
 	alreadyThere = [],
@@ -32,8 +28,6 @@ function mockBackend({
 			if (command === "drive_name") {
 				return DRIVE_NAME;
 			}
-			// The settings file with nothing in it: no read offset has ever been
-			// kept for this drive, which is a machine the app has not been set up on.
 			if (command === "plugin:store|load") {
 				return SETTINGS;
 			}

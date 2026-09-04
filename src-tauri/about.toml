@@ -1,5 +1,3 @@
-# The order is a priority list: where a crate offers a choice, the first of its
-# licenses that appears here is the one shown.
 accepted = [
     "MIT",
     "MIT-0",
@@ -14,18 +12,13 @@ accepted = [
     "CC0-1.0",
     "CDLA-Permissive-2.0",
     "Unlicense",
-    # cdtoc and the crate it counts with. As permissive as a license gets, but
-    # it carries no disclaimer of warranty and the OSI turned it down, so it is
-    # worth knowing that accepting it puts its title on the licenses screen.
     "WTFPL",
     "MPL-2.0",
     "LGPL-2.1-or-later",
     "GPL-3.0-or-later",
 ]
 
-# Neither kind is linked into the app that ships.
 ignore-build-dependencies = true
 ignore-dev-dependencies = true
 
-# The app itself, which is not a dependency of anything.
 private = { ignore = true }

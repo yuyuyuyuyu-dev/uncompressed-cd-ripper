@@ -15,9 +15,6 @@ function textsIn(directory: string) {
 		.map((file) => readFileSync(join(directory, file), "utf8"));
 }
 
-// Walks out of the file to the directory the package declares itself in.
-// Packages carry further package.json files below that one, which name nothing
-// and only say how the files beside them are to be read.
 function packageOf(file: string) {
 	for (
 		let directory = dirname(file);
@@ -57,11 +54,6 @@ function packagesBehind(files: readonly string[]) {
 	return [...packages.values()];
 }
 
-// Which packages a build pulls in is the question being asked, so the answer
-// comes from a build rather than from the manifest. Nothing is written out:
-// the bundle is thrown away and only the files behind it are kept. Those
-// include what the stylesheet reaches, which no bundled module names: the
-// font, and the packages the theme is built from.
 async function bundled() {
 	let files: readonly string[] = [];
 
@@ -89,8 +81,6 @@ type About = {
 	crates: { package: Crate; license: string | null }[];
 };
 
-// cargo-about reads the license out of every crate the app is linked against,
-// following what Cargo resolved rather than what Cargo.toml asks for.
 function linked(): DependencyLicense[] {
 	const about: About = JSON.parse(
 		execFileSync("cargo", ["about", "generate", "--format", "json"], {
@@ -123,8 +113,6 @@ function order(a: DependencyLicense, b: DependencyLicense) {
 }
 
 async function main() {
-	// The screen imports this file, so the build below cannot resolve its
-	// imports until there is something here to read.
 	if (!existsSync(LICENSES)) {
 		writeFileSync(LICENSES, "[]");
 	}

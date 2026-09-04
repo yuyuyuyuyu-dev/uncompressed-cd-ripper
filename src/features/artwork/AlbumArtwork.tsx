@@ -22,8 +22,6 @@ function Inside({ artwork, looking }: Props) {
 		return <ImageOff className="size-5 text-muted-foreground" />;
 	}
 
-	// Whole rather than filling the square: artwork is not always square, and
-	// the part cropped off is somebody's work.
 	return (
 		<img
 			src={shown(artwork)}
@@ -33,8 +31,6 @@ function Inside({ artwork, looking }: Props) {
 	);
 }
 
-// The same size whatever is in it, so that the fields beside it do not move as
-// artwork arrives.
 export function AlbumArtwork({ artwork, looking }: Props) {
 	return (
 		<div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">

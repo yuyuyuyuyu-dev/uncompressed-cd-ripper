@@ -6,13 +6,8 @@ use crate::ripping::{self, Disc, Encoder, ReportedTrack, TrackTags};
 
 const TRACK: u8 = 1;
 
-// One sector, as short as a sector can be here. Two samples rather than a real
-// sector's worth because nothing listens to this one, and the same samples
-// every read so that the reads settle.
 const SECTOR: [i16; 2] = [7, 7];
 
-// A disc holding a single audio track. The drive is the one part of a rip a
-// case cannot have.
 struct FakeDisc;
 
 impl Disc for FakeDisc {
@@ -37,8 +32,6 @@ impl Disc for FakeDisc {
     }
 }
 
-// An encoder that writes nowhere, because what a file came to is not what this
-// case is about.
 struct FakeEncoder;
 
 impl Encoder for FakeEncoder {
@@ -53,8 +46,6 @@ impl Encoder for FakeEncoder {
     }
 }
 
-// A log that keeps what it was handed rather than writing it anywhere. Where a
-// line goes once it has left the app is the other part a case cannot have.
 #[derive(Default)]
 struct FakeLog {
     written: RefCell<Vec<(String, String)>>,
@@ -78,11 +69,6 @@ impl Log for FakeLog {
 #[test]
 fn should_record_a_log_of_what_happened() {
     // Arrange
-    // A disc that hands back the same samples every time, so the three
-    // agreements a rip waits for land on the third read. The two reads after
-    // the first are the disc failing to agree with itself, which is the whole
-    // reason any of this is written down: nothing else in the app says a word
-    // about them.
     let log = FakeLog::default();
 
     // Act
@@ -97,14 +83,9 @@ fn should_record_a_log_of_what_happened() {
         |_| {},
     )
     .expect("the fake disc answers");
-    // What the window caught, which reaches this side through the command that
-    // hands it to exactly this call.
     failed("BackendError: the drive stopped responding", &log);
 
     // Assert
-    // Every line, in order, in the words it is written in: a rip that recorded
-    // one thing more, one thing fewer, or the same things in another order
-    // fails here.
     assert_eq!(
         log.written.into_inner(),
         [
@@ -115,8 +96,6 @@ fn should_record_a_log_of_what_happened() {
         ]
         .map(|(category, message)| (category.to_owned(), message.to_owned()))
     );
-    // A failure is called out rather than filed beside the rest, and it says
-    // what was thrown.
     assert_eq!(
         log.failures.into_inner(),
         [(
