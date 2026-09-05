@@ -11,13 +11,13 @@ use std::thread;
 
 use tauri_specta::{collect_commands, collect_events, Builder, Event};
 
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 fn drives() -> Vec<String> {
     ripping::drives()
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 fn tracks(drive: String) -> Result<Vec<ripping::Track>, String> {
     Ok(ripping::tracks(
@@ -26,7 +26,7 @@ fn tracks(drive: String) -> Result<Vec<ripping::Track>, String> {
     ))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 fn already_there(destination: String, tracks: Vec<ripping::TrackFile>) -> Vec<String> {
     ripping::already_there(Path::new(&destination), &tracks, &logging::Logger)
@@ -46,13 +46,13 @@ fn look_up_artwork(release: String) -> Result<Option<artwork::Artwork>, String> 
     artwork::look_up(&release, &artwork::Ureq, &logging::Logger)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 fn read_artwork(path: String) -> Result<artwork::Artwork, String> {
     artwork::chosen(Path::new(&path))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 fn drive_name(drive: String) -> Result<String, String> {
     Ok(ripping::Drive::open(&drive)?.hardware()?.to_string())
@@ -110,7 +110,7 @@ fn rip_track(
     )
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 fn environment() -> error_report::Environment {
     error_report::Environment::current()
@@ -128,7 +128,7 @@ fn breadcrumbs() -> Vec<logging::Breadcrumb> {
     logging::breadcrumbs()
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 fn send_error_report(report: error_report::ErrorReport) -> Result<(), String> {
     error_report::send(&report, &error_report::Sentry::configured()?)
