@@ -4,7 +4,7 @@ import { page } from "vitest/browser";
 import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 
-const VERSION = "0.0.1";
+const VERSION = "0.0.0-TEST";
 
 const SETTINGS = 1;
 

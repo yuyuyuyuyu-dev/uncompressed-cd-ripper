@@ -5,7 +5,7 @@ import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 import type { Album, TrackTags } from "@/bindings";
 
-const VERSION = "0.0.1";
+const VERSION = "0.0.0-TEST";
 
 const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
@@ -43,6 +43,9 @@ function mockBackend({ matches }: { matches: Album[] }) {
 		(command, payload) => {
 			if (command === "plugin:app|version") {
 				return VERSION;
+			}
+			if (command === "plugin:updater|check") {
+				return null;
 			}
 			if (command === "drives") {
 				return [DRIVE];

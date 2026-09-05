@@ -8,7 +8,7 @@ import { ErrorReporter } from "./ErrorReporter";
 import { buildErrorReport } from "./error-report";
 import "@/index.css";
 
-const VERSION = "0.0.1";
+const VERSION = "0.0.0-TEST";
 
 const environment: Environment = {
 	release: "uncompressed-cd-ripper@0.1.0",
