@@ -2,9 +2,12 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { cleanup, render } from "vitest-browser-react";
+import App from "@/App";
 import { events } from "@/bindings";
 import { Ripper } from "./Ripper";
 import "@/index.css";
+
+const VERSION = "0.0.0-TEST";
 
 const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
@@ -14,14 +17,22 @@ const SETTINGS = 1;
 function mockBackend({
 	drives = [DRIVE],
 	alreadyThere = [],
+	until,
 }: {
 	drives?: string[];
 	alreadyThere?: string[];
+	until?: Promise<void>;
 }) {
 	const ripped: number[] = [];
 
 	mockIPC(
 		(command, payload) => {
+			if (command === "plugin:app|version") {
+				return VERSION;
+			}
+			if (command === "plugin:updater|check") {
+				return null;
+			}
 			if (command === "drives") {
 				return drives;
 			}
@@ -51,10 +62,18 @@ function mockBackend({
 
 				ripped.push(track);
 
-				return {
+				const written = {
 					file: `${FOLDER}/0${track}.flac`,
 					checksums: { v1: 0, v2: 0 },
 				};
+
+				return until === undefined ? written : until.then(() => written);
+			}
+			if (command === "plugin:notification|is_permission_granted") {
+				return true;
+			}
+			if (command === "plugin:notification|notify") {
+				return null;
 			}
 			throw new Error(`the test did not expect ${command}`);
 		},
@@ -135,4 +154,33 @@ test("should remove a disc from the screen automatically when it is taken out of
 	await expect
 		.element(page.getByText("No drive with an audio CD in it."))
 		.toBeVisible();
+});
+
+test("should keep the state after another screen is shown", async () => {
+	// Arrange
+	let letTheRipFinish!: () => void;
+	const until = new Promise<void>((resolve) => {
+		letTheRipFinish = resolve;
+	});
+	const ripped = mockBackend({ until });
+	await render(<App />);
+	await page.getByLabelText("Album", { exact: true }).fill("Sea Change");
+	await chooseAFolder();
+	await page
+		.getByRole("button", { name: "Start ripping", exact: true })
+		.click();
+	await expect.element(page.getByText(/Ripping track 01/)).toBeVisible();
+
+	// Act
+	await page.getByRole("button", { name: "Licenses" }).click();
+	await page.getByRole("button", { name: "Back" }).click();
+
+	// Assert
+	await expect
+		.element(page.getByLabelText("Album", { exact: true }))
+		.toHaveValue("Sea Change");
+	await expect.element(page.getByText(FOLDER)).toBeVisible();
+	await expect.element(page.getByText(/Ripping track 01/)).toBeVisible();
+	letTheRipFinish();
+	await expect.poll(() => ripped).toEqual([1, 2]);
 });
