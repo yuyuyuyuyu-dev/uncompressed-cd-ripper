@@ -87,7 +87,7 @@ export const ja: typeof en = {
 		title: "新しいバージョンが公開されています。",
 		body: "アプリを再起動して更新しますか？",
 		changes: "変更点を見る",
-		downloading: "アップデートをダウンロード中",
+		downloading: "新しいバージョンをダウンロード中",
 		later: "後で",
 		update: "更新",
 	},
