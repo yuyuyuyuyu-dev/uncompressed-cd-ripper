@@ -148,7 +148,7 @@ jobs:
       - name: Apple's decoder plays it
         run: afconvert -f WAVE -d LEI16 ripped/01.flac played.wav
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: the-disc-and-what-came-off-it
@@ -276,7 +276,7 @@ jobs:
           .github/scripts/compare-what-came-off-the-disc.py \
             came-off.raw recorded.bin ${{ matrix.frames }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: the-disc-a-${{ matrix.reads }}-drive-hands-over
@@ -350,7 +350,7 @@ jobs:
         run: |
           ! grep -qE 'cmnd=\((WRITE|ERASE|BLANK|FORMAT_UNIT|CLOSE_TRACK|RESERVE_TRACK)' drive.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: commands-the-drive-was-sent
@@ -385,7 +385,7 @@ jobs:
       - name: The drive the disc went into turned up
         run: grep -qE '^holding /dev/' watched.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: what-the-app-noticed-a-disc-going-in
@@ -420,7 +420,7 @@ jobs:
       - name: Nothing was left holding a disc once it came out
         run: test "$(grep '^holding ' watched.txt | tail -1)" = 'holding none'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: what-the-app-noticed-a-disc-coming-out
@@ -465,7 +465,7 @@ jobs:
           cat drive-once-it-was-ejected.txt
           ! grep -q /tmp/disc.cue drive-once-it-was-ejected.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: what-the-app-did-when-asked-to-eject
