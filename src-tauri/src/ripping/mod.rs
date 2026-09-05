@@ -7,6 +7,8 @@ use crate::artwork::Artwork;
 use crate::logging::{self, Happening, Log};
 use crate::verification::{self, Checksums, Position};
 
+#[cfg(target_os = "macos")]
+mod diskutil;
 mod drive;
 mod flac;
 #[cfg(not(windows))]
@@ -52,6 +54,10 @@ pub struct TrackTags {
 
 pub fn drives() -> Vec<String> {
     drive::holding_an_audio_disc()
+}
+
+pub fn eject_disc(drive: &str) -> Result<(), String> {
+    drive::eject_disc(drive)
 }
 
 pub trait Disc {

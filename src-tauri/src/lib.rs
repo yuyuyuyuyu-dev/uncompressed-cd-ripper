@@ -19,6 +19,12 @@ fn drives() -> Vec<String> {
 
 #[tauri::command(async)]
 #[specta::specta]
+fn eject_disc(drive: String) -> Result<(), String> {
+    ripping::eject_disc(&drive)
+}
+
+#[tauri::command(async)]
+#[specta::specta]
 fn tracks(drive: String) -> Result<Vec<ripping::Track>, String> {
     Ok(ripping::tracks(
         &ripping::Drive::open(&drive)?,
@@ -145,6 +151,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             log_error,
             breadcrumbs,
             drives,
+            eject_disc,
             tracks,
             already_there,
             look_up_disc,

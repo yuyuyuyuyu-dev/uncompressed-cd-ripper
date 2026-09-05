@@ -15,6 +15,9 @@ use libcdio_sys::{
     CDIO_CD_FRAMESIZE_RAW,
 };
 
+#[cfg(target_os = "linux")]
+use libcdio_sys::{cdio_eject_media_drive, driver_return_code_t_DRIVER_OP_SUCCESS};
+
 use super::drive::{named, Hardware, ReportedTrack, SAMPLES_PER_SECTOR};
 
 const _: () = assert!(SAMPLES_PER_SECTOR == CDIO_CD_FRAMESIZE_RAW as usize / size_of::<i16>());
@@ -40,6 +43,22 @@ pub fn holding_an_audio_disc() -> Vec<String> {
     }
 
     devices
+}
+
+#[cfg(target_os = "linux")]
+pub fn eject_disc(device: &str) -> Result<(), String> {
+    let device =
+        CString::new(device).map_err(|_| "a device path cannot contain a zero byte".to_owned())?;
+
+    if unsafe { cdio_eject_media_drive(device.as_ptr()) } != driver_return_code_t_DRIVER_OP_SUCCESS
+    {
+        return Err(format!(
+            "{} would not eject its disc",
+            device.to_string_lossy()
+        ));
+    }
+
+    Ok(())
 }
 
 pub struct Drive {

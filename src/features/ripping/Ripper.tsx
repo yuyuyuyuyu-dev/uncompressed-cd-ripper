@@ -5,6 +5,7 @@ import {
 	requestPermission,
 	sendNotification,
 } from "@tauri-apps/plugin-notification";
+import { Eject } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -146,6 +147,14 @@ export function Ripper() {
 		}
 	};
 
+	const ejectDisc = async () => {
+		if (drive === undefined) {
+			return;
+		}
+
+		await expectOk(commands.ejectDisc(drive));
+	};
+
 	const start = async () => {
 		if (destination === undefined) {
 			return;
@@ -173,8 +182,14 @@ export function Ripper() {
 		<section className="flex w-full max-w-xl flex-col gap-4 text-left">
 			<div className="flex items-center gap-2">
 				<h2 className="font-semibold">{t("ripping.heading")}</h2>
-				<Button variant="outline" size="sm" onClick={look} disabled={busy}>
-					{t("ripping.scan")}
+				<Button
+					variant="outline"
+					size="icon-sm"
+					aria-label={t("ripping.eject")}
+					onClick={ejectDisc}
+					disabled={busy || drive === undefined}
+				>
+					<Eject />
 				</Button>
 			</div>
 

@@ -11,7 +11,7 @@ export const en = {
 			body_other: "{{count}} tracks are in the folder you chose.",
 		},
 		heading: "Disc",
-		scan: "Rescan CD drives",
+		eject: "Eject the disc",
 		noDrive: "No drive with an audio CD in it.",
 		chooseFolder: "Choose where to save",
 		noFolder: "No folder chosen",
