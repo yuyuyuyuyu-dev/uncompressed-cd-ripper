@@ -2,7 +2,8 @@
 name = "uncompressed-cd-ripper"
 version = "0.0.0-SNAPSHOT"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["yu"]
+license = "GPL-3.0-or-later"
 edition = "2021"
 publish = false
 
