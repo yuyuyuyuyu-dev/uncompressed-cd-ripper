@@ -48,7 +48,11 @@ function App() {
 			</header>
 
 			<main className="flex flex-1 flex-col items-center gap-4 pt-[10vh] text-center">
-				{screen === "ripping" ? <Ripper /> : <Licenses />}
+				<div className={screen === "ripping" ? "contents" : "hidden"}>
+					<Ripper />
+				</div>
+
+				{screen === "licenses" && <Licenses />}
 			</main>
 
 			<footer className="px-3 pt-[5vh] pb-[2vh] text-center text-muted-foreground text-xs">
