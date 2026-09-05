@@ -2,10 +2,14 @@ use std::fmt;
 
 use super::Disc;
 
+#[cfg(target_os = "macos")]
+pub use super::diskutil::eject_disc;
+#[cfg(target_os = "linux")]
+pub use super::paranoia::eject_disc;
 #[cfg(not(windows))]
 pub use super::paranoia::{holding_an_audio_disc, Drive};
 #[cfg(windows)]
-pub use super::win32::{holding_an_audio_disc, Drive};
+pub use super::win32::{eject_disc, holding_an_audio_disc, Drive};
 
 pub(super) const BYTES_PER_SECTOR: usize = 2352;
 

@@ -11,8 +11,8 @@ use windows::Win32::Storage::FileSystem::{
     FILE_SHARE_WRITE, OPEN_EXISTING,
 };
 use windows::Win32::System::Ioctl::{
-    PropertyStandardQuery, StorageDeviceProperty, IOCTL_STORAGE_QUERY_PROPERTY,
-    STORAGE_DEVICE_DESCRIPTOR, STORAGE_PROPERTY_QUERY,
+    PropertyStandardQuery, StorageDeviceProperty, IOCTL_STORAGE_EJECT_MEDIA,
+    IOCTL_STORAGE_QUERY_PROPERTY, STORAGE_DEVICE_DESCRIPTOR, STORAGE_PROPERTY_QUERY,
 };
 use windows::Win32::System::WindowsProgramming::DRIVE_CDROM;
 use windows::Win32::System::IO::DeviceIoControl;
@@ -43,6 +43,40 @@ pub fn holding_an_audio_disc() -> Vec<String> {
         })
         .filter(|device| Drive::open(device).is_ok())
         .collect()
+}
+
+pub fn eject_disc(device: &str) -> Result<(), String> {
+    let stuck = || format!("{device} would not eject its disc");
+
+    let handle = unsafe {
+        CreateFileW(
+            &HSTRING::from(format!(r"\\.\{device}")),
+            GENERIC_READ.0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            None,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            None,
+        )
+    }
+    .map_err(|_| stuck())?;
+
+    let ejected = unsafe {
+        DeviceIoControl(
+            handle,
+            IOCTL_STORAGE_EJECT_MEDIA,
+            None,
+            0,
+            None,
+            0,
+            None,
+            None,
+        )
+    };
+
+    let _ = unsafe { CloseHandle(handle) };
+
+    ejected.map_err(|_| stuck())
 }
 
 pub struct Drive {

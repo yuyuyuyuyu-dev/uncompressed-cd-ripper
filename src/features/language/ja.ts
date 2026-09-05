@@ -13,7 +13,7 @@ export const ja: typeof en = {
 			body_other: "選んだフォルダに {{count}} 個のトラックが入っています。",
 		},
 		heading: "Disc",
-		scan: "CDドライブを再スキャン",
+		eject: "ディスクを取り出す",
 		noDrive: "音楽 CD の入ったドライブがありません。",
 		chooseFolder: "保存先を選択",
 		noFolder: "フォルダが選ばれていません",

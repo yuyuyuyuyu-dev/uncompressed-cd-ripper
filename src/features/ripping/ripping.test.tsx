@@ -24,6 +24,7 @@ function mockBackend({
 	until?: Promise<void>;
 }) {
 	const ripped: number[] = [];
+	const ejected: string[] = [];
 
 	mockIPC(
 		(command, payload) => {
@@ -44,6 +45,13 @@ function mockBackend({
 			}
 			if (command === "plugin:store|get") {
 				return [null, false];
+			}
+			if (command === "eject_disc") {
+				const { drive } = payload as { drive: string };
+
+				ejected.push(drive);
+
+				return null;
 			}
 			if (command === "tracks") {
 				return [
@@ -80,7 +88,7 @@ function mockBackend({
 		{ shouldMockEvents: true },
 	);
 
-	return ripped;
+	return { ripped, ejected };
 }
 
 async function chooseAFolder() {
@@ -112,7 +120,7 @@ test("should ask whether to overwrite when the destination already holds a file 
 
 test("should not start ripping when the overwrite dialog is cancelled", async () => {
 	// Arrange
-	const ripped = mockBackend({ alreadyThere: ["01.flac"] });
+	const { ripped } = mockBackend({ alreadyThere: ["01.flac"] });
 	await render(<Ripper />);
 	await chooseAFolder();
 	await page
@@ -156,13 +164,26 @@ test("should remove a disc from the screen automatically when it is taken out of
 		.toBeVisible();
 });
 
+test("should call the eject command when the eject button is clicked", async () => {
+	// Arrange
+	const { ejected } = mockBackend({});
+	await render(<Ripper />);
+	await expect.element(page.getByRole("button", { name: DRIVE })).toBeVisible();
+
+	// Act
+	await page.getByRole("button", { name: "Eject the disc" }).click();
+
+	// Assert
+	await expect.poll(() => ejected).toEqual([DRIVE]);
+});
+
 test("should keep the state after another screen is shown", async () => {
 	// Arrange
 	let letTheRipFinish!: () => void;
 	const until = new Promise<void>((resolve) => {
 		letTheRipFinish = resolve;
 	});
-	const ripped = mockBackend({ until });
+	const { ripped } = mockBackend({ until });
 	await render(<App />);
 	await page.getByLabelText("Album", { exact: true }).fill("Sea Change");
 	await chooseAFolder();
