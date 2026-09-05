@@ -429,6 +429,53 @@ jobs:
             watching-errors.txt
             vm-console.log
 
+  eject:
+    name: should eject the disc when asked to
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The runner can run a machine inside itself
+        run: test -e /dev/kvm
+
+      - run: |
+          sudo apt-get update
+          sudo apt-get install --yes qemu-system-x86 qemu-utils cloud-image-utils
+          sudo chmod 666 /dev/kvm
+
+      - name: Ask the app to eject the disc in the drive
+        run: .github/scripts/ask-the-app-to-eject-the-disc.sh
+
+      - name: The app had the drive the disc was in
+        run: |
+          cat ejected.txt
+          grep -qE '^holding /dev/' ejected.txt
+
+      - name: It said the disc came out
+        run: grep -qE '^ejected /dev/' ejected.txt
+
+      - name: The drive was holding the disc before
+        run: |
+          cat drive-with-the-disc-in.txt
+          grep -q /tmp/disc.cue drive-with-the-disc-in.txt
+
+      - name: Nothing was left in the drive
+        run: |
+          cat drive-once-it-was-ejected.txt
+          ! grep -q /tmp/disc.cue drive-once-it-was-ejected.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: what-the-app-did-when-asked-to-eject
+          path: |
+            ejected.txt
+            ejecting-errors.txt
+            drive-with-the-disc-in.txt
+            drive-once-it-was-ejected.txt
+            vm-console.log
+
   file-side-effects:
     name: should not create, modify or delete unrelated files or directories
     runs-on: ubuntu-latest

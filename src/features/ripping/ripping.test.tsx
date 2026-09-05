@@ -164,7 +164,7 @@ test("should remove a disc from the screen automatically when it is taken out of
 		.toBeVisible();
 });
 
-test("should eject the disc when the eject button is clicked", async () => {
+test("should call the eject command when the eject button is clicked", async () => {
 	// Arrange
 	const { ejected } = mockBackend({});
 	await render(<Ripper />);
