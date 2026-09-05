@@ -4,11 +4,16 @@ import { cdp } from "vitest/browser";
 import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 
+const VERSION = "0.0.1";
+
 const SETTINGS = 1;
 
 function mockBackend() {
 	mockIPC(
 		(command) => {
+			if (command === "plugin:app|version") {
+				return VERSION;
+			}
 			if (command === "drives") {
 				return [];
 			}

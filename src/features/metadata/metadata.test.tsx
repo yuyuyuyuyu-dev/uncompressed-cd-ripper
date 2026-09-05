@@ -5,6 +5,8 @@ import { cleanup, render } from "vitest-browser-react";
 import App from "@/App";
 import type { Album, TrackTags } from "@/bindings";
 
+const VERSION = "0.0.1";
+
 const DRIVE = "/dev/disk4";
 const FOLDER = "/Users/someone/Music";
 const DRIVE_NAME = "MARINA BLUE  CD-RW MB-1";
@@ -39,6 +41,9 @@ function mockBackend({ matches }: { matches: Album[] }) {
 
 	mockIPC(
 		(command, payload) => {
+			if (command === "plugin:app|version") {
+				return VERSION;
+			}
 			if (command === "drives") {
 				return [DRIVE];
 			}
