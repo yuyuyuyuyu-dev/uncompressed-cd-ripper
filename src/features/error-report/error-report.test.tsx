@@ -8,6 +8,8 @@ import { ErrorReporter } from "./ErrorReporter";
 import { buildErrorReport } from "./error-report";
 import "@/index.css";
 
+const VERSION = "0.0.0-TEST";
+
 const environment: Environment = {
 	release: "uncompressed-cd-ripper@0.1.0",
 	osName: "Mac OS",
@@ -61,6 +63,9 @@ function mockBackendFailingToRip() {
 
 	mockIPC(
 		(command, payload) => {
+			if (command === "plugin:app|version") {
+				return VERSION;
+			}
 			if (command === "log_error") {
 				logged.push((payload as { error: string }).error);
 
@@ -88,6 +93,9 @@ function mockBackendFailingToRip() {
 				return [null, false];
 			}
 			if (command === "plugin:store|set" || command === "plugin:store|save") {
+				return null;
+			}
+			if (command === "plugin:updater|check") {
 				return null;
 			}
 			if (command === "plugin:dialog|open") {

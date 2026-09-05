@@ -83,4 +83,12 @@ export const ja: typeof en = {
 		sentTitle: "レポートを送信しました",
 		sentBody: "ありがとうございます。",
 	},
+	selfUpdate: {
+		title: "新しいバージョンが公開されています。",
+		body: "アプリを再起動して更新しますか？",
+		changes: "変更点を見る",
+		downloading: "アップデートをダウンロード中",
+		later: "後で",
+		update: "更新",
+	},
 };
