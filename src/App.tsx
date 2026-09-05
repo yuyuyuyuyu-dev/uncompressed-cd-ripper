@@ -51,7 +51,7 @@ function App() {
 				{screen === "ripping" ? <Ripper /> : <Licenses />}
 			</main>
 
-			<footer className="px-3 py-[5vh] text-center text-muted-foreground text-xs">
+			<footer className="px-3 pt-[5vh] pb-[2vh] text-center text-muted-foreground text-xs">
 				{version}
 			</footer>
 
