@@ -7,7 +7,7 @@ This app rips CDs without compression. It also supports automatic metadata looku
 Currently the only supported format is `FLAC Uncompressed`.
 
 <p align="center">
-	<img src="docs/screenshot.png" alt="Uncompressed CD Ripper" width="800">
+	<img width="800" alt="This app's screenshot" src="https://github.com/user-attachments/assets/440ea6ff-fc2c-4894-9fed-997438989f2b" />
 </p>
 
 ## Installation
@@ -20,8 +20,6 @@ Download the file for your computer from the [latest release](https://github.com
 | Windows on x64 | `x64-setup.exe` |
 | Linux on x86_64 | `.AppImage` |
 
-Nothing else has to be installed. The libraries the app reads discs with are already inside it.
-
 The same release also holds `latest.json`, an `.app.tar.gz` and a few `.sig` files. The app uses those to update itself, so you can ignore them.
 
 ### macOS
@@ -30,7 +28,7 @@ The app is signed, but not by a paid Apple developer account, so macOS refuses t
 
 ### Windows and Linux
 
-These two builds have never been tried. They exist because the build tools can make them, but there is no Windows or Linux machine here to run them on.
+These two versions have never been tried. They exist because the build tools can make them, but I don't have Windows or Linux machine so I can't try them.
 
 Open the file the way you open any other installer. Neither build is signed with a paid certificate, so your computer may warn you first.
 
