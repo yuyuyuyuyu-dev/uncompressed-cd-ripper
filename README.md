@@ -26,21 +26,11 @@ The same release also holds `latest.json`, an `.app.tar.gz` and a few `.sig` fil
 
 ### macOS
 
-Intel Macs are not supported.
-
 The app is signed, but not by a paid Apple developer account, so macOS refuses to open it the first time. Open **System Settings**, go to **Privacy & Security**, find the message about the app, and choose **Open Anyway**. macOS asks this once.
 
-### Windows
+### Windows and Linux
 
-The installer is not signed yet, so Windows says it protected your PC. Choose **More info**, then **Run anyway**.
-
-### Linux
-
-Make the file executable before you open it.
-
-```sh
-chmod +x Uncompressed.CD.Ripper_*_amd64.AppImage
-```
+Open the file the way you open any other installer. Neither build is signed with a paid certificate, so your system may warn you first.
 
 ### Updates
 
