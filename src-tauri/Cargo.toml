@@ -1,8 +1,9 @@
 [package]
 name = "uncompressed-cd-ripper"
 version = "0.0.0-SNAPSHOT"
-description = "A Tauri App"
-authors = ["you"]
+description = "This app rips CDs without compression."
+authors = ["yu"]
+license = "GPL-3.0-or-later"
 edition = "2021"
 publish = false
 

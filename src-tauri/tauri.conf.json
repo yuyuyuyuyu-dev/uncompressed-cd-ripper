@@ -32,6 +32,9 @@
 		"active": true,
 		"targets": "all",
 		"createUpdaterArtifacts": true,
+		"resources": {
+			"../LICENSE": "LICENSE"
+		},
 		"macOS": {
 			"signingIdentity": "-"
 		},
