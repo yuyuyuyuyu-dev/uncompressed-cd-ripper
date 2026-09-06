@@ -6,15 +6,49 @@ This app rips CDs without compression. It also supports automatic metadata looku
 
 Currently the only supported format is `FLAC Uncompressed`.
 
-TODO: screenshots
+<p align="center">
+	<img src="docs/screenshot.png" alt="Uncompressed CD Ripper" width="800">
+</p>
 
 ## Installation
 
-TODO
+Download the file for your system from the [latest release](https://github.com/yuyuyuyuyu-dev/uncompressed-cd-ripper/releases/latest).
+
+| System | File |
+| --- | --- |
+| macOS on Apple silicon | `.dmg` |
+| Windows on x64 | `x64-setup.exe` |
+| Linux on x86_64 | `.AppImage` |
+
+Nothing else has to be installed. The libraries the app reads discs with are already inside it.
+
+The same release also holds `latest.json`, an `.app.tar.gz` and a few `.sig` files. The app uses those to update itself, so you can ignore them.
+
+### macOS
+
+Intel Macs are not supported.
+
+The app is signed, but not by a paid Apple developer account, so macOS refuses to open it the first time. Open **System Settings**, go to **Privacy & Security**, find the message about the app, and choose **Open Anyway**. macOS asks this once.
+
+### Windows
+
+The installer is not signed yet, so Windows says it protected your PC. Choose **More info**, then **Run anyway**.
+
+### Linux
+
+Make the file executable before you open it.
+
+```sh
+chmod +x Uncompressed.CD.Ripper_*_amd64.AppImage
+```
+
+### Updates
+
+The app looks for a newer release every time it starts and asks whether to install it, so you download an installer only once.
 
 ## License
 
-GNU General Public License v3.0 or later
+[GNU General Public License v3.0 or later](LICENSE)
 
 ```text
 Copyright (C) 2026  yu
