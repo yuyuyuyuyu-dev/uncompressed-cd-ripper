@@ -12,9 +12,9 @@ Currently the only supported format is `FLAC Uncompressed`.
 
 ## Installation
 
-Download the file for your system from the [latest release](https://github.com/yuyuyuyuyu-dev/uncompressed-cd-ripper/releases/latest).
+Download the file for your computer from the [latest release](https://github.com/yuyuyuyuyu-dev/uncompressed-cd-ripper/releases/latest).
 
-| System | File |
+| OS | File |
 | --- | --- |
 | macOS on Apple silicon | `.dmg` |
 | Windows on x64 | `x64-setup.exe` |
@@ -30,7 +30,9 @@ The app is signed, but not by a paid Apple developer account, so macOS refuses t
 
 ### Windows and Linux
 
-Open the file the way you open any other installer. Neither build is signed with a paid certificate, so your system may warn you first.
+These two builds have never been tried. They exist because the build tools can make them, but there is no Windows or Linux machine here to run them on.
+
+Open the file the way you open any other installer. Neither build is signed with a paid certificate, so your computer may warn you first.
 
 ### Updates
 
