@@ -341,7 +341,7 @@ jobs:
           sudo chmod 666 /dev/kvm
 
       - name: Use the drive while the kernel writes down what it is asked
-        run: .github/scripts/collect-the-commands-the-drive-is-sent.sh
+        run: .github/scripts/rip-and-write-down-what-the-drive-was-asked/main.sh
 
       - name: The drive was asked for the audio
         run: grep -qE 'raw=(be|28) ' drive.txt
