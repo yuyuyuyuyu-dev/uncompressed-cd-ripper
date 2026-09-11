@@ -42,6 +42,7 @@ use_the_drive_every_way_the_app_can() {
     sudo chmod a+rw "$drive"
 
     cd "$HOME/app/src-tauri"
+    # Checks as a black box that the functions exposed as Tauri commands never send the drive a write command.
     cargo test --all-features
     cargo run --example rip -- --disc "$drive" -o "$HOME/ripped"
 
