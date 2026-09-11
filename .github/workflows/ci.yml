@@ -348,7 +348,11 @@ jobs:
 
       - name: The drive was never asked to write
         run: |
-          ! grep -qE 'cmnd=\((WRITE|ERASE|BLANK|FORMAT_UNIT|CLOSE_TRACK|RESERVE_TRACK)' drive.txt
+          erase_10=2c
+          reserve_track=53
+          close_track=5b
+          blank=a1
+          ! grep -qE "cmnd=\((WRITE|ERASE|FORMAT_UNIT)|raw=($erase_10|$reserve_track|$close_track|$blank) " drive.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
