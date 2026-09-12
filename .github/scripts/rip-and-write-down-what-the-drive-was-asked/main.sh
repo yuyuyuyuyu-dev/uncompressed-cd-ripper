@@ -2,6 +2,13 @@
 
 set -euxo pipefail
 
+main() {
+    boot_a_machine_with_a_drive
+    use_the_drive_while_the_kernel_writes_down_what_it_is_asked
+    bring_back_what_the_kernel_wrote
+    shut_the_machine_down
+}
+
 boot_a_machine_with_a_drive() {
     source .github/scripts/boot-a-machine-with-a-drive.sh
 }
@@ -18,13 +25,6 @@ bring_back_what_the_kernel_wrote() {
 
 shut_the_machine_down() {
     ssh "${ssh_options[@]}" "${ssh_target[@]}" sudo poweroff || true
-}
-
-main() {
-    boot_a_machine_with_a_drive
-    use_the_drive_while_the_kernel_writes_down_what_it_is_asked
-    bring_back_what_the_kernel_wrote
-    shut_the_machine_down
 }
 
 main

@@ -5,6 +5,16 @@ shopt -s inherit_errexit
 
 export PATH="$HOME/.cargo/bin:$PATH"
 
+main() {
+    local drive
+
+    have_the_kernel_write_down_every_command_the_drive_is_sent
+    put_a_read_only_test_disc_in_the_drive
+    drive="$(find_out_which_drive_the_disc_went_into)"
+    use_the_drive_every_way_the_app_can "$drive"
+    keep_the_commands_this_drive_was_sent "$drive"
+}
+
 have_the_kernel_write_down_every_command_the_drive_is_sent() {
     sudo sh -c 'echo 1 > /sys/kernel/debug/tracing/events/scsi/scsi_dispatch_cmd_start/enable'
     sudo sh -c ': > /sys/kernel/debug/tracing/trace'
@@ -58,16 +68,6 @@ keep_the_commands_this_drive_was_sent() {
 
     sudo cat /sys/kernel/debug/tracing/trace > /tmp/trace.txt
     grep "host_no=$host " /tmp/trace.txt > /tmp/drive.txt || true
-}
-
-main() {
-    local drive
-
-    have_the_kernel_write_down_every_command_the_drive_is_sent
-    put_a_read_only_test_disc_in_the_drive
-    drive="$(find_out_which_drive_the_disc_went_into)"
-    use_the_drive_every_way_the_app_can "$drive"
-    keep_the_commands_this_drive_was_sent "$drive"
 }
 
 main
