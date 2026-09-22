@@ -36,7 +36,7 @@ tauri-plugin-dialog = "2"
 flacenc = "0.5.1"
 tauri-plugin-notification = "2.3.3"
 tauri-plugin-store = "2"
-cdtoc = { version = "0.13", default-features = false, features = [
+cdtoc = { version = "0.14", default-features = false, features = [
     "accuraterip",
     "musicbrainz",
 ] }
