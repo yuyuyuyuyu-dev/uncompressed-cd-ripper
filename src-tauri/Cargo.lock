@@ -495,9 +495,9 @@ dependencies = [
 
 [[package]]
 name = "cdtoc"
-version = "0.13.2"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1ee9b4355d8e3581dc601d9f47bb35ac128397b0c21a9663a2c5164fc352f7a"
+checksum = "5ba2b48c0e1fa4ef043ac9cbd4d3a252a5663d2f304c7cfd61f31e14f885b282"
 dependencies = [
  "dactyl",
  "sha1",
