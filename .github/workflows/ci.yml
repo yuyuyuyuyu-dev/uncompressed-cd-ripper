@@ -12,16 +12,15 @@ concurrency:
 jobs:
   biome:
     name: Biome
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: package.json
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run biome ci
+    permissions:
+      contents: read
+    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/biome.yml@feat/biome-and-pnpm
+
+  oxfmt:
+    name: Oxfmt
+    permissions:
+      contents: read
+    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/oxfmt.yml@feat/biome-and-pnpm
 
   typecheck:
     name: TypeScript
