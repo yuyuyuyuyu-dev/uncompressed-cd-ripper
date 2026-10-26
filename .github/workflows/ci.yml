@@ -14,13 +14,13 @@ jobs:
     name: Biome
     permissions:
       contents: read
-    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/biome.yml@feat/biome-and-pnpm
+    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/biome.yml@main
 
   oxfmt:
     name: Oxfmt
     permissions:
       contents: read
-    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/oxfmt.yml@feat/biome-and-pnpm
+    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/oxfmt.yml@main
 
   typecheck:
     name: TypeScript
