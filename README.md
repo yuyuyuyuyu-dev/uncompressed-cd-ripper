@@ -14,11 +14,11 @@ Currently the only supported format is `FLAC Uncompressed`.
 
 Download the file for your computer from the [latest release](https://github.com/yuyuyuyuyu-dev/uncompressed-cd-ripper/releases/latest).
 
-| OS | File |
-| --- | --- |
-| macOS on Apple silicon | `.dmg` |
-| Windows on x64 | `x64-setup.exe` |
-| Linux on x86_64 | `.AppImage` |
+| OS                     | File            |
+| ---------------------- | --------------- |
+| macOS on Apple silicon | `.dmg`          |
+| Windows on x64         | `x64-setup.exe` |
+| Linux on x86_64        | `.AppImage`     |
 
 The same release also holds `latest.json`, an `.app.tar.gz` and a few `.sig` files. The app uses those to update itself, so you can ignore them.
 
