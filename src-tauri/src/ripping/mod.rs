@@ -262,3 +262,5 @@ fn store(
 
 #[cfg(test)]
 mod specification;
+#[cfg(all(test, windows))]
+mod tests;
