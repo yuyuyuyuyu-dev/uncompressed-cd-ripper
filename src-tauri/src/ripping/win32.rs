@@ -239,7 +239,7 @@ impl Drive {
             })
             .collect();
 
-        if let Some(starts) = None::<i32> {
+        if let Some(starts) = self.last_session() {
             let gap_begins = starts - SECTORS_BETWEEN_SESSIONS;
             let last_audio = tracks.windows(2).rposition(|pair| {
                 pair[0].audio
