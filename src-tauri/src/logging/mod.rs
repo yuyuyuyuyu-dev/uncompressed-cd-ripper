@@ -9,7 +9,14 @@ use specta::Type;
 const KEPT: usize = 100;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TrackRun {
+    pub audio: bool,
+    pub tracks: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Happening {
+    DiscLayoutRead { layout: Vec<TrackRun> },
     AudioTracksListed { tracks: u8 },
     FolderCheckedForOverwrites { tracks: u8 },
     DiscLookedUp { releases: u32 },
@@ -24,6 +31,20 @@ pub enum Happening {
 impl Display for Happening {
     fn fmt(&self, out: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            Self::DiscLayoutRead { layout } => {
+                write!(out, "the disc's layout was read: ")?;
+
+                for (at, run) in layout.iter().enumerate() {
+                    if at > 0 {
+                        write!(out, ", then ")?;
+                    }
+
+                    let kind = if run.audio { "audio" } else { "data" };
+                    write!(out, "{} {kind}", run.tracks)?;
+                }
+
+                Ok(())
+            }
             Self::AudioTracksListed { tracks } => {
                 write!(out, "the disc's audio tracks were listed: {tracks}")
             }
@@ -66,7 +87,8 @@ impl Display for Happening {
 impl Happening {
     fn category(&self) -> &'static str {
         match self {
-            Self::AudioTracksListed { .. }
+            Self::DiscLayoutRead { .. }
+            | Self::AudioTracksListed { .. }
             | Self::FolderCheckedForOverwrites { .. }
             | Self::TrackRipStarted { .. }
             | Self::TrackReadAgain { .. }

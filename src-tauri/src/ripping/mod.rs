@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::artwork::Artwork;
-use crate::logging::{self, Happening, Log};
+use crate::logging::{self, Happening, Log, TrackRun};
 use crate::verification::{self, Checksums, Position};
 
 #[cfg(target_os = "macos")]
@@ -75,7 +75,16 @@ const LEAD_IN: u32 = 150;
 
 pub fn tracks(disc: &impl Disc, log: &impl Log) -> Vec<Track> {
     let tracks = match disc.reported_tracks() {
-        Ok(reported) => listing(&reported),
+        Ok(reported) => {
+            logging::record(
+                Happening::DiscLayoutRead {
+                    layout: layout(&reported),
+                },
+                log,
+            );
+
+            listing(&reported)
+        }
         Err(_) => Vec::new(),
     };
 
@@ -87,6 +96,22 @@ pub fn tracks(disc: &impl Disc, log: &impl Log) -> Vec<Track> {
     );
 
     tracks
+}
+
+fn layout(reported: &[drive::ReportedTrack]) -> Vec<TrackRun> {
+    let mut runs: Vec<TrackRun> = Vec::new();
+
+    for track in reported {
+        match runs.last_mut() {
+            Some(run) if run.audio == track.audio => run.tracks += 1,
+            _ => runs.push(TrackRun {
+                audio: track.audio,
+                tracks: 1,
+            }),
+        }
+    }
+
+    runs
 }
 
 fn listing(reported: &[drive::ReportedTrack]) -> Vec<Track> {

@@ -10,7 +10,7 @@ use windows::Win32::Devices::Cdrom::{
 
 use super::drive::SAMPLES_PER_SECTOR;
 use super::win32::{Device, Drive};
-use super::{rip, Flac};
+use super::{rip, tracks, Flac};
 
 const LEAD_IN: i32 = 150;
 const LEAD_OUT: u8 = 0xAA;
@@ -170,4 +170,19 @@ fn ripping_the_last_audio_track_of_a_cd_extra_leaves_out_the_gap_between_the_ses
         file.len(),
         track.len()
     );
+}
+
+#[test]
+fn listing_the_tracks_of_a_cd_extra_records_its_layout_for_an_error_report() {
+    // Arrange
+    let drive = Drive::over(Box::new(CdExtra)).expect("the fake drive holds an audio CD");
+
+    // Act
+    tracks(&drive, &crate::logging::Logger);
+
+    // Assert
+    let layout = "the disc's layout was read: 11 audio, then 1 data";
+    assert!(crate::logging::breadcrumbs()
+        .iter()
+        .any(|breadcrumb| breadcrumb.message == layout));
 }
