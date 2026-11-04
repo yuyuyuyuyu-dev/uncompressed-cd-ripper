@@ -22,6 +22,10 @@ jobs:
       contents: read
     uses: yuyuyuyuyu-dev/repo-config/.github/workflows/oxfmt.yml@main
 
+  specification:
+    name: Specification
+    uses: ./.github/workflows/specification.yml
+
   typecheck:
     name: TypeScript
     runs-on: ubuntu-latest
