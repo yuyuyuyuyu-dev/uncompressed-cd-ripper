@@ -90,21 +90,31 @@ jobs:
         working-directory: src-tauri
 
   rust-test:
-    name: Rust tests
-    runs-on: ubuntu-latest
+    name: Rust tests (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux
+            runner: ubuntu-latest
+          - platform: macOS
+            runner: macos-latest
+          - platform: Windows
+            runner: windows-latest
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-tauri-linux
+        if: runner.os == 'Linux'
       - uses: ./.github/actions/setup-libcdio
+        if: runner.os == 'Linux'
       - uses: ./.github/actions/setup-udev
+        if: runner.os == 'Linux'
+      - name: Install the CD libraries the app is built against
+        if: runner.os == 'macOS'
+        run: brew install libcdio libcdio-paranoia
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
       - run: cargo test --all-features
         working-directory: src-tauri
-
-  tests:
-    name: Tests
-    permissions:
-      contents: read
-    uses: ./.github/workflows/tests.yml
