@@ -140,4 +140,4 @@ pub fn chosen(path: &Path) -> Result<Artwork, String> {
 }
 
 #[cfg(test)]
-mod tests;
+mod specification;
