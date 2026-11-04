@@ -64,11 +64,11 @@ windows = { version = "0.62", features = [
   "Win32_UI_WindowsAndMessaging",
 ] }
 
-[dev-dependencies]
-claxon = "0.4.3"
-
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
 
 [profile.release]
 debug = "line-tables-only"
+
+[dev-dependencies]
+claxon = "0.4.3"
