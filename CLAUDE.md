@@ -1,9 +1,8 @@
 ## Coding Conventions
 
-### Tests as Specification
+### Specification test case names
 
-State every specification explicitly as a test case.
-Each test case's name MUST start with "should", and MUST state exactly one specification.
+Each specification test case's name MUST start with "should", and MUST state exactly one specification.
 
 ### Feature package
 

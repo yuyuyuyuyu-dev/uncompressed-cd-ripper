@@ -136,7 +136,7 @@ pub fn breadcrumbs() -> Vec<Breadcrumb> {
 }
 
 #[cfg(test)]
-mod tests;
+mod specification;
 
 fn kept() -> MutexGuard<'static, VecDeque<Breadcrumb>> {
     BREADCRUMBS.lock().unwrap_or_else(PoisonError::into_inner)

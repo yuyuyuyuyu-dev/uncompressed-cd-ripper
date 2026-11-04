@@ -155,4 +155,4 @@ impl ReportApi for Sentry {
 }
 
 #[cfg(test)]
-mod tests;
+mod specification;

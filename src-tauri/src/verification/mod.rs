@@ -170,4 +170,4 @@ fn same(listed: &str, reported: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests;
+mod specification;

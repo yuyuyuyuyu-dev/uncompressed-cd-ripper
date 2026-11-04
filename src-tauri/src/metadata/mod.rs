@@ -164,4 +164,4 @@ impl Release {
 }
 
 #[cfg(test)]
-mod tests;
+mod specification;
