@@ -59,7 +59,13 @@ pub fn eject_disc(device: &str) -> Result<(), String> {
     let handle = Handle::open(device).map_err(|_| stuck())?;
 
     let ejected = unsafe {
-        handle.control(IOCTL_STORAGE_EJECT_MEDIA, ptr::null(), 0, ptr::null_mut(), 0)
+        handle.control(
+            IOCTL_STORAGE_EJECT_MEDIA,
+            ptr::null(),
+            0,
+            ptr::null_mut(),
+            0,
+        )
     };
 
     ejected.map(|_| ()).map_err(|_| stuck())
