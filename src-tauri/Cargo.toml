@@ -69,3 +69,6 @@ tauri-plugin-updater = "2"
 
 [profile.release]
 debug = "line-tables-only"
+
+[dev-dependencies]
+claxon = "0.4.3"
