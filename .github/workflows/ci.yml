@@ -103,13 +103,8 @@ jobs:
       - run: cargo test --all-features
         working-directory: src-tauri
 
-  windows-test:
-    name: Windows tests
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-      - run: cargo test --all-features
-        working-directory: src-tauri
+  tests:
+    name: Tests
+    permissions:
+      contents: read
+    uses: ./.github/workflows/tests.yml
