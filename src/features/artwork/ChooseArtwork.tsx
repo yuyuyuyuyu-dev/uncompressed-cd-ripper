@@ -5,24 +5,24 @@ import "../language/i18n";
 import { chosen } from "./artwork";
 
 type Props = {
-	onChoose: (artwork: Artwork) => void;
-	disabled: boolean;
+  onChoose: (artwork: Artwork) => void;
+  disabled: boolean;
 };
 
 export function ChooseArtwork({ onChoose, disabled }: Props) {
-	const { t } = useTranslation();
+  const { t } = useTranslation();
 
-	const choose = async () => {
-		const artwork = await chosen();
+  const choose = async () => {
+    const artwork = await chosen();
 
-		if (artwork !== null) {
-			onChoose(artwork);
-		}
-	};
+    if (artwork !== null) {
+      onChoose(artwork);
+    }
+  };
 
-	return (
-		<Button variant="outline" size="sm" onClick={choose} disabled={disabled}>
-			{t("artwork.choose")}
-		</Button>
-	);
+  return (
+    <Button variant="outline" size="sm" onClick={choose} disabled={disabled}>
+      {t("artwork.choose")}
+    </Button>
+  );
 }

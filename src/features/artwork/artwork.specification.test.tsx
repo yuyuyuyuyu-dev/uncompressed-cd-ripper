@@ -14,142 +14,138 @@ const SETTINGS = 1;
 const CHOSEN = "/Users/someone/Pictures/artwork.png";
 
 const ALBUM: Album = {
-	id: "8f468b26-4d5f-4c2d-9e5d-3f1c2b7a9e01",
-	title: "Sea Change",
-	artist: "Marina Blue",
-	released: "1998-03-02",
-	country: "GB",
-	tracks: [{ number: 1, title: "Harbour Lights", artist: "Marina Blue" }],
+  id: "8f468b26-4d5f-4c2d-9e5d-3f1c2b7a9e01",
+  title: "Sea Change",
+  artist: "Marina Blue",
+  released: "1998-03-02",
+  country: "GB",
+  tracks: [{ number: 1, title: "Harbour Lights", artist: "Marina Blue" }],
 };
 
 const ARTWORK: Artwork = {
-	mediaType: "image/png",
-	data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+  mediaType: "image/png",
+  data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
 };
 
 function mockBackend() {
-	const called: string[] = [];
-	const askedFor: string[] = [];
-	const read: string[] = [];
-	const ripped: (TrackTags | null)[] = [];
+  const called: string[] = [];
+  const askedFor: string[] = [];
+  const read: string[] = [];
+  const ripped: (TrackTags | null)[] = [];
 
-	mockIPC(
-		(command, payload) => {
-			called.push(command);
+  mockIPC(
+    (command, payload) => {
+      called.push(command);
 
-			if (command === "plugin:app|version") {
-				return VERSION;
-			}
-			if (command === "plugin:updater|check") {
-				return null;
-			}
-			if (command === "drives") {
-				return [DRIVE];
-			}
-			if (command === "drive_name") {
-				return DRIVE_NAME;
-			}
-			if (command === "plugin:store|load") {
-				return SETTINGS;
-			}
-			if (command === "plugin:store|get") {
-				return [null, false];
-			}
-			if (command === "tracks") {
-				return [{ number: 1, sectors: 7500 }];
-			}
-			if (command === "look_up_disc") {
-				return [ALBUM];
-			}
-			if (command === "look_up_artwork") {
-				askedFor.push((payload as { release: string }).release);
+      if (command === "plugin:app|version") {
+        return VERSION;
+      }
+      if (command === "plugin:updater|check") {
+        return null;
+      }
+      if (command === "drives") {
+        return [DRIVE];
+      }
+      if (command === "drive_name") {
+        return DRIVE_NAME;
+      }
+      if (command === "plugin:store|load") {
+        return SETTINGS;
+      }
+      if (command === "plugin:store|get") {
+        return [null, false];
+      }
+      if (command === "tracks") {
+        return [{ number: 1, sectors: 7500 }];
+      }
+      if (command === "look_up_disc") {
+        return [ALBUM];
+      }
+      if (command === "look_up_artwork") {
+        askedFor.push((payload as { release: string }).release);
 
-				return ARTWORK;
-			}
-			if (command === "plugin:dialog|open") {
-				const { options } = payload as { options: { directory?: boolean } };
+        return ARTWORK;
+      }
+      if (command === "plugin:dialog|open") {
+        const { options } = payload as { options: { directory?: boolean } };
 
-				return options.directory === true ? FOLDER : CHOSEN;
-			}
-			if (command === "read_artwork") {
-				read.push((payload as { path: string }).path);
+        return options.directory === true ? FOLDER : CHOSEN;
+      }
+      if (command === "read_artwork") {
+        read.push((payload as { path: string }).path);
 
-				return ARTWORK;
-			}
-			if (command === "already_there") {
-				return [];
-			}
-			if (command === "rip_track") {
-				ripped.push((payload as { tags: TrackTags | null }).tags);
+        return ARTWORK;
+      }
+      if (command === "already_there") {
+        return [];
+      }
+      if (command === "rip_track") {
+        ripped.push((payload as { tags: TrackTags | null }).tags);
 
-				return { file: "", checksums: { v1: 0, v2: 0 } };
-			}
-			if (command === "plugin:notification|is_permission_granted") {
-				return true;
-			}
-			if (command === "plugin:notification|notify") {
-				return null;
-			}
-			throw new Error(`the test did not expect ${command}`);
-		},
-		{ shouldMockEvents: true },
-	);
+        return { file: "", checksums: { v1: 0, v2: 0 } };
+      }
+      if (command === "plugin:notification|is_permission_granted") {
+        return true;
+      }
+      if (command === "plugin:notification|notify") {
+        return null;
+      }
+      throw new Error(`the test did not expect ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
 
-	return { called, askedFor, read, ripped };
+  return { called, askedFor, read, ripped };
 }
 
 afterEach(async () => {
-	await cleanup();
-	clearMocks();
+  await cleanup();
+  clearMocks();
 });
 
 test("should fetch the album artwork from the internet", async () => {
-	// Arrange
-	const { called, askedFor } = mockBackend();
-	await render(<App />);
+  // Arrange
+  const { called, askedFor } = mockBackend();
+  await render(<App />);
 
-	// Act
-	await page.getByRole("button", { name: "Fetch CD details" }).click();
-	await page.getByRole("button", { name: "Fetch", exact: true }).click();
+  // Act
+  await page.getByRole("button", { name: "Fetch CD details" }).click();
+  await page.getByRole("button", { name: "Fetch", exact: true }).click();
 
-	// Assert
-	await expect.poll(() => called).toContain("look_up_artwork");
-	await expect.poll(() => askedFor).toEqual([ALBUM.id]);
-	await expect
-		.element(page.getByRole("img", { name: "Album artwork" }))
-		.toHaveAttribute("src", `data:${ARTWORK.mediaType};base64,${ARTWORK.data}`);
+  // Assert
+  await expect.poll(() => called).toContain("look_up_artwork");
+  await expect.poll(() => askedFor).toEqual([ALBUM.id]);
+  await expect
+    .element(page.getByRole("img", { name: "Album artwork" }))
+    .toHaveAttribute("src", `data:${ARTWORK.mediaType};base64,${ARTWORK.data}`);
 });
 
 test("should let the album artwork be chosen from this computer", async () => {
-	// Arrange
-	const { read, ripped } = mockBackend();
-	await render(<App />);
+  // Arrange
+  const { read, ripped } = mockBackend();
+  await render(<App />);
 
-	// Act
-	await page.getByRole("button", { name: "Choose artwork" }).click();
-	await expect
-		.element(page.getByRole("img", { name: "Album artwork" }))
-		.toBeVisible();
-	await page.getByRole("button", { name: "Choose where to save" }).click();
-	await expect.element(page.getByText(FOLDER)).toBeVisible();
-	await page
-		.getByRole("button", { name: "Start ripping", exact: true })
-		.click();
+  // Act
+  await page.getByRole("button", { name: "Choose artwork" }).click();
+  await expect.element(page.getByRole("img", { name: "Album artwork" })).toBeVisible();
+  await page.getByRole("button", { name: "Choose where to save" }).click();
+  await expect.element(page.getByText(FOLDER)).toBeVisible();
+  await page.getByRole("button", { name: "Start ripping", exact: true }).click();
 
-	// Assert
-	await expect.poll(() => read).toEqual([CHOSEN]);
-	await expect
-		.element(page.getByRole("img", { name: "Album artwork" }))
-		.toHaveAttribute("src", `data:${ARTWORK.mediaType};base64,${ARTWORK.data}`);
-	await expect
-		.poll(() => ripped)
-		.toEqual([
-			{
-				album: null,
-				albumArtist: null,
-				artist: null,
-				title: null,
-				artwork: ARTWORK,
-			},
-		]);
+  // Assert
+  await expect.poll(() => read).toEqual([CHOSEN]);
+  await expect
+    .element(page.getByRole("img", { name: "Album artwork" }))
+    .toHaveAttribute("src", `data:${ARTWORK.mediaType};base64,${ARTWORK.data}`);
+  await expect
+    .poll(() => ripped)
+    .toEqual([
+      {
+        album: null,
+        albumArtist: null,
+        artist: null,
+        title: null,
+        artwork: ARTWORK,
+      },
+    ]);
 });
