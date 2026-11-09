@@ -6,7 +6,7 @@ import {
   sendNotification,
 } from "@tauri-apps/plugin-notification";
 import { Eject } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AGREEMENTS_REQUIRED,
@@ -62,18 +62,26 @@ export function Ripper() {
   const [offset, setOffset] = useState<number>();
   const [checking, setChecking] = useState(false);
   const [verdicts, setVerdicts] = useState<Verdict[]>();
+  const [lastDrive, setLastDrive] = useState(drive);
   const { t } = useTranslation();
 
-  const look = useCallback(async () => {
-    const found = await commands.drives();
+  if (drive !== lastDrive) {
+    setLastDrive(drive);
+    setMetadata(NOTHING);
+    setOffset(undefined);
+    setVerdicts(undefined);
 
-    setDrives(found);
-    setDrive(found[0]);
-  }, []);
+    if (drive === undefined) {
+      setTracks([]);
+    }
+  }
 
   useEffect(() => {
-    look();
-  }, [look]);
+    commands.drives().then((found) => {
+      setDrives(found);
+      setDrive(found[0]);
+    });
+  }, []);
 
   useEffect(() => {
     const listening = events.drivesChanged.listen(({ payload }) => {
@@ -89,12 +97,7 @@ export function Ripper() {
   }, []);
 
   useEffect(() => {
-    setMetadata(NOTHING);
-    setOffset(undefined);
-    setVerdicts(undefined);
-
     if (drive === undefined) {
-      setTracks([]);
       return;
     }
 

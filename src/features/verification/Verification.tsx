@@ -29,16 +29,20 @@ export function Verification({ drive, offset, onOffset, checking, onChecking, di
   const [asking, setAsking] = useState(false);
   const [looking, setLooking] = useState(false);
   const [unlisted, setUnlisted] = useState(false);
+  const [lastDrive, setLastDrive] = useState(drive);
   const label = useId();
   const { t } = useTranslation();
+
+  if (drive !== lastDrive) {
+    setLastDrive(drive);
+    setUnlisted(false);
+  }
 
   useEffect(() => {
     savedChecking().then(onChecking);
   }, [onChecking]);
 
   useEffect(() => {
-    setUnlisted(false);
-
     if (drive === undefined) {
       return;
     }
