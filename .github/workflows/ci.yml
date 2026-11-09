@@ -25,7 +25,7 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run lint --deny-warnings
+      - run: pnpm run oxlint --deny-warnings
 
   oxfmt:
     name: Oxfmt

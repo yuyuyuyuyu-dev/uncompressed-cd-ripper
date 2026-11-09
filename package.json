@@ -17,7 +17,7 @@
     "previtest": "pnpm run generate-bindings && pnpm run generate-licenses",
     "vitest": "vitest",
     "oxfmt": "oxfmt",
-    "lint": "oxlint"
+    "oxlint": "oxlint"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
