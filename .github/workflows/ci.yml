@@ -10,28 +10,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  oxlint:
-    name: Oxlint
-    runs-on: ubuntu-latest
+  oxc:
+    name: Oxc
     permissions:
       contents: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: package.json
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run oxlint --deny-warnings
-
-  oxfmt:
-    name: Oxfmt
-    permissions:
-      contents: read
-    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/oxfmt.yml@main
+    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/oxc.yml@main
 
   specification:
     name: Specification
