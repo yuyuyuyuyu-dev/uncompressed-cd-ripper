@@ -97,7 +97,7 @@ importers:
         specifier: 0.77.0
         version: 0.77.0
       oxlint:
-        specifier: ^1.91.0
+        specifier: 1.92.0
         version: 1.92.0
       playwright:
         specifier: ^1.65.0
