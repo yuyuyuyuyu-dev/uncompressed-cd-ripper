@@ -1,49 +1,49 @@
 {
-	"$schema": "https://schema.tauri.app/config/2",
-	"productName": "Uncompressed CD Ripper",
-	"identifier": "dev.yuyuyuyuyu.uncompressed-cd-ripper",
-	"build": {
-		"beforeDevCommand": "pnpm dev",
-		"devUrl": "http://localhost:1420",
-		"beforeBuildCommand": "pnpm build",
-		"frontendDist": "../dist"
-	},
-	"app": {
-		"windows": [
-			{
-				"title": "Uncompressed CD Ripper",
-				"width": 800,
-				"height": 600
-			}
-		],
-		"security": {
-			"csp": null
-		}
-	},
-	"plugins": {
-		"updater": {
-			"endpoints": [
-				"https://github.com/yuyuyuyuyu-dev/uncompressed-cd-ripper/releases/latest/download/latest.json"
-			],
-			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYxQUQ1MjBEMDZGMzE3NEYKUldSUEYvTUdEVkt0OGVHVUJMbHVQRldwZml0WCtBT0lDU0xaN0tPbjNtNjdZdFFrVHdKY05ETDEK"
-		}
-	},
-	"bundle": {
-		"active": true,
-		"targets": "all",
-		"createUpdaterArtifacts": true,
-		"resources": {
-			"../LICENSE": "LICENSE"
-		},
-		"macOS": {
-			"signingIdentity": "-"
-		},
-		"icon": [
-			"icons/32x32.png",
-			"icons/128x128.png",
-			"icons/128x128@2x.png",
-			"icons/icon.icns",
-			"icons/icon.ico"
-		]
-	}
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Uncompressed CD Ripper",
+  "identifier": "dev.yuyuyuyuyu.uncompressed-cd-ripper",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Uncompressed CD Ripper",
+        "width": 800,
+        "height": 600
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/yuyuyuyuyu-dev/uncompressed-cd-ripper/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYxQUQ1MjBEMDZGMzE3NEYKUldSUEYvTUdEVkt0OGVHVUJMbHVQRldwZml0WCtBT0lDU0xaN0tPbjNtNjdZdFFrVHdKY05ETDEK"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "resources": {
+      "../LICENSE": "LICENSE"
+    },
+    "macOS": {
+      "signingIdentity": "-"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
 }

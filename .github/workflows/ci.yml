@@ -10,17 +10,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  biome:
-    name: Biome
+  oxc:
+    name: Oxc
     permissions:
       contents: read
-    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/biome.yml@main
-
-  oxfmt:
-    name: Oxfmt
-    permissions:
-      contents: read
-    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/oxfmt.yml@main
+    uses: yuyuyuyuyu-dev/repo-config/.github/workflows/oxc.yml@main
 
   specification:
     name: Specification

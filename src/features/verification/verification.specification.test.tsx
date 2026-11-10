@@ -15,135 +15,125 @@ const READ_OFFSET = 6;
 
 const SETTINGS = 1;
 
-function mockBackend({
-	tracks,
-	confidences = [],
-}: {
-	tracks: number[];
-	confidences?: number[];
-}) {
-	const called: string[] = [];
-	const ripped: number[] = [];
+function mockBackend({ tracks, confidences = [] }: { tracks: number[]; confidences?: number[] }) {
+  const called: string[] = [];
+  const ripped: number[] = [];
 
-	mockIPC(
-		(command, payload) => {
-			called.push(command);
+  mockIPC(
+    (command, payload) => {
+      called.push(command);
 
-			if (command === "plugin:app|version") {
-				return VERSION;
-			}
-			if (command === "plugin:updater|check") {
-				return null;
-			}
-			if (command === "drives") {
-				return [DRIVE];
-			}
-			if (command === "tracks") {
-				return tracks.map((number) => ({ number, sectors: 7500 }));
-			}
-			if (command === "drive_name") {
-				return DRIVE_NAME;
-			}
-			if (command === "plugin:store|load") {
-				return SETTINGS;
-			}
-			if (command === "plugin:store|get") {
-				return [null, false];
-			}
-			if (command === "plugin:store|set" || command === "plugin:store|save") {
-				return null;
-			}
-			if (command === "read_offset") {
-				return READ_OFFSET;
-			}
-			if (command === "plugin:dialog|open") {
-				return FOLDER;
-			}
-			if (command === "already_there") {
-				return [];
-			}
-			if (command === "rip_track") {
-				ripped.push((payload as { track: number }).track);
+      if (command === "plugin:app|version") {
+        return VERSION;
+      }
+      if (command === "plugin:updater|check") {
+        return null;
+      }
+      if (command === "drives") {
+        return [DRIVE];
+      }
+      if (command === "tracks") {
+        return tracks.map((number) => ({ number, sectors: 7500 }));
+      }
+      if (command === "drive_name") {
+        return DRIVE_NAME;
+      }
+      if (command === "plugin:store|load") {
+        return SETTINGS;
+      }
+      if (command === "plugin:store|get") {
+        return [null, false];
+      }
+      if (command === "plugin:store|set" || command === "plugin:store|save") {
+        return null;
+      }
+      if (command === "read_offset") {
+        return READ_OFFSET;
+      }
+      if (command === "plugin:dialog|open") {
+        return FOLDER;
+      }
+      if (command === "already_there") {
+        return [];
+      }
+      if (command === "rip_track") {
+        ripped.push((payload as { track: number }).track);
 
-				return { file: "", checksums: { v1: 0, v2: 0 } };
-			}
-			if (command === "check_rip") {
-				return confidences.map(
-					(others): Verdict => ({ outcome: "matched", others }),
-				);
-			}
-			if (command === "plugin:notification|is_permission_granted") {
-				return true;
-			}
-			if (command === "plugin:notification|notify") {
-				return null;
-			}
-			throw new Error(`the test did not expect ${command}`);
-		},
-		{ shouldMockEvents: true },
-	);
+        return { file: "", checksums: { v1: 0, v2: 0 } };
+      }
+      if (command === "check_rip") {
+        return confidences.map((others): Verdict => ({ outcome: "matched", others }));
+      }
+      if (command === "plugin:notification|is_permission_granted") {
+        return true;
+      }
+      if (command === "plugin:notification|notify") {
+        return null;
+      }
+      throw new Error(`the test did not expect ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
 
-	return { called, ripped };
+  return { called, ripped };
 }
 
 async function turnTheCheckOn() {
-	await page.getByRole("switch").click();
-	await page.getByRole("button", { name: "Turn it on" }).click();
-	await expect.element(page.getByRole("switch")).toBeChecked();
+  await page.getByRole("switch").click();
+  await page.getByRole("button", { name: "Turn it on" }).click();
+  await expect.element(page.getByRole("switch")).toBeChecked();
 }
 
 async function chooseAFolderAndRip() {
-	await page.getByRole("button", { name: "Choose where to save" }).click();
-	await page
-		.getByRole("button", { name: "Start ripping", exact: true })
-		.click();
+  await page.getByRole("button", { name: "Choose where to save" }).click();
+  await page.getByRole("button", { name: "Start ripping", exact: true }).click();
 }
 
 afterEach(async () => {
-	await cleanup();
-	clearMocks();
+  await cleanup();
+  clearMocks();
 });
 
 test("should show the AccurateRip confidence for each ripped track", async () => {
-	// Arrange
-	const confidences = [68, 7, 1];
+  // Arrange
+  const confidences = [68, 7, 1];
 
-	mockBackend({ tracks: [1, 2, 3], confidences });
-	await render(<App />);
-	await turnTheCheckOn();
+  mockBackend({ tracks: [1, 2, 3], confidences });
+  await render(<App />);
+  await turnTheCheckOn();
 
-	// Act
-	await chooseAFolderAndRip();
+  // Act
+  await chooseAFolderAndRip();
 
-	// Assert
-	for (const [index, confidence] of confidences.entries()) {
-		await expect
-			.element(
-				page
-					.getByRole("row")
-					.filter({ hasText: `0${index + 1}` })
-					.getByText(String(confidence), { exact: true }),
-			)
-			.toBeVisible();
-	}
+  // Assert
+  for (const [index, confidence] of confidences.entries()) {
+    await expect
+      .element(
+        page
+          .getByRole("row")
+          .filter({ hasText: `0${index + 1}` })
+          .getByText(String(confidence), { exact: true }),
+      )
+      .toBeVisible();
+  }
 });
 
 test("should send no disc id to AccurateRip when the check is off", async () => {
-	// Arrange
-	const tracks = [1, 2, 3];
-	const { called, ripped } = mockBackend({ tracks });
+  // Arrange
+  const tracks = [1, 2, 3];
+  const { called, ripped } = mockBackend({ tracks });
 
-	await render(<App />);
-	await expect.element(page.getByRole("switch")).not.toBeChecked();
+  await render(<App />);
+  await expect.element(page.getByRole("switch")).not.toBeChecked();
 
-	// Act
-	await chooseAFolderAndRip();
+  // Act
+  await chooseAFolderAndRip();
 
-	// Assert
-	await expect.poll(() => ripped).toEqual(tracks);
-	await expect
-		.element(page.getByRole("button", { name: "Start ripping", exact: true }))
-		.toBeEnabled();
+  // Assert
+  await expect.poll(() => ripped).toEqual(tracks);
+  await expect
+    .element(page.getByRole("button", { name: "Start ripping", exact: true }))
+    .toBeEnabled();
 
-	expect(called).not.toContain("check_rip");
+  expect(called).not.toContain("check_rip");
 });

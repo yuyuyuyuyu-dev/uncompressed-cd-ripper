@@ -1,7 +1,7 @@
 const SECTORS_PER_SECOND = 75;
 
 export function length(sectors: number) {
-	const seconds = Math.round(sectors / SECTORS_PER_SECOND);
+  const seconds = Math.round(sectors / SECTORS_PER_SECOND);
 
-	return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }

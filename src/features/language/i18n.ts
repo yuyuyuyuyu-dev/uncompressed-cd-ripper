@@ -5,17 +5,17 @@ import { en } from "./en";
 import { ja } from "./ja";
 
 i18next
-	.use(LanguageDetector)
-	.use(initReactI18next)
-	.init({
-		resources: {
-			en: { translation: en },
-			ja: { translation: ja },
-		},
-		supportedLngs: ["en", "ja"],
-		fallbackLng: "en",
-		detection: { order: ["navigator"], caches: [] },
-		interpolation: { escapeValue: false },
-	});
+  .use(LanguageDetector)
+  .use(initReactI18next)
+  .init({
+    resources: {
+      en: { translation: en },
+      ja: { translation: ja },
+    },
+    supportedLngs: ["en", "ja"],
+    fallbackLng: "en",
+    detection: { order: ["navigator"], caches: [] },
+    interpolation: { escapeValue: false },
+  });
 
 export default i18next;

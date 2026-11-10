@@ -4,9 +4,9 @@ import App from "./App";
 import { ErrorReporter } from "./features/error-report/ErrorReporter";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-	<React.StrictMode>
-		<ErrorReporter>
-			<App />
-		</ErrorReporter>
-	</React.StrictMode>,
+  <React.StrictMode>
+    <ErrorReporter>
+      <App />
+    </ErrorReporter>
+  </React.StrictMode>,
 );
