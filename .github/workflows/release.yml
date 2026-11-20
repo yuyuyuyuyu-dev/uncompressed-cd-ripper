@@ -64,6 +64,20 @@ jobs:
             fs.writeFileSync(path, manifest.replaceAll(placeholder, version));
           '
 
+      - name: Find the release already published for the tag
+        id: published
+        if: github.ref_type == 'tag'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if id=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" --jq .id 2> "$RUNNER_TEMP/release-error.txt"); then
+            echo "id=$id" >> "$GITHUB_OUTPUT"
+          elif ! grep -q "HTTP 404" "$RUNNER_TEMP/release-error.txt"; then
+            cat "$RUNNER_TEMP/release-error.txt" >&2
+            exit 1
+          fi
+
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,7 +85,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || null }}
+          releaseId: ${{ steps.published.outputs.id }}
+          tagName: ${{ !steps.published.outputs.id && github.ref_type == 'tag' && github.ref_name || null }}
           releaseName: __VERSION__
           releaseDraft: true
           uploadWorkflowArtifacts: true
