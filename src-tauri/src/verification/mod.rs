@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::num::NonZeroU8;
 
 use cdtoc::Toc;
 use serde::{Deserialize, Serialize};
@@ -111,13 +112,15 @@ pub fn verify(
     Ok(verdicts)
 }
 
-fn verdict(ours: &Checksums, theirs: Option<&BTreeMap<u32, u8>>) -> Verdict {
+fn verdict(ours: &Checksums, theirs: Option<&BTreeMap<u32, NonZeroU8>>) -> Verdict {
     let Some(theirs) = theirs.filter(|theirs| !theirs.is_empty()) else {
         return Verdict::Unknown;
     };
 
     match theirs.get(&ours.v2).or_else(|| theirs.get(&ours.v1)) {
-        Some(others) => Verdict::Matched { others: *others },
+        Some(others) => Verdict::Matched {
+            others: others.get(),
+        },
         None => Verdict::Different,
     }
 }
