@@ -170,10 +170,10 @@ export function ErrorReporter({ children }: { children?: ReactNode }) {
                 )}
                 <Button
                   onClick={async () => {
-                    const result = await commands.sendErrorReport(report);
-
-                    if (result.status === "error") {
-                      update(showingDetailOf, { failedToSend: result.error });
+                    try {
+                      await commands.sendErrorReport(report);
+                    } catch (error) {
+                      update(showingDetailOf, { failedToSend: describe(error).value });
                       return;
                     }
 
