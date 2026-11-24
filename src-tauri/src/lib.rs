@@ -9,7 +9,7 @@ pub mod watching;
 use std::path::Path;
 use std::thread;
 
-use tauri_specta::{collect_commands, collect_events, Builder, Event};
+use tauri_specta::{collect_commands, collect_events, Builder, ErrorHandlingMode, Event};
 
 #[tauri::command(async)]
 #[specta::specta]
@@ -142,6 +142,7 @@ fn send_error_report(report: error_report::ErrorReport) -> Result<(), String> {
 
 pub fn builder() -> Builder<tauri::Wry> {
     Builder::new()
+        .error_handling(ErrorHandlingMode::Result)
         .constant("AGREEMENTS_REQUIRED", ripping::AGREEMENTS_REQUIRED)
         .constant("READS_ALLOWED", ripping::READS_ALLOWED)
         .events(collect_events![watching::DrivesChanged])
