@@ -5,14 +5,10 @@ export class BackendError extends Error {
   }
 }
 
-type Result<T> = { status: "ok"; data: T } | { status: "error"; error: string };
-
-export async function expectOk<T>(call: Promise<Result<T>>): Promise<T> {
-  const result = await call;
-
-  if (result.status === "error") {
-    throw new BackendError(result.error);
+export async function expectOk<T>(call: Promise<T>): Promise<T> {
+  try {
+    return await call;
+  } catch (error) {
+    throw error instanceof Error ? error : new BackendError(String(error));
   }
-
-  return result.data;
 }
